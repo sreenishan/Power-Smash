@@ -1,0 +1,2525 @@
+{
+  "schema_version": 1,
+  "description": "Machine-checkable expected parses for the 76 proposed fixtures in titles.proposed.json (PF-001..PF-076). Converted from the compact expected text; fields the audit leaves open are derived from PC-03 and flagged in note/review_basis. Compared as a SUBSET: a key that is absent is not asserted. hardFlags and softFlags are compared as sets; sideA/sideB must have the same length; pending_fields are skipped (see tests/parser/helpers/compare.ts). origin real-from-spec means the title is verbatim from spec Appendix A.5; every other title is synthetic and must never be presented as real.",
+  "source": "tests/fixtures/titles.proposed.json",
+  "scoring": {"start":100,"review_threshold_points":70,"hard_flag_penalty_points":30,"rule":"needsReview = hardFlags.length > 0 || confidencePoints < 70"},
+  "entries": [
+    {
+      "id": "PF-001",
+      "index": 0,
+      "origin": "real-from-spec",
+      "input": "VELAVAN/BHARATH SANJAI vs GANESH/KUPPURAJ || Open State Badminton …",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"Velavan","nameNormalized":"velavan","nameKey":"velavan","latinKey":"velavan","identityTier":"single_token","linkPolicy":"plain_text_only"},
+          {"displayName":"Bharath Sanjai","nameNormalized":"bharath sanjai","nameKey":"bharath sanjai","latinKey":"bharath sanjai","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Ganesh","nameNormalized":"ganesh","nameKey":"ganesh","latinKey":"ganesh","identityTier":"single_token","linkPolicy":"plain_text_only"},
+          {"displayName":"Kuppuraj","nameNormalized":"kuppuraj","nameKey":"kuppuraj","latinKey":"kuppuraj","identityTier":"single_token","linkPolicy":"plain_text_only"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": null,
+        "tournamentName": "Open State Badminton",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 35,
+        "hardFlags": ["TRUNCATED_TITLE"],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"NO_YEAR","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":3,"points":15}
+        ],
+        "needsReview": true,
+        "tournamentLinkPolicy": "blocked"
+      },
+      "note": "The audit's review list for this fixture omits NO_ROUND and NO_YEAR, but PC-03 charges them (rd=null, yr=null), so the derived score is 35, not the audit's partial list. The ellipsis is a channel-view truncation marker, never part of a name or the tournament. The full title of this video is PF-001's twin in real-titles.raw.json (index 1).",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-002",
+      "index": 1,
+      "origin": "real-from-spec",
+      "input": "PRAKASH RAJ/KARNIKA vs SANTHOSH/JERLIN || South India Level Badminton Tournament 2026 …",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"Prakash Raj","nameNormalized":"prakash raj","nameKey":"prakash raj","latinKey":"prakash raj","identityTier":"multi_token"},
+          {"displayName":"Karnika","nameNormalized":"karnika","nameKey":"karnika","latinKey":"karnika","identityTier":"single_token","linkPolicy":"plain_text_only"}
+        ],
+        "sideB": [
+          {"displayName":"Santhosh","nameNormalized":"santhosh","nameKey":"santhosh","latinKey":"santhosh","identityTier":"single_token","linkPolicy":"plain_text_only"},
+          {"displayName":"Jerlin","nameNormalized":"jerlin","nameKey":"jerlin","latinKey":"jerlin","identityTier":"single_token","linkPolicy":"plain_text_only"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "South India Level Badminton Tournament",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 40,
+        "hardFlags": ["TRUNCATED_TITLE"],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":3,"points":15}
+        ],
+        "needsReview": true,
+        "tournamentLinkPolicy": "blocked"
+      },
+      "note": "The audit's review list omits NO_ROUND (PC-03 charges it, rd=null), so the derived score is 40. Category stays null: mixed doubles is never inferred from names. tournamentLinkPolicy 'blocked' is a judgement: the title is cut right after '2026', so the tournament text cannot be trusted.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-003",
+      "index": 2,
+      "origin": "real-from-spec",
+      "input": "LAKSHYA SEN (9) [IND] vs KOKI WATANABE (JPN) || MS QuaterFinal - Singapore Open 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Lakshya Sen","nameNormalized":"lakshya sen","nameKey":"lakshya sen","latinKey":"lakshya sen","identityTier":"multi_token","seed":9,"country":"IND"}
+        ],
+        "sideB": [
+          {"displayName":"Koki Watanabe","nameNormalized":"koki watanabe","nameKey":"koki watanabe","latinKey":"koki watanabe","identityTier":"multi_token","country":"JPN"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "QF",
+        "year": 2026,
+        "tournamentName": "Singapore Open",
+        "locationHint": null,
+        "isInternational": true,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false,
+        "entityCreation": "blocked",
+        "entityBlockReason": "INTERNATIONAL"
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-004",
+      "index": 3,
+      "origin": "synthetic",
+      "input": "S V KUMAR vs R ARUN || MS SF - Madurai District Championship 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"S. V. Kumar","nameNormalized":"s v kumar","nameKey":"kumar|s v","latinKey":"s v kumar","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"R. Arun","nameNormalized":"r arun","nameKey":"arun|r","latinKey":"r arun","identityTier":"multi_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Madurai District Championship",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-005",
+      "index": 4,
+      "origin": "synthetic",
+      "input": "K V RAJESH v M ARUN || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "unknown",
+        "sideA": [],
+        "sideB": [],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 70,
+        "hardFlags": ["AMBIGUOUS_VS"],
+        "softFlags": [],
+        "needsReview": true,
+        "entityCreation": "blocked",
+        "entityBlockReason": "AMBIGUOUS_VS"
+      },
+      "note": "The audit only states A=? B=? and review. The META after '||' is independent of the ambiguous VS, so cat/rd/yr/tournament are asserted as derived, which gives 70 points: exactly the boundary that must still be reviewed (hard flag).",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-006",
+      "index": 5,
+      "origin": "synthetic",
+      "input": "RAJESH v ARUN || MS SF - Chennai Open 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Rajesh","nameNormalized":"rajesh","nameKey":"rajesh","latinKey":"rajesh","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Chennai Open",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "note": "The audit says 'review=Y or N per policy'. PC-03 settles it: two single-token names cost 10 points (score 90) and no hard flag fires, so needsReview is false.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-007",
+      "index": 6,
+      "origin": "synthetic",
+      "input": "V.S. KUMAR vs R. ARUN || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"V. S. Kumar","nameNormalized":"v s kumar","nameKey":"kumar|v s","latinKey":"v s kumar","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"R. Arun","nameNormalized":"r arun","nameKey":"arun|r","latinKey":"r arun","identityTier":"multi_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-008",
+      "index": 7,
+      "origin": "synthetic",
+      "input": "DAVIS vs EVANS || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Davis","nameNormalized":"davis","nameKey":"davis","latinKey":"davis","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Evans","nameNormalized":"evans","nameKey":"evans","latinKey":"evans","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-009",
+      "index": 8,
+      "origin": "synthetic",
+      "input": "ARUN Vs. KUMAR || ms semifinal - test cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-010",
+      "index": 9,
+      "origin": "synthetic",
+      "input": "ARUN V/S KUMAR || MS Semis – Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-011",
+      "index": 10,
+      "origin": "synthetic",
+      "input": "ARUN VERSUS KUMAR || MS Quater Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "QF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-012",
+      "index": 11,
+      "origin": "synthetic",
+      "input": "ARUN ｖｓ KUMAR ｜｜ MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-013",
+      "index": 12,
+      "origin": "synthetic",
+      "input": "ARUN    vs    KUMAR   ||   MS   SF  -  Test  Cup  2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-014",
+      "index": 13,
+      "origin": "synthetic",
+      "input": "S.KARTHIK vs M.ARUN || U-13 BS Final - Salem District 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"S. Karthik","nameNormalized":"s karthik","nameKey":"karthik|s","latinKey":"s karthik","identityTier":"multi_token","ageStatus":"minor_suspected"}
+        ],
+        "sideB": [
+          {"displayName":"M. Arun","nameNormalized":"m arun","nameKey":"arun|m","latinKey":"m arun","identityTier":"multi_token","ageStatus":"minor_suspected"}
+        ],
+        "category": "BS",
+        "ageGroup": "U13",
+        "ageSignals": ["age_token:U13","junior_category:BS"],
+        "minorHold": true,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Salem District",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "decision_pending": "D-012",
+      "pending_fields": ["minorHold"],
+      "note": "review=N is the parse-quality review. D-012 (still 'proposed') additionally holds a real-minor-signal match, which is modelled as the separate minorHold field and left pending until the owner decides.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-015",
+      "index": 14,
+      "origin": "synthetic",
+      "input": "KARTHIK S vs ARUN M || MS Final - Salem District 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Karthik S.","nameNormalized":"karthik s","nameKey":"karthik|s","latinKey":"karthik s","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Arun M.","nameNormalized":"arun m","nameKey":"arun|m","latinKey":"arun m","identityTier":"multi_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Salem District",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "name_key 'karthik|s' is this module's format (words, '|', initials); the audit only requires it to equal the key of 'S. Karthik' (PF-014).",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-016",
+      "index": 15,
+      "origin": "synthetic",
+      "input": "Karthik.S vs Arun.M || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Karthik S.","nameNormalized":"karthik s","nameKey":"karthik|s","latinKey":"karthik s","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Arun M.","nameNormalized":"arun m","nameKey":"arun|m","latinKey":"arun m","identityTier":"multi_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-017",
+      "index": 16,
+      "origin": "synthetic",
+      "input": "KP ARUN vs SR KUMAR || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"K. P. Arun","nameNormalized":"k p arun","nameKey":"arun|k p","latinKey":"k p arun","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"S. R. Kumar","nameNormalized":"s r kumar","nameKey":"kumar|s r","latinKey":"s r kumar","identityTier":"multi_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "No SUSPECT_INITIALS: KP and SR are consonant-only 2-letter caps tokens (PC-12).",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-018",
+      "index": 17,
+      "origin": "synthetic",
+      "input": "S. KUMAR/R. VIJAY vs M. ARUN/K. RAJESH || MD Senior SF - Example District Championship 2026, Madurai",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"S. Kumar","nameNormalized":"s kumar","nameKey":"kumar|s","latinKey":"s kumar","identityTier":"multi_token"},
+          {"displayName":"R. Vijay","nameNormalized":"r vijay","nameKey":"vijay|r","latinKey":"r vijay","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"M. Arun","nameNormalized":"m arun","nameKey":"arun|m","latinKey":"m arun","identityTier":"multi_token"},
+          {"displayName":"K. Rajesh","nameNormalized":"k rajesh","nameKey":"rajesh|k","latinKey":"k rajesh","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": "senior",
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Example District Championship",
+        "locationHint": "Madurai",
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "'Senior' is an adult-ish group but the parser never emits adult_confirmed (D-012): players stay 'unknown' protected until an admin confirms them.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-019",
+      "index": 18,
+      "origin": "synthetic",
+      "input": "A. KUMAR / B. RAJ vs C. ARUN / D. VIJAY || MD SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"A. Kumar","nameNormalized":"a kumar","nameKey":"kumar|a","latinKey":"a kumar","identityTier":"multi_token"},
+          {"displayName":"B. Raj","nameNormalized":"b raj","nameKey":"raj|b","latinKey":"b raj","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"C. Arun","nameNormalized":"c arun","nameKey":"arun|c","latinKey":"c arun","identityTier":"multi_token"},
+          {"displayName":"D. Vijay","nameNormalized":"d vijay","nameKey":"vijay|d","latinKey":"d vijay","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-020",
+      "index": 19,
+      "origin": "synthetic",
+      "input": "A. KUMAR & B. RAJ vs C. ARUN and D. VIJAY || MD Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"A. Kumar","nameNormalized":"a kumar","nameKey":"kumar|a","latinKey":"a kumar","identityTier":"multi_token"},
+          {"displayName":"B. Raj","nameNormalized":"b raj","nameKey":"raj|b","latinKey":"b raj","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"C. Arun","nameNormalized":"c arun","nameKey":"arun|c","latinKey":"c arun","identityTier":"multi_token"},
+          {"displayName":"D. Vijay","nameNormalized":"d vijay","nameKey":"vijay|d","latinKey":"d vijay","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-021",
+      "index": 20,
+      "origin": "synthetic",
+      "input": "MOHAMED-ALI vs SRI-RAM || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Mohamed-Ali","nameNormalized":"mohamed ali","nameKey":"mohamed ali","latinKey":"mohamed ali","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Sri-Ram","nameNormalized":"sri ram","nameKey":"sri ram","latinKey":"sri ram","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "note": "Judgement: a hyphenated name counts as ONE token for the identity tier (safest: Sri-Ram and Mohamed-Ali are very common given names, so they must not be linkable), hence SINGLE_TOKEN_NAME x2 and score 90. The audit only requires the hyphen not to act as the ' - ' separator and the key to fold it to a space.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-022",
+      "index": 21,
+      "origin": "synthetic",
+      "input": "ARUN KUMAR vs RAJESH || Rise and Shine Trophy 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun Kumar","nameNormalized":"arun kumar","nameKey":"arun kumar","latinKey":"arun kumar","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Rajesh","nameNormalized":"rajesh","nameKey":"rajesh","latinKey":"rajesh","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "Rise and Shine Trophy",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 80,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":1,"points":5}
+        ],
+        "needsReview": false
+      },
+      "note": "TENSION: D-017 legacy mode says 'format unknown and needs_review unless a doubles token is present and each side has two tokens'. This fixture explicitly expects singles with A='Arun Kumar' as ONE player. The fixture was followed; the lead should reconcile D-017 with PF-022/PF-062 before M2b.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-023",
+      "index": 22,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Premier Badminton League 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "Premier Badminton League",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 75,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-024",
+      "index": 23,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR | Final Frontier Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "Final Frontier Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 75,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-025",
+      "index": 24,
+      "origin": "synthetic",
+      "input": "A/B vs C/D || M.S. Memorial Trophy 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"A","nameNormalized":"a","nameKey":"|a","latinKey":"a","identityTier":"initials_only"},
+          {"displayName":"B","nameNormalized":"b","nameKey":"|b","latinKey":"b","identityTier":"initials_only"}
+        ],
+        "sideB": [
+          {"displayName":"C","nameNormalized":"c","nameKey":"|c","latinKey":"c","identityTier":"initials_only"},
+          {"displayName":"D","nameNormalized":"d","nameKey":"|d","latinKey":"d","identityTier":"initials_only"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "M.S. Memorial Trophy",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 65,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"SHORT_NAME","count":1,"points":20}
+        ],
+        "needsReview": true
+      },
+      "pending_fields": ["sideA[].displayName","sideB[].displayName"],
+      "note": "Ambiguous in the audit: the compact text writes the names as A, B, C, D, but the initials rule (A.3 / PC-12) would render a lone initial as 'A.'. displayName is therefore not asserted for this fixture. Single-letter names are initials_only (not SINGLE_TOKEN_NAME); SHORT_NAME (20, once) + NO_CATEGORY + NO_ROUND = 65, review.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-026",
+      "index": 25,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Semi Final - Tamil Nadu - Kerala Zonal 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Tamil Nadu - Kerala Zonal",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 80,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "note": "The inner ' - ' breaks title convention v2 but the fixture requires it to stay inside the tournament name.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-027",
+      "index": 26,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Court #3 Final - Salem District 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Salem District",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 80,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "signals": []
+      },
+      "note": "'#3' is not a hashtag (signals stays empty). The court number is noise; the audit says 'notes court=3' but this module's output has no court field, so it is not asserted.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-028",
+      "index": 27,
+      "origin": "synthetic",
+      "input": "Madurai District 2026 | MS Final: KARTHIK vs ARUN",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Karthik","nameNormalized":"karthik","nameKey":"karthik","latinKey":"karthik","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Madurai District",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-029",
+      "index": 28,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR | MS SF | Test Cup | 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-030",
+      "index": 29,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR :: MS SF :: Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-031",
+      "index": 30,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR 21-15 21-18 || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "scoreText": "21-15 21-18"
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-032",
+      "index": 31,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR 21 - 15 21 - 18",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": null,
+        "tournamentName": null,
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 50,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_TOURNAMENT","count":1,"points":20},
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"NO_YEAR","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true,
+        "scoreText": "21 - 15 21 - 18"
+      },
+      "note": "The audit says 'review=N or Y per NO_TOURNAMENT policy'. PC-03 settles it: NO_TOURNAMENT 20 + NO_CATEGORY 10 + NO_ROUND 5 + NO_YEAR 5 + SINGLE_TOKEN_NAME x2 10 = 50 points, so review. No NO_SEPARATOR: after the score is peeled there is no META left to separate from side B.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-033",
+      "index": 32,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR Final",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": null,
+        "tournamentName": null,
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 25,
+        "hardFlags": ["NO_SEPARATOR"],
+        "softFlags": [
+          {"flag":"NO_TOURNAMENT","count":1,"points":20},
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_YEAR","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-034",
+      "index": 33,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR MS SF Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 60,
+        "hardFlags": ["NO_SEPARATOR"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-035",
+      "index": 34,
+      "origin": "synthetic",
+      "input": "Best Rallies | District Championship 2026",
+      "expected": {"kind":"non_match","nonMatchReason":"NO_VS","sideA":[],"sideB":[],"entityCreation":"blocked","entityBlockReason":"NON_MATCH","confidencePoints":100,"hardFlags":[],"softFlags":[],"needsReview":false},
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-036",
+      "index": 35,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR Highlights | Test Cup 2026",
+      "expected": {
+        "kind": "non_match",
+        "nonMatchReason": "NON_MATCH_KEYWORD",
+        "sideA": [],
+        "sideB": [],
+        "entityCreation": "blocked",
+        "entityBlockReason": "NON_MATCH",
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "The matched keyword list (highlights) is not asserted, only the reason.",
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-037",
+      "index": 36,
+      "origin": "synthetic",
+      "input": "Top 10 Smashes: PLAYER ONE vs PLAYER TWO",
+      "expected": {
+        "kind": "non_match",
+        "nonMatchReason": "NON_MATCH_KEYWORD",
+        "sideA": [],
+        "sideB": [],
+        "entityCreation": "blocked",
+        "entityBlockReason": "NON_MATCH",
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "The audit lists (top 10, smashes) as the matched keywords; only the reason is asserted.",
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-038",
+      "index": 37,
+      "origin": "synthetic",
+      "input": "Yonex Astrox 88D vs Li-Ning Axforce 80 Review",
+      "expected": {
+        "kind": "non_match",
+        "nonMatchReason": "GEAR_VS",
+        "sideA": [],
+        "sideB": [],
+        "entityCreation": "blocked",
+        "entityBlockReason": "NON_MATCH",
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-039",
+      "index": 38,
+      "origin": "synthetic",
+      "input": "Tamil Nadu vs Kerala || South Zone Inter State Championship 2026 - Boys U-15 Team Event",
+      "expected": {
+        "kind": "team_tie",
+        "nonMatchReason": null,
+        "format": "unknown",
+        "sideA": [],
+        "sideB": [],
+        "teams": {"a":"Tamil Nadu","b":"Kerala"},
+        "category": null,
+        "ageGroup": "U15",
+        "ageSignals": ["age_token:U15"],
+        "minorHold": true,
+        "round": null,
+        "year": 2026,
+        "tournamentName": "South Zone Inter State Championship",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 55,
+        "hardFlags": ["TEAM_SIDE"],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5}
+        ],
+        "needsReview": true,
+        "entityCreation": "blocked",
+        "entityBlockReason": "TEAM_TIE"
+      },
+      "decision_pending": "D-012",
+      "pending_fields": ["minorHold"],
+      "note": "The audit says both 'ignored' and review=Y(TEAM_SIDE): modelled as kind team_tie, no player rows, TEAM_SIDE hard flag. minorHold is pending D-012 (the U-15 token is a minor signal). 'Team Event' is not a round, category stays null.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-040",
+      "index": 39,
+      "origin": "synthetic",
+      "input": "கார்த்திக் vs அருண் || MS Final - சென்னை மாவட்ட போட்டி 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"கார்த்திக்","nameNormalized":"கார்த்திக்","nameKey":"கார்த்திக்","latinKey":null,"identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"அருண்","nameNormalized":"அருண்","nameKey":"அருண்","latinKey":null,"identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "சென்னை மாவட்ட போட்டி",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 60,
+        "hardFlags": ["NO_LATIN_KEY"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "note": "The audit expects review=Y(SINGLE_TOKEN_NAME x2; no latin_key), but PC-03's hard-flag list has nothing for a Tamil-only name and SINGLE_TOKEN_NAME x2 alone scores 90 (no review). NO_LATIN_KEY is therefore an EXTENSION hard flag introduced by this skeleton; the lead must confirm or replace it.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-041",
+      "index": 40,
+      "origin": "synthetic",
+      "input": "கார்த்திக் எதிர் அருண் || இறுதி - சேலம் மாவட்ட போட்டி 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"கார்த்திக்","nameNormalized":"கார்த்திக்","nameKey":"கார்த்திக்","latinKey":null,"identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"அருண்","nameNormalized":"அருண்","nameKey":"அருண்","latinKey":null,"identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "சேலம் மாவட்ட போட்டி",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 50,
+        "hardFlags": ["NO_LATIN_KEY"],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "decision_pending": "D-017",
+      "pending_fields": ["*"],
+      "note": "Without the proposed Tamil vocabulary (PC-24, native-speaker review of the words for 'versus' and 'final', OT-32) this title is a non_match. The whole expectation is therefore pending; it records the match reading for when the vocabulary is approved.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-042",
+      "index": 41,
+      "origin": "synthetic",
+      "input": "Karthik கார்த்திக் vs Arun || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Karthik கார்த்திக்","nameNormalized":"karthik கார்த்திக்","nameKey":"karthik கார்த்திக்","latinKey":null,"identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 65,
+        "hardFlags": ["MIXED_SCRIPT_NAME"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":1,"points":5}
+        ],
+        "needsReview": true
+      },
+      "note": "Alias proposals ('Karthik', 'கார்த்திக்') are not part of the parse output and are not asserted.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-043",
+      "index": 42,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS SF - Test Cup 2026 #badminton #பேட்மிண்டன் 🏸🔥",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "signals": ["badminton","பேட்மிண்டன்"]
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-044",
+      "index": 43,
+      "origin": "synthetic",
+      "input": "🏸 ARUN vs KUMAR 🔥 || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "signals": []
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-045",
+      "index": 44,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS SF - Test Cup 2025-26",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2025,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "seasonLabel": "2025-26"
+      },
+      "note": "year is the first year of the season (the audit says yr=2025).",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-046",
+      "index": 45,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - 12th Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "editionNo": 12
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-047",
+      "index": 46,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - 1990 Batch Alumni Meet 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "1990 Batch Alumni Meet",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-048",
+      "index": 47,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - Test Cup | 12/03/2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "playedOn": "2026-03-12"
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-049",
+      "index": 48,
+      "origin": "synthetic",
+      "input": "A. KUMAR/B. RAJ vs C. ARUN/D. VIJAY || MD SF - Test Cup 2026, Trichy",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"A. Kumar","nameNormalized":"a kumar","nameKey":"kumar|a","latinKey":"a kumar","identityTier":"multi_token"},
+          {"displayName":"B. Raj","nameNormalized":"b raj","nameKey":"raj|b","latinKey":"b raj","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"C. Arun","nameNormalized":"c arun","nameKey":"arun|c","latinKey":"c arun","identityTier":"multi_token"},
+          {"displayName":"D. Vijay","nameNormalized":"d vijay","nameKey":"vijay|d","latinKey":"d vijay","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": "Tiruchirappalli",
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "Needs the districts table alias Trichy -> Tiruchirappalli (PC-28), seeded as data in M2.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-050",
+      "index": 49,
+      "origin": "synthetic",
+      "input": "A. KUMAR/B. RAJ vs C. ARUN/D. VIJAY || MD SF - TNBA/DBA Joint Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"A. Kumar","nameNormalized":"a kumar","nameKey":"kumar|a","latinKey":"a kumar","identityTier":"multi_token"},
+          {"displayName":"B. Raj","nameNormalized":"b raj","nameKey":"raj|b","latinKey":"b raj","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"C. Arun","nameNormalized":"c arun","nameKey":"arun|c","latinKey":"c arun","identityTier":"multi_token"},
+          {"displayName":"D. Vijay","nameNormalized":"d vijay","nameKey":"vijay|d","latinKey":"d vijay","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "TNBA/DBA Joint Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false
+      },
+      "note": "The tournament slug 'tnba-dba-joint-cup-2026' is asserted in tests/parser/slug.test.ts (green helper test), not in the parse result.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-051",
+      "index": 50,
+      "origin": "synthetic",
+      "input": "ARUN/KUMAR vs RAJ || MD SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "unknown",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"},
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Raj","nameNormalized":"raj","nameKey":"raj","latinKey":"raj","identityTier":"single_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 55,
+        "hardFlags": ["UNEVEN_SIDES"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":3,"points":15}
+        ],
+        "needsReview": true
+      },
+      "note": "The PC-03 regression: UNEVEN_SIDES alone is exactly 70 points (not below 70) yet must be reviewed, because it is a hard flag.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-052",
+      "index": 51,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MD SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 60,
+        "hardFlags": ["FORMAT_CATEGORY_MISMATCH"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-053",
+      "index": 52,
+      "origin": "synthetic",
+      "input": "ARUN/KUMAR/RAJ vs VIJAY/ANAND/SIVA || MD SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "unknown",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"},
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"},
+          {"displayName":"Raj","nameNormalized":"raj","nameKey":"raj","latinKey":"raj","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Vijay","nameNormalized":"vijay","nameKey":"vijay","latinKey":"vijay","identityTier":"single_token"},
+          {"displayName":"Anand","nameNormalized":"anand","nameKey":"anand","latinKey":"anand","identityTier":"single_token"},
+          {"displayName":"Siva","nameNormalized":"siva","nameKey":"siva","latinKey":"siva","identityTier":"single_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 40,
+        "hardFlags": ["NAME_COUNT_GT2"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":6,"points":30}
+        ],
+        "needsReview": true
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-054",
+      "index": 53,
+      "origin": "synthetic",
+      "input": "R. KUMAR/S. RAJ vs R. KUMAR/T. ANAND || MD SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"R. Kumar","nameNormalized":"r kumar","nameKey":"kumar|r","latinKey":"r kumar","identityTier":"multi_token","linkPolicy":"blocked"},
+          {"displayName":"S. Raj","nameNormalized":"s raj","nameKey":"raj|s","latinKey":"s raj","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"R. Kumar","nameNormalized":"r kumar","nameKey":"kumar|r","latinKey":"r kumar","identityTier":"multi_token","linkPolicy":"blocked"},
+          {"displayName":"T. Anand","nameNormalized":"t anand","nameKey":"anand|t","latinKey":"t anand","identityTier":"multi_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 70,
+        "hardFlags": ["DUP_ALIAS_IN_MATCH"],
+        "softFlags": [],
+        "needsReview": true
+      },
+      "note": "Score is exactly 70 (one hard flag); review is forced by the flag, not by the threshold.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-055",
+      "index": 54,
+      "origin": "synthetic",
+      "input": "GANESH vs GANESH || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Ganesh","nameNormalized":"ganesh","nameKey":"ganesh","latinKey":"ganesh","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Ganesh","nameNormalized":"ganesh","nameKey":"ganesh","latinKey":"ganesh","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 60,
+        "hardFlags": ["DUP_ALIAS_IN_MATCH"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-056",
+      "index": 55,
+      "origin": "synthetic",
+      "input": "ARUN (CHENNAI) vs KUMAR (MADURAI) || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","districtHint":"Chennai"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","districtHint":"Madurai"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-057",
+      "index": 56,
+      "origin": "synthetic",
+      "input": "ARUN (CBE) vs KUMAR (MDU) || MS SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","affiliationHint":"CBE"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","affiliationHint":"MDU"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "note": "The fixture keeps CBE/MDU as affiliation hints. If the districts table (PC-28) seeds them as aliases of Coimbatore/Madurai the expectation changes; flagged to the lead.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-058",
+      "index": 57,
+      "origin": "synthetic",
+      "input": "AHMAD RIZAL (MAS) vs TAN WEI (SIN) || MS R16 - Test Open 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Ahmad Rizal","nameNormalized":"ahmad rizal","nameKey":"ahmad rizal","latinKey":"ahmad rizal","identityTier":"multi_token","country":"MAS"}
+        ],
+        "sideB": [
+          {"displayName":"Tan Wei","nameNormalized":"tan wei","nameKey":"tan wei","latinKey":"tan wei","identityTier":"multi_token","country":"SIN"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "R16",
+        "year": 2026,
+        "tournamentName": "Test Open",
+        "locationHint": null,
+        "isInternational": true,
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false,
+        "entityCreation": "blocked",
+        "entityBlockReason": "INTERNATIONAL"
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-059",
+      "index": 58,
+      "origin": "synthetic",
+      "input": "ARUN [IND] vs KUMAR [IND] || MS Final - Senior Nationals 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","country":"IND"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","country":"IND"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Senior Nationals",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 60,
+        "hardFlags": ["INDIA_ONLY_CODE"],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": true
+      },
+      "decision_pending": "D-018",
+      "pending_fields": ["isInternational"],
+      "note": "The INDIA_ONLY_CODE hard flag is fixed by PC-17, but whether an IND-only title is international / hidden is the owner's policy (D-018, proposed), so isInternational is pending. 'Senior' sits inside the tournament segment, so ageGroup stays null.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-060",
+      "index": 59,
+      "origin": "synthetic",
+      "input": "ARUN (1) vs KUMAR [2] || MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","seed":1}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","seed":2}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-061",
+      "index": 60,
+      "origin": "synthetic",
+      "input": "ARUN/KUMAR vs RAJ/MURUGAN || MD SF - Test District Champ…",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"},
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Raj","nameNormalized":"raj","nameKey":"raj","latinKey":"raj","identityTier":"single_token"},
+          {"displayName":"Murugan","nameNormalized":"murugan","nameKey":"murugan","latinKey":"murugan","identityTier":"single_token"}
+        ],
+        "category": "MD",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": null,
+        "tournamentName": "Test District Champ",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 45,
+        "hardFlags": ["TRUNCATED_TITLE"],
+        "softFlags": [
+          {"flag":"NO_YEAR","count":1,"points":5},
+          {"flag":"SINGLE_TOKEN_NAME","count":4,"points":20}
+        ],
+        "needsReview": true,
+        "tournamentLinkPolicy": "blocked"
+      },
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-062",
+      "index": 61,
+      "origin": "synthetic",
+      "input": "ARUN KUMAR vs RAJ MURU…",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun Kumar","nameNormalized":"arun kumar","nameKey":"arun kumar","latinKey":"arun kumar","identityTier":"multi_token"}
+        ],
+        "sideB": [
+          {"displayName":"Raj Muru","nameNormalized":"raj muru","nameKey":"raj muru","latinKey":"raj muru","identityTier":"multi_token","truncated":true,"linkPolicy":"blocked"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": null,
+        "year": null,
+        "tournamentName": null,
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 30,
+        "hardFlags": ["TRUNCATED_TITLE"],
+        "softFlags": [
+          {"flag":"NO_TOURNAMENT","count":1,"points":20},
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"NO_ROUND","count":1,"points":5},
+          {"flag":"NO_YEAR","count":1,"points":5}
+        ],
+        "needsReview": true
+      },
+      "note": "The audit's review list omits NO_CATEGORY/NO_ROUND/NO_YEAR (PC-03 charges them). Same D-017 vs fixture tension as PF-022 on format.",
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-063",
+      "index": 62,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Sub Junior Girls Singles SF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","ageStatus":"minor_suspected"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","ageStatus":"minor_suspected"}
+        ],
+        "category": "GS",
+        "ageGroup": "sub_junior",
+        "ageSignals": ["age_token:sub_junior","junior_category:GS"],
+        "minorHold": true,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "decision_pending": "D-012",
+      "pending_fields": ["minorHold"],
+      "review_basis": "stated_in_audit"
+    },
+    {
+      "id": "PF-064",
+      "index": 63,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || U-21 MS Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": "U21",
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "decision_pending": "D-012",
+      "pending_fields": ["ageSignals","minorHold"],
+      "note": "The audit says 'junior=false (owner to confirm)'. D-012's text says U-21 is not an age signal, but D-012 is still proposed, so the age signals / hold are pending; ageGroup 'U21' is asserted.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-065",
+      "index": 64,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Under 15 Boys Singles QF - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token","ageStatus":"minor_suspected"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token","ageStatus":"minor_suspected"}
+        ],
+        "category": "BS",
+        "ageGroup": "U15",
+        "ageSignals": ["age_token:U15","junior_category:BS"],
+        "minorHold": true,
+        "round": "QF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "decision_pending": "D-012",
+      "pending_fields": ["minorHold"],
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-066",
+      "index": 65,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || Men’s Singles Final - Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-067",
+      "index": 66,
+      "origin": "synthetic",
+      "input": "ARUN/KUMAR vs RAJ/VIJAY || 35+ MD SF - Veterans Meet 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "doubles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"},
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Raj","nameNormalized":"raj","nameKey":"raj","latinKey":"raj","identityTier":"single_token"},
+          {"displayName":"Vijay","nameNormalized":"vijay","nameKey":"vijay","latinKey":"vijay","identityTier":"single_token"}
+        ],
+        "category": "MD",
+        "ageGroup": "35+",
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Veterans Meet",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 80,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":4,"points":20}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-068",
+      "index": 67,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Open SF - Chennai Open 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": "open",
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Chennai Open",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-069",
+      "index": 68,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR smash rally #shorts",
+      "context": {"durationSeconds":45},
+      "expected": {
+        "kind": "non_match",
+        "nonMatchReason": "SHORT_FORM",
+        "sideA": [],
+        "sideB": [],
+        "entityCreation": "blocked",
+        "entityBlockReason": "NON_MATCH",
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false,
+        "videoType": "short",
+        "signals": ["shorts"]
+      },
+      "note": "Judgement: the audit only says 'type=short (not a match page) despite vs'. Modelled as videoType short + kind non_match + reason SHORT_FORM (Shorts never become match pages, PC-15).",
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-070",
+      "index": 69,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - Test Cup 2026",
+      "context": {"liveBroadcastContent":"none","hasLiveStreamingDetails":true},
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "videoType": "match",
+        "liveStatus": "completed"
+      },
+      "note": "The context carries liveStreamingDetails with liveBroadcastContent 'none' (a finished stream), as the audit describes.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-071",
+      "index": 70,
+      "origin": "synthetic",
+      "input": "LIVE 🔴 Test District Championship 2026 | Finals Day | Court 1",
+      "expected": {
+        "kind": "non_match",
+        "nonMatchReason": "NO_VS",
+        "sideA": [],
+        "sideB": [],
+        "entityCreation": "blocked",
+        "entityBlockReason": "NON_MATCH",
+        "confidencePoints": 100,
+        "hardFlags": [],
+        "softFlags": [],
+        "needsReview": false,
+        "tournamentName": null
+      },
+      "decision_pending": "D-033",
+      "pending_fields": ["videoType","liveStatus"],
+      "note": "The audit says type=live, but D-033 makes live status API-driven (liveBroadcastContent) and no context is supplied here. Whether a 'LIVE' marker in the title alone classifies as live is undecided, so videoType / liveStatus are pending; the junk-tournament guard (no tournament from 'Finals Day' / 'Court 1') is asserted.",
+      "review_basis": "not_applicable_non_match"
+    },
+    {
+      "id": "PF-072",
+      "index": 71,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - Open State Badminton Tournament 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Open State Badminton Tournament",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "seriesKey": "open state"
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-073",
+      "index": 72,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS SF - Open State Badminton Championship 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Open State Badminton Championship",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false,
+        "seriesKey": "open state"
+      },
+      "relations": [
+        {"type":"same_series_key","with":"PF-072"}
+      ],
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-074",
+      "index": 73,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS Final - Test Cup 2026 (Full Match)",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "relations": [
+        {"type":"same_match_key","with":"PF-070"}
+      ],
+      "note": "matchKey is opaque; the test only requires it to equal PF-070's (same match, second video) - the audit says 'earlier ARUN vs KUMAR || MS Final - Test Cup 2026 video', which is PF-070's input.",
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-075",
+      "index": 74,
+      "origin": "synthetic",
+      "input": "ARUN vs KUMAR || MS SF - Test Cup ௨௦௨௬",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": "MS",
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "SF",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 90,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "review_basis": "derived_from_PC-03"
+    },
+    {
+      "id": "PF-076",
+      "index": 75,
+      "origin": "synthetic",
+      "input": "Final | ARUN vs KUMAR | Test Cup 2026",
+      "expected": {
+        "kind": "match",
+        "nonMatchReason": null,
+        "format": "singles",
+        "sideA": [
+          {"displayName":"Arun","nameNormalized":"arun","nameKey":"arun","latinKey":"arun","identityTier":"single_token"}
+        ],
+        "sideB": [
+          {"displayName":"Kumar","nameNormalized":"kumar","nameKey":"kumar","latinKey":"kumar","identityTier":"single_token"}
+        ],
+        "category": null,
+        "ageGroup": null,
+        "ageSignals": [],
+        "minorHold": false,
+        "round": "F",
+        "year": 2026,
+        "tournamentName": "Test Cup",
+        "locationHint": null,
+        "isInternational": false,
+        "confidencePoints": 80,
+        "hardFlags": [],
+        "softFlags": [
+          {"flag":"NO_CATEGORY","count":1,"points":10},
+          {"flag":"SINGLE_TOKEN_NAME","count":2,"points":10}
+        ],
+        "needsReview": false
+      },
+      "note": "No '||' here: single pipes with the token segment before the VS segment.",
+      "review_basis": "derived_from_PC-03"
+    }
+  ]
+}

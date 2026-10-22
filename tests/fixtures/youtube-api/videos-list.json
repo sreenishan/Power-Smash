@@ -1,0 +1,30 @@
+{
+  "_fixture": "SYNTHETIC recorded-shape response for ids fake-fx-01..04 (fake-fx-04 is absent on purpose: deleted or private). Fake titles and values.",
+  "kind": "youtube#videoListResponse",
+  "etag": "W/\"fake-videos\"",
+  "pageInfo": { "totalResults": 3, "resultsPerPage": 3 },
+  "items": [
+    {
+      "kind": "youtube#video", "etag": "v1", "id": "fake-fx-01",
+      "snippet": { "publishedAt": "2026-10-01T10:00:00Z", "channelId": "fake-channel", "title": "ARJUN VEL/BALA MURUGAN vs DEVAN RAJ/KIRAN MOHAN || Fake Cup Open Badminton Tournament 2026 - Madurai", "liveBroadcastContent": "none" },
+      "contentDetails": { "duration": "PT58M12S", "contentRating": {} },
+      "statistics": { "viewCount": "1500", "likeCount": "40", "commentCount": "3" },
+      "status": { "privacyStatus": "public", "embeddable": true, "madeForKids": false, "uploadStatus": "processed" }
+    },
+    {
+      "kind": "youtube#video", "etag": "v2", "id": "fake-fx-02",
+      "snippet": { "publishedAt": "2026-09-30T10:00:00Z", "channelId": "fake-channel", "title": "Fake training clip #shorts", "liveBroadcastContent": "none" },
+      "contentDetails": { "duration": "PT45S" },
+      "statistics": { "viewCount": "900", "likeCount": "10" },
+      "status": { "privacyStatus": "public", "embeddable": true, "madeForKids": false }
+    },
+    {
+      "kind": "youtube#video", "etag": "v3", "id": "fake-fx-03",
+      "snippet": { "publishedAt": "2026-09-29T10:00:00Z", "channelId": "fake-channel", "title": "KIRAN SELVAM vs MANI RAJA || Fake Open Badminton 2026 - Salem", "liveBroadcastContent": "none" },
+      "contentDetails": { "duration": "PT3H1M" },
+      "statistics": { "viewCount": "20000", "likeCount": "300", "commentCount": "12" },
+      "liveStreamingDetails": { "actualStartTime": "2026-09-29T09:00:00Z", "actualEndTime": "2026-09-29T12:01:00Z" },
+      "status": { "privacyStatus": "public", "embeddable": true, "madeForKids": false }
+    }
+  ]
+}

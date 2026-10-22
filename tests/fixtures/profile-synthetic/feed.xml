@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns="http://www.w3.org/2005/Atom">
+ <title>Synthetic Channel</title>
+ <entry>
+  <id>yt:video:SYNFEED0001</id>
+  <yt:videoId>SYNFEED0001</yt:videoId>
+  <title>Zorvan Pell vs Quillan Raske | MS Final | Zeta Memorial Cup 2023 &amp; more</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=SYNFEED0001"/>
+  <published>2025-01-02T03:04:05+00:00</published>
+ </entry>
+ <entry>
+  <id>yt:video:SYNFEED0002</id>
+  <yt:videoId>SYNFEED0002</yt:videoId>
+  <title>Quick rally clip #shorts</title>
+  <link rel="alternate" href="https://www.youtube.com/shorts/SYNFEED0002"/>
+  <published>2025-01-03T03:04:05+00:00</published>
+ </entry>
+</feed>

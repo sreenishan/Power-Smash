@@ -1,0 +1,9 @@
+{
+  "_fixture": "SYNTHETIC recorded-shape response (last page: no nextPageToken). Fake ids.",
+  "kind": "youtube#playlistItemListResponse",
+  "etag": "W/\"fake-pl-page2\"",
+  "pageInfo": { "totalResults": 3, "resultsPerPage": 2 },
+  "items": [
+    { "kind": "youtube#playlistItem", "etag": "e3", "id": "fake-pli-3", "contentDetails": { "videoId": "fake-fx-03", "videoPublishedAt": "2026-09-29T10:00:00Z" } }
+  ]
+}

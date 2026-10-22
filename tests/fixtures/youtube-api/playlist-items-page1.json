@@ -1,0 +1,11 @@
+{
+  "_fixture": "SYNTHETIC recorded-shape response (page 1 of 2, page size 2). Fake ids.",
+  "kind": "youtube#playlistItemListResponse",
+  "etag": "W/\"fake-pl-page1\"",
+  "nextPageToken": "FAKE_PAGE_2",
+  "pageInfo": { "totalResults": 3, "resultsPerPage": 2 },
+  "items": [
+    { "kind": "youtube#playlistItem", "etag": "e1", "id": "fake-pli-1", "contentDetails": { "videoId": "fake-fx-01", "videoPublishedAt": "2026-10-01T10:00:00Z" } },
+    { "kind": "youtube#playlistItem", "etag": "e2", "id": "fake-pli-2", "contentDetails": { "videoId": "fake-fx-02", "videoPublishedAt": "2026-09-30T10:00:00Z" } }
+  ]
+}

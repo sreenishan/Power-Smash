@@ -1,0 +1,158 @@
+[
+  {
+    "group": "not_byte_exact_in_research_copy",
+    "youtube_id": "K35oUsZU1q8",
+    "title_as_recorded_by_researcher": "VELAVAN/BHARATH SANJAI vs NAVEEN/VIMAL || JUMBLED DOUBLES - Open State Badminton Tournament 2026",
+    "title_reported_raw_by_skeptic": "VELAVAN/BHARATH SANJAI vs NAVEEN/VIMAL || JUMBLED DOUBLES - Open State Badminton Tournament 2026 ",
+    "difference": "Raw title has ONE trailing space that the summarising fetch dropped.",
+    "source": "verify/youtube.json, finding SAMPLE-TITLES (skeptic compared with raw XML from the channel feeds)",
+    "status": "Use the skeptic raw form for normaliser tests only after re-capture; replace both forms with the API/RSS-sourced string at backfill."
+  },
+  {
+    "group": "not_byte_exact_in_research_copy",
+    "youtube_id": "rihZlfZ2m-Q",
+    "title_as_recorded_by_researcher": "All INDIA NATIONALS || MEISNAM MEIRABA vs BHARGAV S || SemiFinal - National Ranking Bangalore",
+    "title_reported_raw_by_skeptic": "All INDIA NATIONALS || MEISNAM MEIRABA vs BHARGAV S || SemiFinal - National Ranking Bangalore ",
+    "difference": "Raw title has ONE trailing space that the summarising fetch dropped.",
+    "source": "verify/youtube.json, finding SAMPLE-TITLES (skeptic compared with raw XML from the channel feeds)",
+    "status": "Use the skeptic raw form for normaliser tests only after re-capture; replace both forms with the API/RSS-sourced string at backfill."
+  },
+  {
+    "group": "not_byte_exact_in_research_copy",
+    "youtube_id": "hlLOVp7oPWI",
+    "title_as_recorded_by_researcher": "FINALS DECIDING SET Kerala Badminton Invitational Tournament 2022 Dhilepan Sidarth Vs Jaison Shijas",
+    "title_reported_raw_by_skeptic": "FINALS  DECIDING SET Kerala Badminton Invitational Tournament 2022 Dhilepan Sidarth Vs Jaison Shijas",
+    "difference": "Raw title has TWO spaces between FINALS and DECIDING; the fetch collapsed them to one.",
+    "source": "verify/youtube.json, finding SAMPLE-TITLES (skeptic compared with raw XML from the channel feeds)",
+    "status": "Use the skeptic raw form for normaliser tests only after re-capture; replace both forms with the API/RSS-sourced string at backfill."
+  },
+  {
+    "group": "not_byte_exact_in_research_copy",
+    "youtube_id": null,
+    "title_as_recorded_by_researcher": "Fault Or Right || Don't Move While Receiving Service || Power Smash || DFBA Badminton Academy",
+    "title_reported_raw_by_skeptic": "Fault Or Right || Don’t Move While Receiving Service || Power Smash || DFBA Badminton Academy",
+    "difference": "Raw title uses a curly apostrophe (U+2019); the fetch returned a straight apostrophe. (A Short; video id not recorded in the inputs.)",
+    "source": "verify/youtube.json, finding SAMPLE-TITLES (skeptic compared with raw XML from the channel feeds)",
+    "status": "Use the skeptic raw form for normaliser tests only after re-capture; replace both forms with the API/RSS-sourced string at backfill."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "ALL INDIA NATIONALS || LOKESH/ANUSHA C.S vs DEV/SHRAVANI WALEKAR || Bangalore Nationals, KBA",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 16 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "ALL INDIA NATIONALS || ASWINI BHAT SHIKHA GAWTHAM vs VARSHINI V.S AARTHI SARA SUNIL || Final - KBA",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 17 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "FINAL - MEISNAM MEIRABA vs SANEETH D.S || All India Badminton National Ranking - Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 18 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "BLOODY BATTLE || SANEETH D.S vs ROUNAK CHOUHAN || All India National Championship 2025 || Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 19 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "SATWIK REDDY/VAISHNAVI vs DHILEPAN/PRAVANTHIKA || All India Nationals Badminton - Bangalore - KBA",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 20 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "SHOCKING INJURY 😱 || RITHWIK SANJEEVI vs SANEETH D.S || All India National Badminton - Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 21 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "ALL INDIA NATIONALS || RUTHVIKA SHIVANI KAVYA GUPTA vs ASHWINI BHAT SHIKHA GAWTHAM || Bangalore",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 22 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "PRUTHVI ROY SURAJ GOALA vs VIMAL RAJ MAURYAN || All India National Ranking - Bangalore || KBA",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 23 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "VARUN REDDY/VARSHA vs HARISH/JANANI || V2S Open Badminton Tournament 2026 || Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 24 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "VAIBHAV BS/ADITYA DIWAKAR vs SAHASRA/YADHU || V2S Badminton Tournament 2026 || Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 25 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "GANESH SHASANK vs SACHIN HARISH || V2S Open Badminton Tournament 2026 || Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 26 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "GANESH/SHASANK vs GAURAV/NOUSHAD || V2S Badminton Tournament - Bangalore 2026 || League Match ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 27 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "FINAL - SAHASRA/PRERANA vs HARISH/JANANI || V2S Open Badminton Tournament 2026 - Bangalore ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 28 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "NAVEEN/SANKARAN vs AMBILI/ATHUL || QuarterFinal - V2S Badminton Tournament Bangalore 2026",
+    "has_trailing_space": false,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 29 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  },
+  {
+    "group": "single_raw_capture_by_skeptic",
+    "youtube_id": null,
+    "title_reported_raw_by_skeptic": "SAHASRA/YADUNANTHAN vs SACHIN/HARISH || Men Doubles V2S Open Badminton Tournament - Bangalore 2026 ",
+    "has_trailing_space": true,
+    "source": "verify/youtube.json, missed finding MF-4, raw title 30 of 30 newest long-form uploads",
+    "status": "Captured once from raw channel data and transcribed from a prose report; not cross-checked by a second capture. Re-capture at backfill before promoting to real-titles.raw.json."
+  }
+]

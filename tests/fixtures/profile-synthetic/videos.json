@@ -1,0 +1,320 @@
+[
+ {
+  "id": "SYN000",
+  "title": "Zorvan Pell vs Tessun Orlo | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN001",
+  "title": "Quillan Raske vs Dorsan Wick | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN002",
+  "title": "Mavrik Doon vs Quillan Raske | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN003",
+  "title": "Tessun Orlo vs Ulmar Fenn | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN004",
+  "title": "Brevik Lant vs Orvun Tabe | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN005",
+  "title": "Harvo Nissel vs Brevik Lant | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN006",
+  "title": "Ulmar Fenn vs Yarlo Minth | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN007",
+  "title": "Pelvin Kor vs Mavrik Doon | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ },
+ {
+  "id": "SYN008",
+  "title": "Dorsan Wick vs Pelvin Kor | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-09-15T10:00:00Z"
+ },
+ {
+  "id": "SYN009",
+  "title": "Yarlo Minth vs Zorvan Pell | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN010",
+  "title": "Kestin Ravel vs Harvo Nissel | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN011",
+  "title": "Orvun Tabe vs Kestin Ravel | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN012",
+  "title": "Zorvan Pell vs Tessun Orlo | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN013",
+  "title": "Quillan Raske vs Dorsan Wick | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN014",
+  "title": "Mavrik Doon vs Quillan Raske | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN015",
+  "title": "Tessun Orlo vs Ulmar Fenn | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN016",
+  "title": "Brevik Lant vs Orvun Tabe | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ },
+ {
+  "id": "SYN017",
+  "title": "Harvo Nissel vs Brevik Lant | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-09-15T10:00:00Z"
+ },
+ {
+  "id": "SYN018",
+  "title": "Ulmar Fenn vs Yarlo Minth | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN019",
+  "title": "Pelvin Kor vs Mavrik Doon | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN020",
+  "title": "Dorsan Wick vs Pelvin Kor | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN021",
+  "title": "Yarlo Minth vs Zorvan Pell | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN022",
+  "title": "Kestin Ravel vs Harvo Nissel | MS Final | Quark District Championship 2023",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN023",
+  "title": "Orvun Tabe vs Kestin Ravel | MS Final | Nimbus Open Trophy 2024",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN024",
+  "title": "Zorvan Pell / Quillan Raske vs Mavrik Doon / Tessun Orlo - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN025",
+  "title": "Quillan Raske / Mavrik Doon vs Tessun Orlo / Brevik Lant - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ },
+ {
+  "id": "SYN026",
+  "title": "Mavrik Doon / Tessun Orlo vs Brevik Lant / Harvo Nissel - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-09-15T10:00:00Z"
+ },
+ {
+  "id": "SYN027",
+  "title": "Tessun Orlo / Brevik Lant vs Harvo Nissel / Ulmar Fenn - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN028",
+  "title": "Brevik Lant / Harvo Nissel vs Ulmar Fenn / Pelvin Kor - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN029",
+  "title": "Harvo Nissel / Ulmar Fenn vs Pelvin Kor / Dorsan Wick - MD Semi Final - Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN030",
+  "title": "Zorvan Pell Harvo Nissel vs Ulmar Fenn Pelvin Kor MD Final Zeta Memorial Cup 2023",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN031",
+  "title": "Zorvan Pell Harvo Nissel vs Ulmar Fenn Pelvin Kor MD Final Zeta Memorial Cup 2024",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN032",
+  "title": "Zeta Memorial Cup 2023 - Mavrik Doon vs Tessun Orlo - MS Quarter Final",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN033",
+  "title": "Zeta Memorial Cup 2023 - Brevik Lant vs Kestin Ravel - MS Quarter Final",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN034",
+  "title": "Zorvan vs Quillan | Quark District Championship 2022",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ },
+ {
+  "id": "SYN035",
+  "title": "Zorvan Pell vs Quillan Raske U15 BS Final Quark District Championship 2022",
+  "duration_s": 600,
+  "published_at": "2024-09-15T10:00:00Z"
+ },
+ {
+  "id": "SYN036",
+  "title": "Mavrik Doon vs Tessun Orlo (U13) Final Nimbus Open Trophy 2023",
+  "duration_s": 600,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN037",
+  "title": "Brevik Lant vs Kestin Ravel Kids Final Nimbus Open Trophy 2023",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN038",
+  "title": "Zorvan Pell vs Quillan Raske | MS Final | Zeta Memorial Cup 2022",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN039",
+  "title": "Zorvan Pell vs Quillan Raske | MS Final | Zeta Memorial Cup 2022 ",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN040",
+  "title": "Zorvan Pell vs Quillan Raske | MS Final | Zeta Memorial Cup 2O22",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN041",
+  "title": "Top 10 smashes of the month | Highlights",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN042",
+  "title": "Racket review: Brandx vs Brandy",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN043",
+  "title": "Behind the scenes at the academy",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ },
+ {
+  "id": "SYN044",
+  "title": "Zorvan Pell vs Quillan Raske #shorts",
+  "duration_s": 55,
+  "published_at": "2024-09-15T10:00:00Z"
+ },
+ {
+  "id": "SYN045",
+  "title": "Quick rally clip #shorts",
+  "duration_s": 55,
+  "published_at": "2024-01-15T10:00:00Z"
+ },
+ {
+  "id": "SYN046",
+  "title": "LIVE: Zeta Memorial Cup 2025 Day 2",
+  "duration_s": 600,
+  "published_at": "2024-02-15T10:00:00Z"
+ },
+ {
+  "id": "SYN047",
+  "title": "Lee Zii Jia vs Viktor Axelsen | Singapore Open 2024 Final",
+  "duration_s": 600,
+  "published_at": "2024-03-15T10:00:00Z"
+ },
+ {
+  "id": "SYN048",
+  "title": "ZORVAN PELL VS QUILLAN RASKE - MS FINAL - ZETA MEMORIAL CUP 2023",
+  "duration_s": 600,
+  "published_at": "2024-04-15T10:00:00Z"
+ },
+ {
+  "id": "SYN049",
+  "title": "Zorvan Pell vs Quillan Raske MS Final in Nimbus Open Trophy",
+  "duration_s": 600,
+  "published_at": "2024-05-15T10:00:00Z"
+ },
+ {
+  "id": "SYN050",
+  "title": "Orvun Tabe vs Harvo Nissel Final",
+  "duration_s": 600,
+  "published_at": "2024-06-15T10:00:00Z"
+ },
+ {
+  "id": "SYN051",
+  "title": "Zorvan Pell vs Quillan Raske vs Ulmar Fenn",
+  "duration_s": 600,
+  "published_at": "2024-07-15T10:00:00Z"
+ },
+ {
+  "id": "SYN052",
+  "title": "Mavrik Doon vs ...",
+  "duration_s": 600,
+  "published_at": "2024-08-15T10:00:00Z"
+ }
+]

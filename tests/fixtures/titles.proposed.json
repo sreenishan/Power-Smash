@@ -1,0 +1,536 @@
+[
+  {
+    "id": "PF-001",
+    "input": "VELAVAN/BHARATH SANJAI vs GANESH/KUPPURAJ || Open State Badminton …",
+    "origin": "real-from-spec",
+    "expected": "match|doubles|A=[Velavan; Bharath Sanjai]|B=[Ganesh; Kuppuraj]|cat=null|age=null|rd=null|yr=null|tour='Open State Badminton'|intl=false|review=Y(TRUNCATED_TITLE; SINGLE_TOKEN_NAME x3; NO_CATEGORY)",
+    "why": "Spec fixture 1. 'Open' must stay in the tournament (PD-04); single-token names must not auto-link (PD-01); ellipsis from the channel view is a truncation marker, not part of the name (PD-26). Under the spec's own rules it scores 1.0 and parses age=Open, tour='State Badminton'.",
+    "note": "Full title of this video is confirmed byte-exact in real-titles.raw.json: \"VELAVAN/BHARATH SANJAI vs GANESH/KUPPURAJ || Open State Badminton Tournament - 2026 Aadhi Badminton\" (verify/youtube.json YT-25). Use the full title for the golden test; this truncated input is kept for the TRUNCATED_TITLE case."
+  },
+  {
+    "id": "PF-002",
+    "input": "PRAKASH RAJ/KARNIKA vs SANTHOSH/JERLIN || South India Level Badminton Tournament 2026 …",
+    "origin": "real-from-spec",
+    "expected": "match|doubles|A=[Prakash Raj; Karnika]|B=[Santhosh; Jerlin]|cat=null|age=null|rd=null|yr=2026|tour='South India Level Badminton Tournament'|intl=false|review=Y(TRUNCATED_TITLE; SINGLE_TOKEN_NAME x3; NO_CATEGORY)",
+    "why": "Spec fixture 2. Year is a separate field and stripped from the series name (PD-10) so the slug does not become '...-2026-2026'; category stays null (never infer mixed from names).",
+    "note": "Full title of this video is confirmed byte-exact in real-titles.raw.json: \"PRAKASH RAJ/KARNIKA vs SANTHOSH/JERLIN || South India Level Badminton Tournament 2026 - Erode\" (verify/youtube.json YT-25). Use the full title for the golden test; this truncated input is kept for the TRUNCATED_TITLE case."
+  },
+  {
+    "id": "PF-003",
+    "input": "LAKSHYA SEN (9) [IND] vs KOKI WATANABE (JPN) || MS QuaterFinal - Singapore Open 2026",
+    "origin": "real-from-spec",
+    "expected": "match|singles|A=[Lakshya Sen seed=9 country=IND]|B=[Koki Watanabe country=JPN]|cat=MS|age=null|rd=QF|yr=2026|tour='Singapore Open'|intl=true -> hidden; no player or tournament rows created|review=N",
+    "why": "Spec fixture 3. 'Open' stays in the tournament because the segment 'Singapore Open 2026' is not a pure token segment (PD-04); international must short-circuit resolution (PD-17)."
+  },
+  {
+    "id": "PF-004",
+    "input": "S V KUMAR vs R ARUN || MS SF - Madurai District Championship 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[S. V. Kumar]|B=[R. Arun]|cat=MS|age=null|rd=SF|yr=2026|tour='Madurai District Championship'|intl=false|review=N",
+    "why": "Bare 'V' initial must not split; 'vs' has priority over 'v' (PD-06)."
+  },
+  {
+    "id": "PF-005",
+    "input": "K V RAJESH v M ARUN || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match(candidate)|A=?|B=?|review=Y(AMBIGUOUS_VS); no auto-split; no player rows created",
+    "why": "Two bare 'v' tokens at the same priority; 'v' is an initial and a VS token (PD-06)."
+  },
+  {
+    "id": "PF-006",
+    "input": "RAJESH v ARUN || MS SF - Chennai Open 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Rajesh]|B=[Arun]|cat=MS|age=null|rd=SF|yr=2026|tour='Chennai Open'|review=Y or N per policy (SINGLE_TOKEN_NAME x2 -10)",
+    "why": "A single bare 'v' with >=2-letter neighbours is accepted; 'Open' next to a city name must remain in the tournament (PD-04)."
+  },
+  {
+    "id": "PF-007",
+    "input": "V.S. KUMAR vs R. ARUN || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[V. S. Kumar]|B=[R. Arun]|cat=MS|rd=F|yr=2026|tour='Test Cup'|review=N",
+    "why": "'V.S.' initials must survive; VS detection must run before dot-to-space normalisation (PD-06, PD-05)."
+  },
+  {
+    "id": "PF-008",
+    "input": "DAVIS vs EVANS || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Davis]|B=[Evans]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "'vs' substring inside words ('Davis', 'Evans') must not split; tokens are space-bounded."
+  },
+  {
+    "id": "PF-009",
+    "input": "ARUN Vs. KUMAR || ms semifinal - test cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Case-insensitivity for VS, category and round; lower-case tournament is Title-cased for display only."
+  },
+  {
+    "id": "PF-010",
+    "input": "ARUN V/S KUMAR || MS Semis – Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Spec VS form 'v/s', en dash separator (U+2013) must be folded to ' - ' (PD-08), 'Semis' round alias."
+  },
+  {
+    "id": "PF-011",
+    "input": "ARUN VERSUS KUMAR || MS Quater Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=QF|yr=2026|tour='Test Cup'",
+    "why": "'versus' VS form and the 'Quater Final' misspelling with a space (A.2 only lists 'QuaterFinal')."
+  },
+  {
+    "id": "PF-012",
+    "input": "ARUN ｖｓ KUMAR ｜｜ MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "same as 'ARUN vs KUMAR || MS SF - Test Cup 2026': singles|MS|SF|2026|tour='Test Cup'",
+    "why": "Full-width forms are folded by NFKC (confirmed for '｜'); guards that preprocessing runs before tokenising."
+  },
+  {
+    "id": "PF-013",
+    "input": "ARUN    vs    KUMAR   ||   MS   SF  -  Test  Cup  2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Whitespace must be collapsed BEFORE separator detection, otherwise ' - ' with double spaces is missed (PD-08)."
+  },
+  {
+    "id": "PF-014",
+    "input": "S.KARTHIK vs M.ARUN || U-13 BS Final - Salem District 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[S. Karthik]|B=[M. Arun]|cat=BS|age=U13|rd=F|yr=2026|tour='Salem District'|junior=A,B (provisional, no district/photo)|review=N",
+    "why": "Spec initials example plus junior detection from age and category tokens (15.3, PD-13); name_normalized/name_key must be 's karthik' form (PD-05)."
+  },
+  {
+    "id": "PF-015",
+    "input": "KARTHIK S vs ARUN M || MS Final - Salem District 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Karthik S.]|B=[Arun M.]|name_key=karthik|s ; arun|m|cat=MS|rd=F|yr=2026|tour='Salem District'",
+    "why": "Trailing initial; name_key must equal that of 'S. Karthik' (initial position ignored) so a possible-duplicate or same-edition link is produced (PD-12)."
+  },
+  {
+    "id": "PF-016",
+    "input": "Karthik.S vs Arun.M || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Karthik S.]|B=[Arun M.]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Dot between a word and a trailing single-letter initial; 'dots removed' alone would yield 'karthiks' (PD-05)."
+  },
+  {
+    "id": "PF-017",
+    "input": "KP ARUN vs SR KUMAR || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[K. P. Arun]|B=[S. R. Kumar]|cat=MS|rd=F|yr=2026|tour='Test Cup'|issues=SUSPECT_INITIALS? no (consonant-only 2-letter caps)",
+    "why": "Two-letter consonant-only caps tokens are initials; Title Case must not produce 'Kp Arun' (PD-12)."
+  },
+  {
+    "id": "PF-018",
+    "input": "S. KUMAR/R. VIJAY vs M. ARUN/K. RAJESH || MD Senior SF - Example District Championship 2026, Madurai",
+    "origin": "synthetic",
+    "expected": "match|doubles|A=[S. Kumar; R. Vijay]|B=[M. Arun; K. Rajesh]|cat=MD|age=Senior|rd=SF|yr=2026|tour='Example District Championship'|loc=Madurai|review=N",
+    "why": "Illustrative convention line from section 10.8 (not a real channel title); 'Senior' accepted as age inside a pure token segment 'MD Senior SF'."
+  },
+  {
+    "id": "PF-019",
+    "input": "A. KUMAR / B. RAJ vs C. ARUN / D. VIJAY || MD SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|A=[A. Kumar; B. Raj]|B=[C. Arun; D. Vijay]|cat=MD|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Spaces around the '/' partner separator."
+  },
+  {
+    "id": "PF-020",
+    "input": "A. KUMAR & B. RAJ vs C. ARUN and D. VIJAY || MD Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|A=[A. Kumar; B. Raj]|B=[C. Arun; D. Vijay]|cat=MD|rd=F|yr=2026|tour='Test Cup'",
+    "why": "'&' and ' and ' as partner separators, only inside the match segment."
+  },
+  {
+    "id": "PF-021",
+    "input": "MOHAMED-ALI vs SRI-RAM || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Mohamed-Ali]|B=[Sri-Ram]|name_key words 'mohamed ali' / 'sri ram'|cat=MS|rd=F|yr=2026|tour='Test Cup'",
+    "why": "Hyphen without spaces is part of a name, not the ' - ' separator; key folds hyphen to space."
+  },
+  {
+    "id": "PF-022",
+    "input": "ARUN KUMAR vs RAJESH || Rise and Shine Trophy 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun Kumar]|B=[Rajesh]|cat=null|rd=null|yr=2026|tour='Rise and Shine Trophy'",
+    "why": "' and ' in a tournament name must not be treated as a partner separator (PD-09)."
+  },
+  {
+    "id": "PF-023",
+    "input": "ARUN vs KUMAR || Premier Badminton League 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=null|yr=2026|tour='Premier Badminton League'",
+    "why": "'League' is a round token only in a pure token segment; here it is part of the tournament (PD-04). Literal spec gives rd=league, tour='Premier Badminton'."
+  },
+  {
+    "id": "PF-024",
+    "input": "ARUN vs KUMAR | Final Frontier Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=null|yr=2026|tour='Final Frontier Cup'",
+    "why": "'Final' inside a tournament name (PD-04); literal spec gives rd=F, tour='Frontier Cup'."
+  },
+  {
+    "id": "PF-025",
+    "input": "A/B vs C/D || M.S. Memorial Trophy 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|A=[A; B]|B=[C; D]|cat=null|yr=2026|tour='M.S. Memorial Trophy'|review=Y(SHORT_NAME)",
+    "why": "Initials 'M.S.' must not become category MS (PD-04); single-letter names raise SHORT_NAME."
+  },
+  {
+    "id": "PF-026",
+    "input": "ARUN vs KUMAR || Semi Final - Tamil Nadu - Kerala Zonal 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=SF|yr=2026|tour='Tamil Nadu - Kerala Zonal'",
+    "why": "Second ' - ' belongs to the tournament name; token segment 'Semi Final' is peeled first (PD-09)."
+  },
+  {
+    "id": "PF-027",
+    "input": "ARUN vs KUMAR || Court #3 Final - Salem District 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=F|yr=2026|tour='Salem District'|notes court=3",
+    "why": "'#3' is not a hashtag (PD-07); court number is noise not a tournament word."
+  },
+  {
+    "id": "PF-028",
+    "input": "Madurai District 2026 | MS Final: KARTHIK vs ARUN",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Karthik]|B=[Arun]|cat=MS|rd=F|yr=2026|tour='Madurai District'",
+    "why": "Tournament-first title: the VS segment is parsed for sides; earlier segments are pre-META (PD-09); ' : ' is a separator."
+  },
+  {
+    "id": "PF-029",
+    "input": "ARUN vs KUMAR | MS SF | Test Cup | 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Several single pipes: segments are classified individually, not just the first occurrence."
+  },
+  {
+    "id": "PF-030",
+    "input": "ARUN vs KUMAR :: MS SF :: Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "'::' separator repeated."
+  },
+  {
+    "id": "PF-031",
+    "input": "ARUN vs KUMAR 21-15 21-18 || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|score_text='21-15 21-18'|cat=MS|rd=F|yr=2026|tour='Test Cup'",
+    "why": "Scores inside side B must be peeled into a score field, not into the player name (PD-09, PD-18)."
+  },
+  {
+    "id": "PF-032",
+    "input": "ARUN vs KUMAR 21 - 15 21 - 18",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|score_text='21 - 15 21 - 18'|tour=null|review=N or Y per NO_TOURNAMENT policy (soft -20)",
+    "why": "Spaced hyphens in a score must not be taken as SEP; literal spec gives B='ARUN 21' and tournament='15 21 - 18'."
+  },
+  {
+    "id": "PF-033",
+    "input": "ARUN vs KUMAR Final",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=F|tour=null|review=Y(NO_SEPARATOR)",
+    "why": "No separator: side B must stop at the first META token (PD-09)."
+  },
+  {
+    "id": "PF-034",
+    "input": "ARUN vs KUMAR MS SF Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'|review=Y(NO_SEPARATOR)",
+    "why": "No separator; B peeled at first token; hard-flagged because side/tournament boundary is a guess."
+  },
+  {
+    "id": "PF-035",
+    "input": "Best Rallies | District Championship 2026",
+    "origin": "synthetic",
+    "expected": "non_match (no VS) reason=NO_VS",
+    "why": "Spec's own compilation example."
+  },
+  {
+    "id": "PF-036",
+    "input": "ARUN vs KUMAR Highlights | Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "non_match reason=NON_MATCH_KEYWORD(highlights)",
+    "why": "Compilation word with 'vs' must not create a match (PD-16)."
+  },
+  {
+    "id": "PF-037",
+    "input": "Top 10 Smashes: PLAYER ONE vs PLAYER TWO",
+    "origin": "synthetic",
+    "expected": "non_match reason=NON_MATCH_KEYWORD(top 10, smashes)",
+    "why": "Top-N compilation with 'vs' and no country code; also stops foreign names creating players (PD-16)."
+  },
+  {
+    "id": "PF-038",
+    "input": "Yonex Astrox 88D vs Li-Ning Axforce 80 Review",
+    "origin": "synthetic",
+    "expected": "non_match reason=GEAR_VS (digits/brand tokens, 'Review')",
+    "why": "Gear comparison (R5 affiliate content) must not become a match between two 'players'."
+  },
+  {
+    "id": "PF-039",
+    "input": "Tamil Nadu vs Kerala || South Zone Inter State Championship 2026 - Boys U-15 Team Event",
+    "origin": "synthetic",
+    "expected": "team_tie (ignored; no player rows)|sides=[Tamil Nadu] vs [Kerala]|age=U15|yr=2026|tour='South Zone Inter State Championship'|review=Y(TEAM_SIDE)",
+    "why": "Team ties parse as two 'players' under the spec grammar (PD-16)."
+  },
+  {
+    "id": "PF-040",
+    "input": "கார்த்திக் vs அருண் || MS Final - சென்னை மாவட்ட போட்டி 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[கார்த்திக்]|B=[அருண்]|name_normalized non-empty (Tamil letters kept)|cat=MS|rd=F|yr=2026|tour='சென்னை மாவட்ட போட்டி'|slug set manually or via pinned transliteration|review=Y(SINGLE_TOKEN_NAME x2; no latin_key)",
+    "why": "Tamil-script names and tournament; guards PD-05 (empty key) and PD-24."
+  },
+  {
+    "id": "PF-041",
+    "input": "கார்த்திக் எதிர் அருண் || இறுதி - சேலம் மாவட்ட போட்டி 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[கார்த்திக்]|B=[அருண்]|rd=F|yr=2026|tour='சேலம் மாவட்ட போட்டி'|(requires proposed Tamil vocabulary; native-speaker review of 'எதிர்' and 'இறுதி')",
+    "why": "Tamil VS and round words; without a Tamil vocabulary this is non_match."
+  },
+  {
+    "id": "PF-042",
+    "input": "Karthik கார்த்திக் vs Arun || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Karthik கார்த்திக்]|B=[Arun]|review=Y(MIXED_SCRIPT_NAME)|aliases proposed: 'Karthik', 'கார்த்திக்' (not auto-merged)",
+    "why": "Same person in two scripts inside one name; surfaces a cross-script alias rather than creating a strange display name (PD-24)."
+  },
+  {
+    "id": "PF-043",
+    "input": "ARUN vs KUMAR || MS SF - Test Cup 2026 #badminton #பேட்மிண்டன் 🏸🔥",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'|signals=[badminton, பேட்மிண்டன்]",
+    "why": "Latin and Tamil hashtags stripped, emoji stripped, '2026' preserved (PD-07)."
+  },
+  {
+    "id": "PF-044",
+    "input": "🏸 ARUN vs KUMAR 🔥 || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Leading and inline emoji; \\p{Emoji} would also delete the digits (PD-07)."
+  },
+  {
+    "id": "PF-045",
+    "input": "ARUN vs KUMAR || MS SF - Test Cup 2025-26",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=SF|yr=2025|season='2025-26'|tour='Test Cup'",
+    "why": "Season format must not leave '-26' in the tournament name (PD-10)."
+  },
+  {
+    "id": "PF-046",
+    "input": "ARUN vs KUMAR || MS Final - 12th Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|edition_no=12|tour='Test Cup'",
+    "why": "Ordinal edition stripped so the 2025 and 2026 editions resolve to one series (PD-10, PD-11)."
+  },
+  {
+    "id": "PF-047",
+    "input": "ARUN vs KUMAR || MS Final - 1990 Batch Alumni Meet 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|tour='1990 Batch Alumni Meet'",
+    "why": "Year token = LAST 19xx/20xx in the tournament segment; first-match regex would pick 1990."
+  },
+  {
+    "id": "PF-048",
+    "input": "ARUN vs KUMAR || MS Final - Test Cup | 12/03/2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|played_on=2026-03-12 (DD/MM)|tour='Test Cup'",
+    "why": "Date parsed DD/MM (India), and '/' inside META is not a partner separator."
+  },
+  {
+    "id": "PF-049",
+    "input": "A. KUMAR/B. RAJ vs C. ARUN/D. VIJAY || MD SF - Test Cup 2026, Trichy",
+    "origin": "synthetic",
+    "expected": "match|doubles|cat=MD|rd=SF|yr=2026|tour='Test Cup'|loc=Tiruchirappalli (alias Trichy)",
+    "why": "Trailing ', City' with an informal district spelling (PD-28)."
+  },
+  {
+    "id": "PF-050",
+    "input": "A. KUMAR/B. RAJ vs C. ARUN/D. VIJAY || MD SF - TNBA/DBA Joint Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|cat=MD|rd=SF|yr=2026|tour='TNBA/DBA Joint Cup'|tour slug 'tnba-dba-joint-cup-2026'",
+    "why": "'/' inside a tournament name must not split; acronyms kept upper-case; slug has no double year."
+  },
+  {
+    "id": "PF-051",
+    "input": "ARUN/KUMAR vs RAJ || MD SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|format=unknown|A=[Arun; Kumar]|B=[Raj]|cat=MD|review=Y(UNEVEN_SIDES)",
+    "why": "Spec penalty gives exactly 0.7, which is not < 0.7, so it would auto-publish (PD-03)."
+  },
+  {
+    "id": "PF-052",
+    "input": "ARUN vs KUMAR || MD SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|format=singles|cat=MD|review=Y(FORMAT_CATEGORY_MISMATCH)",
+    "why": "Explicit category contradicts the player count; format comes only from counts, category only from tokens, so flag instead of choosing."
+  },
+  {
+    "id": "PF-053",
+    "input": "ARUN/KUMAR/RAJ vs VIJAY/ANAND/SIVA || MD SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|format=unknown|A=[Arun; Kumar; Raj]|B=[Vijay; Anand; Siva]|review=Y(NAME_COUNT_GT2)",
+    "why": "3 per side is not singles or doubles; no auto-create of 6 players."
+  },
+  {
+    "id": "PF-054",
+    "input": "R. KUMAR/S. RAJ vs R. KUMAR/T. ANAND || MD SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|A=[R. Kumar; S. Raj]|B=[R. Kumar; T. Anand]|review=Y(DUP_ALIAS_IN_MATCH); neither 'R. Kumar' linked automatically",
+    "why": "Same alias on both sides violates PK(match_id, player_id) and proves two different people share a name (PD-18)."
+  },
+  {
+    "id": "PF-055",
+    "input": "GANESH vs GANESH || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Ganesh]|B=[Ganesh]|review=Y(DUP_ALIAS_IN_MATCH; SINGLE_TOKEN_NAME)",
+    "why": "Mononym on both sides; the same person cannot play himself."
+  },
+  {
+    "id": "PF-056",
+    "input": "ARUN (CHENNAI) vs KUMAR (MADURAI) || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun districtHint=Chennai]|B=[Kumar districtHint=Madurai]|cat=MS|rd=SF|yr=2026|intl=false",
+    "why": "District hints from parentheses (A.1 PAREN_HINT); junior flag would suppress display if applicable."
+  },
+  {
+    "id": "PF-057",
+    "input": "ARUN (CBE) vs KUMAR (MDU) || MS SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun affiliationHint=CBE]|B=[Kumar affiliationHint=MDU]|intl=false",
+    "why": "3-letter parentheticals that are not in the country list must stay affiliation hints, not countries (PD-17)."
+  },
+  {
+    "id": "PF-058",
+    "input": "AHMAD RIZAL (MAS) vs TAN WEI (SIN) || MS R16 - Test Open 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Ahmad Rizal country=MAS]|B=[Tan Wei country=SIN]|cat=MS|rd=R16|yr=2026|intl=true -> hidden|no rows created",
+    "why": "IOC/BWF codes (MAS, SIN) differ from ISO (MYS, SGP); an ISO-only list misses these (PD-17)."
+  },
+  {
+    "id": "PF-059",
+    "input": "ARUN [IND] vs KUMAR [IND] || MS Final - Senior Nationals 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun country=IND]|B=[Kumar country=IND]|cat=MS|rd=F|yr=2026|tour='Senior Nationals'|intl=false|review=Y(INDIA_ONLY_CODE)",
+    "why": "[IND]-only titles are Indian domestic content, not foreign broadcast; owner policy needed (PD-17)."
+  },
+  {
+    "id": "PF-060",
+    "input": "ARUN (1) vs KUMAR [2] || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun seed=1]|B=[Kumar seed=2]|cat=MS|rd=F|yr=2026|tour='Test Cup'",
+    "why": "Seed in parentheses and brackets (A.1 SEED)."
+  },
+  {
+    "id": "PF-061",
+    "input": "ARUN/KUMAR vs RAJ/MURUGAN || MD SF - Test District Champ…",
+    "origin": "synthetic",
+    "expected": "match|doubles|cat=MD|rd=SF|tour='Test District Champ' (not matched to existing tournaments)|review=Y(TRUNCATED_TITLE)",
+    "why": "Truncated tournament must not create a new tournament alias."
+  },
+  {
+    "id": "PF-062",
+    "input": "ARUN KUMAR vs RAJ MURU…",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun Kumar]|B=['Raj Muru' truncated, no player created]|tour=null|review=Y(TRUNCATED_TITLE; NO_TOURNAMENT)",
+    "why": "Names with an ellipsis must never create or link players."
+  },
+  {
+    "id": "PF-063",
+    "input": "ARUN vs KUMAR || Sub Junior Girls Singles SF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=GS|age=sub_junior|rd=SF|yr=2026|tour='Test Cup'|junior=A,B|review=N",
+    "why": "Extended age vocabulary (PD-13); GS implies junior."
+  },
+  {
+    "id": "PF-064",
+    "input": "ARUN vs KUMAR || U-21 MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|age=U21|rd=F|yr=2026|tour='Test Cup'|junior=false (owner to confirm)",
+    "why": "U-21 is not under-18; spec table stops at U19 (PD-13)."
+  },
+  {
+    "id": "PF-065",
+    "input": "ARUN vs KUMAR || Under 15 Boys Singles QF - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=BS|age=U15|rd=QF|yr=2026|tour='Test Cup'|junior=A,B",
+    "why": "'Under N' plus long-form 'Boys Singles' category."
+  },
+  {
+    "id": "PF-066",
+    "input": "ARUN vs KUMAR || Men’s Singles Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|tour='Test Cup'",
+    "why": "Curly apostrophe U+2019 must match 'Men's Singles' (PD-08)."
+  },
+  {
+    "id": "PF-067",
+    "input": "ARUN/KUMAR vs RAJ/VIJAY || 35+ MD SF - Veterans Meet 2026",
+    "origin": "synthetic",
+    "expected": "match|doubles|cat=MD|age=35+|rd=SF|yr=2026|tour='Veterans Meet'",
+    "why": "'35+' contains '+', a partner separator in SIDE; 'Veterans' in the tournament name must not become the age group."
+  },
+  {
+    "id": "PF-068",
+    "input": "ARUN vs KUMAR || MS Open SF - Chennai Open 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|age=Open|rd=SF|yr=2026|tour='Chennai Open'",
+    "why": "'Open' is age when adjacent to category inside a pure token segment, and part of the name inside the tournament segment (PD-04)."
+  },
+  {
+    "id": "PF-069",
+    "input": "ARUN vs KUMAR smash rally #shorts",
+    "origin": "synthetic",
+    "expected": "context duration_s=45 -> type=short (not a match page) despite 'vs'",
+    "why": "Spec rule makes this a match because it has 'vs'; the #shorts hashtag must be captured before stripping (PD-07, PD-15)."
+  },
+  {
+    "id": "PF-070",
+    "input": "ARUN vs KUMAR || MS Final - Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "context liveStreamingDetails present, live_status=completed -> type=match (live_status=completed), full match page",
+    "why": "A completed livestream VOD of a final must not be dropped as type=live (PD-15)."
+  },
+  {
+    "id": "PF-071",
+    "input": "LIVE 🔴 Test District Championship 2026 | Finals Day | Court 1",
+    "origin": "synthetic",
+    "expected": "non_match (no VS) type=live; tour candidate rejected by stop-list ('Finals Day', 'Court 1')|no tournament row from 'Finals Day'",
+    "why": "Finals-day stream is live content, and 'remainder = tournament' would create junk tournaments (PD-09)."
+  },
+  {
+    "id": "PF-072",
+    "input": "ARUN vs KUMAR || MS Final - Open State Badminton Tournament 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|tour='Open State Badminton Tournament' series_key='open state'",
+    "why": "Pair with the next fixture: both must resolve to the same (series_key, 2026) tournament (PD-11)."
+  },
+  {
+    "id": "PF-073",
+    "input": "ARUN vs KUMAR || MS SF - Open State Badminton Championship 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=SF|yr=2026|tour='Open State Badminton Championship' series_key='open state' -> same tournament as previous fixture",
+    "why": "Filler words (tournament, championship, badminton) removed from series_key so spelling variants converge; 'open' and 'state' are kept."
+  },
+  {
+    "id": "PF-074",
+    "input": "ARUN vs KUMAR || MS Final - Test Cup 2026 (Full Match)",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=F|yr=2026|tour='Test Cup'|duplicate_of candidate of the earlier 'ARUN vs KUMAR || MS Final - Test Cup 2026' video (same match_key)",
+    "why": "Two videos for one match; matches.video_id UNIQUE alone double-counts it (PD-19)."
+  },
+  {
+    "id": "PF-075",
+    "input": "ARUN vs KUMAR || MS SF - Test Cup ௨௦௨௬",
+    "origin": "synthetic",
+    "expected": "match|singles|cat=MS|rd=SF|yr=2026|tour='Test Cup'",
+    "why": "Tamil digits are not folded by NFKC; year must be recognised via digit mapping (PD-24). Low priority."
+  },
+  {
+    "id": "PF-076",
+    "input": "Final | ARUN vs KUMAR | Test Cup 2026",
+    "origin": "synthetic",
+    "expected": "match|singles|A=[Arun]|B=[Kumar]|rd=F|yr=2026|tour='Test Cup'",
+    "why": "Leading token segment before the VS segment (meta-first titles, PD-09)."
+  }
+]
