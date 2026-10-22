@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAMPLE invoice or receipt (not a real invoice)</title>
+<style>
+  /* One A4 page. Works on a phone: open in the browser, edit the highlighted fields if you wish, then Print > Save as PDF. */
+  :root { --ink:#0b1416; --slate:#5b6b70; --line:#b9c3c1; --court:#0b6e4f; --tint:#fff4c2; }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: #eef1ef; color: var(--ink); font: 14px/1.5 Arial, Helvetica, sans-serif; }
+  .hint { max-width: 210mm; margin: 12px auto; padding: 10px 14px; background: #e6f2ec; border: 1px solid var(--court); border-radius: 6px; font-size: 13px; }
+  .page { position: relative; width: 210mm; max-width: 100%; margin: 0 auto 24px; padding: 14mm 14mm 12mm; background: #fff; border: 1px solid var(--line); }
+  .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden; }
+  .watermark span { transform: rotate(-30deg); font-size: 64px; font-weight: 700; letter-spacing: 6px; color: rgba(198, 42, 31, 0.10); white-space: nowrap; }
+  header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--ink); padding-bottom: 10px; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: 0.5px; }
+  .sub { color: var(--slate); font-size: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .box { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+  .box h2 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--slate); }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f1f4f2; font-size: 12px; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .totals { width: 55%; margin-left: auto; }
+  .totals td:first-child { font-weight: 600; }
+  .note { margin-top: 14px; font-size: 12px; color: var(--slate); }
+  .sign { display: flex; justify-content: space-between; gap: 16px; margin-top: 26px; font-size: 12px; }
+  .sign div { width: 48%; border-top: 1px solid var(--ink); padding-top: 4px; }
+  .fill { background: var(--tint); outline: 1px dashed #c9a400; padding: 0 3px; border-radius: 2px; }
+  footer { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 6px; font-size: 11px; color: var(--slate); }
+  @media (max-width: 600px) {
+    .page { padding: 12px; }
+    .grid { grid-template-columns: 1fr; }
+    .totals { width: 100%; }
+    .watermark span { font-size: 34px; }
+    .sign { flex-direction: column; }
+    .sign div { width: 100%; }
+  }
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .hint { display: none; }
+    .page { width: 210mm; height: 297mm; margin: 0; border: 0; padding: 14mm 14mm 12mm; page-break-after: avoid; overflow: hidden; }
+    .fill { background: none; outline: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<p class="hint">
+  <strong>SAMPLE for Razorpay's website review.</strong> Every value on this page is made up. It is not a real invoice and shows no real business.
+  To print to PDF from your phone: open this page in Chrome, tap the three dots, choose <em>Share</em> or <em>Print</em>, then <em>Save as PDF</em>.
+  You may tap a highlighted field and type your own details first, but only after your CA has chosen the document type and your business details are final.
+  This note does not print.
+</p>
+
+<main class="page">
+  <div class="watermark" aria-hidden="true"><span>SAMPLE</span></div>
+
+  <header>
+    <div>
+      <h1>PAYMENT RECEIPT / INVOICE <span class="fill" contenteditable="true">(SAMPLE: document type to be decided with the CA)</span></h1>
+      <div class="sub">Document no.: <span class="fill" contenteditable="true">SAMPLE-0001</span> &nbsp;|&nbsp; Date: <span class="fill" contenteditable="true">SAMPLE DATE</span></div>
+    </div>
+    <div style="text-align:right">
+      <strong class="fill" contenteditable="true">SAMPLE BUSINESS NAME</strong><br>
+      <span class="sub fill" contenteditable="true">Sample address line, sample city, sample state, sample PIN</span><br>
+      <span class="sub">Phone: <span class="fill" contenteditable="true">sample phone</span> &nbsp;|&nbsp; Email: <span class="fill" contenteditable="true">sample@example.invalid</span></span>
+    </div>
+  </header>
+
+  <section class="grid" aria-label="Parties">
+    <div class="box">
+      <h2>Billed to</h2>
+      <span class="fill" contenteditable="true">SAMPLE CUSTOMER NAME</span><br>
+      <span class="fill" contenteditable="true">Sample customer address</span><br>
+      <span class="fill" contenteditable="true">sample customer contact</span>
+    </div>
+    <div class="box">
+      <h2>Reference</h2>
+      Booking reference: <span class="fill" contenteditable="true">PS-SAMPLE-000000</span><br>
+      Event or order: <span class="fill" contenteditable="true">Sample event name and date</span><br>
+      Payment reference: <span class="fill" contenteditable="true">SAMPLE PAYMENT ID</span>
+    </div>
+  </section>
+
+  <table aria-label="Items">
+    <thead>
+      <tr><th style="width:6%">#</th><th>Description of service</th><th class="num" style="width:16%">Quantity</th><th class="num" style="width:22%">Amount (INR)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><span class="fill" contenteditable="true">Sample service line: tournament coverage, advance payment</span></td><td class="num">1</td><td class="num"><span class="fill" contenteditable="true">SAMPLE AMOUNT</span></td></tr>
+      <tr><td>2</td><td><span class="fill" contenteditable="true">Sample service line: digital match file</span></td><td class="num">1</td><td class="num"><span class="fill" contenteditable="true">SAMPLE AMOUNT</span></td></tr>
+    </tbody>
+  </table>
+
+  <table class="totals" aria-label="Totals">
+    <tbody>
+      <tr><td>Sub-total</td><td class="num"><span class="fill" contenteditable="true">SAMPLE AMOUNT</span></td></tr>
+      <tr><td>Tax</td><td class="num"><span class="fill" contenteditable="true">shown only if the seller is registered for tax (CA decides)</span></td></tr>
+      <tr><td>Total paid</td><td class="num"><span class="fill" contenteditable="true">SAMPLE AMOUNT</span></td></tr>
+      <tr><td>Balance due</td><td class="num"><span class="fill" contenteditable="true">SAMPLE AMOUNT</span></td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">
+    Payment method: <span class="fill" contenteditable="true">online payment link / bank transfer (sample)</span>.
+    Registration number(s) for tax, if any: <span class="fill" contenteditable="true">not shown in this sample</span>.
+    Refunds, cancellation and delivery are explained on the website pages <em>Cancellation and Refund Policy</em> and <em>Delivery Policy</em>.
+    Questions or complaints: <span class="fill" contenteditable="true">sample grievance contact</span>.
+  </p>
+
+  <div class="sign">
+    <div>Received with thanks. Authorised signatory (sample)</div>
+    <div>Customer acknowledgement (sample)</div>
+  </div>
+
+  <footer>
+    SAMPLE ONLY. All names, numbers, amounts and contact details on this page are fictional placeholders. No tax rate is stated. The document type
+    (plain receipt or tax invoice), tax treatment and numbering are decided with a chartered accountant.
+  </footer>
+</main>
+
+</body>
+</html>

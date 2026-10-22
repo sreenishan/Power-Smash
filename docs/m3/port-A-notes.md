@@ -1,0 +1,7 @@
+# Port A notes
+- Removed: `@astrojs/cloudflare`, `wrangler`, `wrangler.jsonc`, `src/lib/cloudflare-workers.d.ts`, `tests/mocks/cloudflare-workers.ts`, vitest alias. Added: `@astrojs/vercel` 11.0.14, `@vercel/functions` 3.10.1 (both exact; 11.0.15 becomes eligible after 14:46 UTC 2026-10-22).
+- Rate limiter bindings (`LEAD_RATE_LIMITER`, `EVENT_RATE_LIMITER`) cannot exist on Vercel: `getRuntimeEnv` never returns them. The database counter and global caps remain. Edge limiter alternative: Vercel WAF rule (owner, dashboard).
+- `/api/placements` caching: the Cache API (`caches.default`) does not exist on Vercel, so the handler runs uncached in the function and relies on its `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` header for the Vercel CDN. Done: `vercel-routes.ts` no longer forces `no-store` on `/api/placements` (new `ROUTE_SRC.noStore`; CSP still applies); test added. Verify on a preview that the response carries `x-vercel-cache`.
+- Fixed a duplicated import/const block in `src/middleware.ts` that broke the build (area B file).
+- Still stale outside area A (other workers): `scripts/g0-smoke.test.mjs` ("has a wrangler config"), `tests/docs/owner-docs.test.ts` (RUNBOOK paths), `astro check` errors in scripts/serve-output.mjs, scripts/profile-catalogue.ts, two `@ts-expect-error` tests.
+- `waitUntil` failures are swallowed; leads are stored before alerts run, so no lead is lost.

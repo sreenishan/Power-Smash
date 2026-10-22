@@ -1,0 +1,19 @@
+# Vercel deploy, preview and cron notes (area C, 2026-10-22)
+
+## Choice: prebuilt upload from GitHub Actions, not `vercel pull` + `vercel build`
+- `vercel pull` would copy the Production environment (Supabase secret key, HMAC key) into the build job; the build must never hold them (D-005, D-027). Runtime secrets live only in the Vercel project settings (owner, dashboard).
+- `vercel build` runs the project's own build command, not `npm run build:strict`. The only build is the strict one; it writes `.vercel/output` (Astro Vercel adapter, Build Output API). deploy.yml then runs the locked CLI (`ci/vercel-cli`, `npm ci --ignore-scripts`) as `vercel deploy --prebuilt --prod --yes` in the last step, the only step that reads VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID.
+- Fail closed: strict gates run first; a missing `.vercel/output/config.json` stops the job; `DEPLOY_ENABLED` must be `true`; main only; serialised, never cancelled.
+- Owner must stop Vercel's own Git deploys to production (Project > Settings > Git: disconnect, or Ignored Build Step `exit 0`), so only this workflow promotes.
+- Unverified: that the CLI runs with env-only org/project ids (no `vercel link`) and under `.npmrc` `ignore-scripts=true`; the first preview run proves it. CLI pin 64.2.0 (published 2026-10-15, older than the 7-day rule).
+
+## Preview (preview.yml)
+Off unless `PREVIEW_ENABLED` is `true`; `workflow_dispatch` and same-repo PRs only; non-strict build, `PUBLIC_ALLOW_INDEXING=false`, DEV values from variables `PREVIEW_PUBLIC_SUPABASE_URL`, `PREVIEW_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PREVIEW_PUBLIC_TURNSTILE_SITE_KEY`; `deploy` without `--prod`. Dev secrets and `TURNSTILE_ALLOW_TEST_KEYS=true` are set only under the Vercel "Preview" environment. Protection: Vercel Authentication / Standard Protection works on every plan (Password Protection is Pro, $20/mo per project, not needed). The site sells services, so Vercel Pro is needed anyway (Hobby = non-commercial).
+
+## Sync and cron
+- `sync.yml` (GitHub schedule every 6 h, `SYNC_ENABLED`) stays: works on Hobby and Pro, no Vercel cron needed.
+- The Cloudflare scheduled Worker is gone (`scripts/sync-worker/entry.ts` deleted). Parked replacement: `scripts/sync-worker/vercel-cron.ts` (GET, `CRON_SECRET` bearer, 401 otherwise), calling the pure handler in `src/lib/sync/cron.ts`. It is not under `src` and `vercel.json` has no `crons`, so the legal reality guard stays valid. Activation (owner yes, Pro, `features.youtubeApiData` true): copy to `src/pages/api/cron/sync.ts`, add `crons` `*/5 * * * *`, set `CRON_SECRET` and `CRON_ENABLED=true` in Vercel.
+- Dead-man switch: the cron route alerts after 8 h without a successful sync; until it is wired, GitHub emails on a failed scheduled run, and pauses schedules after 60 days of repo inactivity.
+
+## Names (loader)
+`scripts/load-secrets.mjs`: target `vercel` (runs the locked CLI `env add NAME production --sensitive`, value via stdin, owner-run; Preview values go in the dashboard); `CLOUDFLARE_*` replaced by `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (GitHub secrets); new `CRON_SECRET`, `PREVIEW_PUBLIC_*`; `PREVIEW_ENABLED` and `SYNC_ENABLED` are hand-set switches. `.env.example` and `docs/SECRETS.md` (area E) must mention these names and the `--only vercel` option.

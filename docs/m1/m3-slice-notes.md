@@ -1,0 +1,22 @@
+# M3 unblocked slice: notes
+
+Built without accounts, admin or live data. No commit made.
+
+## What exists
+- **/submit-video** (`src/pages/submit-video.astro`, `src/lib/forms/defs/video.ts`): three steps (link and contact; match details; rights). New lead kind `video_submission`. Link is https only, stored as text, never fetched (`VIDEO_SHARE_HOSTS` and `videoHostKind` only drive the hint). Rights: footage owner, organizer name, written permission (yes/no/unsure, D-019), under-18 players recognisable (yes/no/unsure), and four separate unticked boxes with the exact CONSENT texts (adult, rights, licence, removal). Server refuses any unticked box (`<field>.given: consent_required`); ids and versions go to `consent_events` through `consentEntriesOf`.
+- **/alerts** (`alerts.astro`, `defs/alerts.ts`): WhatsApp Channel button inside `OwnerSection name="alerts-whatsapp-channel"` (hidden until `site.whatsappChannelUrl`); email sign-up kind `alerts_signup` (name, email, optional district, interests, alerts consent, 18+). No phone is collected (a phone sent anyway is dropped by the contract). Double opt-in is pending the email path: nothing is sent (EMAIL_ENABLED off) and the page and the confirmation say so.
+- **/live** (`live.astro`, `src/content/live.ts`, `src/lib/live-facade.ts`): pinned video id (null by default; section hidden), optional past streams, click-to-load facade on the privacy-enhanced domain with the "This loads YouTube" notice. **The player is rendered only when `features.youtubeEmbeds` is true** (legal switch, still false), so today a pinned id shows a plain "watch it on YouTube" link. No API calls.
+- **QR posters** (`src/lib/qr/index.ts`, `poster.ts`, `src/components/poster/`, `src/pages/posters/[slug]/{index,a3}.astro`): SVG QR at error correction M built from the `qrcode` core matrix (no new package, no JS in the browser); `/posters/<slug>/` (A4, QR 9 cm) and `/posters/<slug>/a3/` (QR 13 cm) for every non-cancelled tournament plus `/posters/channel/`. UTM `utm_source=qr&utm_medium=venue&utm_campaign=<slug>`; slug allow-list. Always noindex,nofollow, own bare layout, not linked. Site URL missing or (strict) localhost: a `Todo` instead of the code; localhost in the developer build shows a "do not print" banner.
+
+## Additive changes to existing files
+`lead-constants.ts` (kinds, role/footage/interest lists, share hosts), `lead.ts` (two schemas, `tickedConsent`), `store.ts` (`consentEntriesOf`), `telegram.ts` (labels, known pages), `email.ts` (ack wording), `whatsapp-prefill.ts`, `confirmation-text.ts` (`replyLine(promise, kind)`), `Confirmation.tsx` (no WhatsApp button or reply line for alerts), `types.ts` (`consentKey`, `requiredTick`), `payload.ts`, `validate.ts`, `rules.ts`, `urls.ts` (`M3_ROUTES`, `posterPath`). Tests extended: `parity.test.ts`, `helpers.ts`, `validation.test.ts`, `leads/contract.test.ts`; new: `tests/qr/qr.test.ts`, `tests/forms/m3-forms.test.ts`, `tests/site/live.test.ts`.
+
+## For the lead to do
+1. **Database migration**: `supabase/proposed/0003_lead_kinds_m3.sql` widens `leads_type_check`. It is NOT in `supabase/migrations/` because `tests/supabase/migrations-structure.test.ts` requires every migration to create a table and have a `checks/000N_assertions.sql`. Move it and add the check script and test pattern before the new forms can store anything. Until then `/api/lead` returns `degraded` for both kinds.
+2. **Links**: `M3_ROUTES` is separate from `ROUTES` because `nav.ts` requires a footer link for every ROUTES value and `nav.test.ts` forbids `/live|/alerts|/submit-video`. Link them from the footer and Support, then merge into `ROUTES` and update that test.
+3. **Legal test touched**: `tests/legal/reality.test.ts` now exempts three files (`GATED_EMBED_FILES`) that hold the embed code, because the page gates the player on `features.youtubeEmbeds`. The Legal worker should confirm.
+4. Consent texts are unchanged. The lead notice ("reply to this enquiry") still shows on the alerts form because the contract stores it for every kind: ask the lawyer.
+5. Poster pages are noindex by meta tag only; add `/posters/` to robots.txt and the headers noindex rule if indexing is ever allowed.
+
+## Still needs admin / Supabase
+Reading submissions and sign-ups (Studio only), approving a video and linking its YouTube id, double opt-in email and unsubscribe, subscriber export, live status from RSS/videos.list, tournament-driven poster generation from the database, the poster upload pipeline.
