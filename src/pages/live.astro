@@ -1,0 +1,151 @@
+---
+// Live (spec 7.13), static shell. Reads src/content/live.ts: a pinned YouTube video id (empty by default; the player section is
+// hidden until it is set, D-034) and an optional list of past streams. NO API calls and no live data: the cached live status
+// (RSS plus videos.list) arrives with the sync. The player is a click-to-load facade on the privacy-enhanced domain: nothing from
+// YouTube is requested until the visitor presses the button, and the page says so. Without JavaScript the visitor gets a plain link.
+// The raw title of the stream is not required (nothing here shows one for the pinned video).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import EmptyState from '../components/ui/EmptyState.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import { assertValidLive, embedUrl, live, watchUrl } from '../content/live';
+import { features } from '../content/legal/status';
+import { site } from '../content/site';
+import { formatDate } from '../lib/dates';
+import { titleWithBrand } from '../lib/seo';
+
+assertValidLive();
+const pinned = live.pinnedVideoId;
+// The player is shown only when the Privacy Policy covers YouTube embeds (features.youtubeEmbeds, a switch the owner and the lawyer set).
+const embedsOn = features.youtubeEmbeds === true;
+const pinnedEmbed = pinned && embedsOn ? embedUrl(pinned) : null;
+const hasPast = live.pastStreams.length > 0;
+const pinnedWatch = pinned ? watchUrl(pinned) : null;
+---
+<BaseLayout
+  title={titleWithBrand('Live')}
+  description="Watch Power Smash live badminton streams from Tamil Nadu tournaments, and join the channel."
+>
+  <PageHero
+    tone="dark"
+    title="Live"
+    lead="Live badminton streams from Tamil Nadu tournaments."
+    crumbs={[{ name: 'Live' }]}
+  >
+    <Button href={site.youtubeJoinUrl} variant="volt" size="lg" external>Join the channel</Button>
+    <Button href={site.youtubeUrl} variant="quiet" size="lg" external>Watch on YouTube</Button>
+  </PageHero>
+
+  <OwnerSection when={pinnedWatch} name="live-pinned-player">
+    <Section labelledBy="now-title">
+      <SectionHeading id="now-title" title="On now" />
+      <div class="mt-6 max-w-4xl">
+        {pinnedEmbed ? (
+          <div class="ps-live-box" data-live-facade data-embed-src={pinnedEmbed} data-title="Power Smash live stream">
+            <div class="ps-live-facade">
+              <button type="button" data-live-load hidden class="ps-live-button">Load the video</button>
+              <noscript>
+                <a href={pinnedWatch ?? '#'} rel="noopener" target="_blank">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+              </noscript>
+              <p class="ps-live-notice">
+                This loads YouTube. When you press the button, your browser connects to YouTube and YouTube's own rules apply to the player.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p class="text-body">The stream is on YouTube: <a href={pinnedWatch ?? '#'} rel="noopener" target="_blank" class="font-semibold">watch it on YouTube<span class="sr-only"> (opens in a new tab)</span></a>.</p>
+        )}
+        <p class="mt-3 text-small text-fg-muted">
+          Prefer the YouTube app? <a href={pinnedWatch ?? '#'} rel="noopener" target="_blank">Open it on YouTube<span class="sr-only"> (opens in a new tab)</span></a>.
+        </p>
+      </div>
+    </Section>
+  </OwnerSection>
+
+  {!pinned && (
+    <Section>
+      <EmptyState title="No live stream is pinned right now">
+        <p>When we go live, the stream shows up here. You can always watch our latest videos and streams on YouTube.</p>
+        <Fragment slot="actions">
+          <Button href={site.youtubeUrl} variant="primary" external>Open the channel on YouTube</Button>
+        </Fragment>
+      </EmptyState>
+    </Section>
+  )}
+
+  <OwnerSection when={hasPast} name="live-past-streams">
+    <Section tone="surface" labelledBy="past-title">
+      <SectionHeading id="past-title" title="Past streams" lead="Titles are shown exactly as they are on YouTube." />
+      <ul class="mt-6 flex max-w-3xl flex-col gap-3">
+        {live.pastStreams.map((stream) => (
+          <li class="ps-card p-4">
+            <a href={watchUrl(stream.videoId) ?? '#'} rel="noopener" target="_blank" class="font-semibold">{stream.title}<span class="sr-only"> (opens in a new tab)</span></a>
+            {stream.date ? <p class="mt-1 text-small text-fg-muted">{formatDate(stream.date)}</p> : null}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  </OwnerSection>
+
+  <script>
+    import { installLiveFacade } from '../lib/live-facade';
+    installLiveFacade(document);
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .ps-live-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 2px solid var(--ps-ink);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-ink);
+    color: #ffffff;
+    overflow: hidden;
+  }
+  .ps-live-facade {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  .ps-live-facade a {
+    color: var(--ps-volt);
+    font-weight: 700;
+  }
+  .ps-live-button {
+    min-height: 3rem;
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-volt);
+    color: var(--ps-ink);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .ps-live-button:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 3px;
+  }
+  .ps-live-notice {
+    margin: 0;
+    max-width: 36rem;
+    font-size: 0.9375rem;
+  }
+  .ps-live-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

@@ -1,0 +1,51 @@
+---
+// List your tournament (spec 7.8, D-025, D-035): a three-step form, kind "tournament_submission". P1 stores the submission as
+// pending and alerts the owner. The poster is an optional https link (no upload, D-035). Listing type "featured" only records
+// a request: nothing is paid here (paid featured listings are Phase 2). Contact details are shown publicly only if the
+// separate, unticked consent box on the last step is ticked (D-028).
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import FormSection from '../../components/forms/FormSection.astro';
+import LeadForm from '../../components/forms/LeadForm';
+import { tournamentSubmissionForm } from '../../lib/forms/defs/tournament';
+import { formPageConfig, plainForm } from '../../lib/forms/page-config';
+import { titleWithBrand } from '../../lib/seo';
+import { ROUTES } from '../../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(tournamentSubmissionForm({ publicContactText: cfg.publicContactText }));
+---
+<BaseLayout
+  title={titleWithBrand('List Your Tournament')}
+  description="List your Tamil Nadu badminton tournament on Power Smash for free. Send the basics now and add more details if you like."
+>
+  <PageHero
+    tone="dark"
+    title="List your tournament - free"
+    lead="Send us the basics. We check every submission before it goes on the Tournaments page."
+    crumbs={[{ name: 'Tournaments', href: ROUTES.tournaments }, { name: 'List your tournament' }]}
+  />
+
+  <FormSection id="submit" title="Tournament listing form" route={ROUTES.submitTournament} blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>Step 1 asks only for the basics: the tournament name, the first day, a contact person and a phone number.</li>
+        <li>A free listing costs nothing. A featured listing is only a request here: you do not pay on this page.</li>
+        <li>For the poster, paste a link to the picture. You cannot upload a file yet.</li>
+        <li>Your phone number and email are not shown on the website unless you tick the box for that on the last step.</li>
+      </ul>
+      <p class="text-small text-fg-muted">Want us to film it? Tick the coverage box on the last step, or <a href={ROUTES.book}>book coverage</a>.</p>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

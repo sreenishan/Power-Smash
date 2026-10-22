@@ -1,0 +1,40 @@
+---
+// Call-to-action band: a heading, one line, a primary button and (when a number exists) a WhatsApp button.
+// Deep-green band so it stands out between light sections. Use once or twice per page.
+import Button from './Button.astro';
+import WhatsAppButton from '../site/WhatsAppButton.astro';
+
+interface Props {
+  title: string;
+  text?: string;
+  primaryHref: string;
+  primaryLabel: string;
+  whatsappText?: string;
+  whatsappLabel?: string;
+  source?: string;
+  id?: string;
+}
+const {
+  title,
+  text,
+  primaryHref,
+  primaryLabel,
+  whatsappText,
+  whatsappLabel = 'WhatsApp us',
+  source = 'cta',
+  id = 'cta-heading',
+} = Astro.props;
+---
+<section aria-labelledby={id} class="ps-surface-court ps-pattern py-section">
+  <div class="ps-container flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+    <div class="max-w-2xl">
+      <h2 id={id} class="text-h2">{title}</h2>
+      <span aria-hidden="true" class="ps-rule"></span>
+      {text && <p class="mt-4 text-lead text-fg">{text}</p>}
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <Button href={primaryHref} variant="volt" size="lg">{primaryLabel}</Button>
+      {whatsappText && <WhatsAppButton text={whatsappText} label={whatsappLabel} variant="quiet" size="lg" source={source} />}
+    </div>
+  </div>
+</section>

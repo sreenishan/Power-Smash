@@ -1,0 +1,25 @@
+---
+// A link styled as a button (all buttons on content pages are links to a page, a WhatsApp chat or an external site).
+// External links open in a new tab with rel="noopener" and say so to screen readers.
+// Internal paths are written in their one canonical form (trailing slash) through path() (R-LINKS); external URLs, mailto:,
+// tel:, #anchors and files are passed through unchanged by that helper.
+import type { HTMLAttributes } from 'astro/types';
+import { buttonClass, type ButtonSize, type ButtonVariant } from './button';
+import { path } from '../../lib/urls';
+
+interface Props extends Omit<HTMLAttributes<'a'>, 'href'> {
+  href: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Open in a new tab. */
+  external?: boolean;
+}
+const { href, variant = 'primary', size = 'md', external = false, class: className, rel, ...rest } = Astro.props;
+---
+<a
+  href={path(href)}
+  class:list={[buttonClass(variant, size), className]}
+  target={external ? '_blank' : undefined}
+  rel={external ? (rel ?? 'noopener') : rel}
+  {...rest}
+><slot />{external && <span class="sr-only"> (opens in a new tab)</span>}</a>

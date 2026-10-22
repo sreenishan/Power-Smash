@@ -1,0 +1,33 @@
+---
+// Draft notice for a legal page (OT-15). While src/content/legal/status.ts says reviewedByLawyer: false for this page it
+// renders <Todo what="lawyer review of this page (OT-15)">, which prints the literal text "TODO(owner): ..." and so fails the
+// strict release gate (D-034). The LEAD sets the flag to true after a lawyer has reviewed the page. Nothing renders after that.
+import Todo from '../site/Todo.astro';
+import { draftNoticeTodo, type LegalPageKey } from '../../content/legal/status';
+
+interface Props {
+  page: LegalPageKey;
+}
+const { page } = Astro.props;
+const what = draftNoticeTodo(page);
+---
+{
+  what && (
+    <aside class="ps-legal-draft" aria-label="Draft status">
+      <p>
+        <strong>Draft.</strong> This page is a working draft. It is not legal advice, and a lawyer has not reviewed it yet. <Todo what={what} />
+      </p>
+    </aside>
+  )
+}
+<style>
+  .ps-legal-draft {
+    margin-top: var(--ps-space-2);
+    padding: var(--ps-space-2);
+    border: 2px dashed var(--ps-live);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-live-tint);
+    color: var(--ps-ink);
+    font-size: var(--ps-text-small);
+  }
+</style>

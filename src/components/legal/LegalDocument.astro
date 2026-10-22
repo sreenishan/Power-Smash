@@ -1,0 +1,141 @@
+---
+// Renders one legal page from its content model (src/content/legal/*.ts): H1, "last updated", the draft notice (while the
+// lawyer has not reviewed the page), an "in short" paragraph, a table of contents, then the sections as H2 (and H3).
+// Wrap it in BaseLayout in the page file; the layout provides <main>.
+import LegalBlock from './LegalBlock.astro';
+import LegalDraftNotice from './LegalDraftNotice.astro';
+import LegalInline from './LegalInline.astro';
+import { legalFacts } from '../../content/legal/facts';
+import { lastUpdated } from '../../content/legal/meta';
+import { hiddenMarkers, visibleBlocks, visibleSections, type LegalDoc } from '../../content/legal/model';
+import { formatDate } from '../../lib/dates';
+
+interface Props {
+  doc: LegalDoc;
+}
+const { doc } = Astro.props;
+const sections = visibleSections(doc, legalFacts);
+// Optional owner inputs that are hiding something here (finding C-14). Invisible; scripts/check-placeholders.ts lists them (D-034).
+const hidden = hiddenMarkers(doc, legalFacts);
+---
+<div class="ps-container py-section ps-legal">
+  {hidden.map((name) => <template data-owner-hidden={name}></template>)}
+  <article class="mx-auto max-w-3xl">
+    <header>
+      <h1>{doc.title}</h1>
+      <p class="ps-legal-meta">Last updated: <time datetime={lastUpdated}>{formatDate(lastUpdated)}</time></p>
+      <LegalDraftNotice page={doc.key} />
+      <p class="ps-legal-summary"><strong>In short: </strong><LegalInline items={doc.summary} /></p>
+    </header>
+
+    <nav aria-label="On this page" class="ps-legal-toc">
+      <p>On this page</p>
+      <ol>
+        {sections.map((s) => <li><a href={`#${s.id}`}>{s.heading}</a></li>)}
+      </ol>
+    </nav>
+
+    {
+      sections.map((s) => (
+        <section id={s.id} aria-labelledby={`${s.id}-heading`}>
+          <h2 id={`${s.id}-heading`}>{s.heading}</h2>
+          {visibleBlocks(s.blocks, legalFacts).map((b) => <LegalBlock block={b} />)}
+          {(s.subsections ?? []).map((sub) => (
+            <section id={sub.id} aria-labelledby={`${sub.id}-heading`}>
+              <h3 id={`${sub.id}-heading`}>{sub.heading}</h3>
+              {visibleBlocks(sub.blocks, legalFacts).map((b) => <LegalBlock block={b} />)}
+            </section>
+          ))}
+        </section>
+      ))
+    }
+  </article>
+</div>
+<style is:global>
+  .ps-legal h1 {
+    font-size: var(--ps-text-h2); /* legal titles are long: smaller than the display H1, still the brand heading font */
+    line-height: var(--ps-lh-h2);
+  }
+  .ps-legal p,
+  .ps-legal li {
+    line-height: 1.7;
+    max-width: 68ch;
+  }
+  .ps-legal h2 {
+    margin-top: var(--ps-space-8);
+    padding-top: var(--ps-space-3);
+    border-top: 1px solid var(--ps-line);
+    scroll-margin-top: calc(var(--ps-header-h) + 1rem);
+    font-size: var(--ps-text-h3);
+    line-height: var(--ps-lh-h3);
+    text-transform: none; /* sentence case for long plain-English headings (readability) */
+  }
+  .ps-legal h3 {
+    margin-top: var(--ps-space-4);
+    font-size: var(--ps-text-h4);
+  }
+  .ps-legal p,
+  .ps-legal ul,
+  .ps-legal ol,
+  .ps-legal dl {
+    margin-top: var(--ps-space-2);
+  }
+  .ps-legal ul,
+  .ps-legal ol {
+    padding-left: 1.5rem;
+  }
+  .ps-legal ul {
+    list-style: disc;
+  }
+  .ps-legal ol {
+    list-style: decimal;
+  }
+  .ps-legal li + li {
+    margin-top: 0.5rem;
+  }
+  .ps-legal ul.ps-legal-plain,
+  .ps-legal .ps-legal-routes ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .ps-legal-meta {
+    color: var(--ps-fg-muted);
+    font-size: var(--ps-text-small);
+  }
+  .ps-legal-summary {
+    padding: var(--ps-space-2) var(--ps-space-3);
+    border-left: 4px solid var(--ps-court);
+    background: var(--ps-surface);
+    border-radius: 0 var(--ps-radius-md) var(--ps-radius-md) 0;
+    font-size: var(--ps-text-lead);
+    line-height: var(--ps-lh-lead);
+  }
+  .ps-legal-toc {
+    margin-top: var(--ps-space-4);
+    padding: var(--ps-space-2);
+    border: 1px solid var(--ps-line);
+    border-top: 4px solid var(--ps-court);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-surface);
+  }
+  .ps-legal-toc > p {
+    margin: 0;
+    font-family: var(--ps-font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .ps-legal-toc ol {
+    margin-top: var(--ps-space-1);
+    padding-left: 1.5rem;
+  }
+  .ps-legal-toc li a {
+    display: inline-block;
+    min-height: var(--ps-tap);
+    padding-block: 0.625rem;
+  }
+  .ps-legal-toc li + li {
+    margin-top: 0;
+  }
+</style>

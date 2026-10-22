@@ -1,0 +1,79 @@
+// The one date module (D-030, CLAUDE.md): event dates are plain calendar dates ("YYYY-MM-DD") read as Asia/Kolkata;
+// instants stay UTC and are only formatted for display, always through Intl with timeZone Asia/Kolkata and locale en-IN.
+// Created by the Site-shell worker because D-030 requires a single module and none existed at M1 start; the lead may
+// move or extend it. Pure functions: tests/site/dates.test.ts.
+
+export const TIME_ZONE = 'Asia/Kolkata';
+const LOCALE = 'en-IN';
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** True for a real calendar date written YYYY-MM-DD. */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const m = ISO_DATE.exec(value);
+  if (!m) return false;
+  const [, y, mo, d] = m;
+  const date = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
+  return date.getUTCFullYear() === Number(y) && date.getUTCMonth() === Number(mo) - 1 && date.getUTCDate() === Number(d);
+}
+
+/** The instant of noon on an IST calendar date (noon avoids any edge at midnight when formatting back to IST). */
+function istNoon(isoDate: string): Date {
+  if (!isIsoDate(isoDate)) throw new RangeError(`Not an ISO calendar date: ${String(isoDate)}`);
+  return new Date(`${isoDate}T12:00:00+05:30`);
+}
+
+const longDate = new Intl.DateTimeFormat(LOCALE, { timeZone: TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' });
+const dayOnly = new Intl.DateTimeFormat(LOCALE, { timeZone: TIME_ZONE, day: 'numeric' });
+const monthDay = new Intl.DateTimeFormat(LOCALE, { timeZone: TIME_ZONE, day: 'numeric', month: 'long' });
+const monthYear = new Intl.DateTimeFormat(LOCALE, { timeZone: TIME_ZONE, month: 'long', year: 'numeric' });
+const isoParts = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** "20 October 2026" from an IST calendar date or from an instant (a Date, or an ISO timestamp with a zone). */
+export function formatDate(input: string | Date): string {
+  if (typeof input === 'string' && ISO_DATE.test(input)) return longDate.format(istNoon(input));
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) throw new RangeError('Not a date');
+  return longDate.format(date);
+}
+
+/** "October 2026", used to group tournaments by month. */
+export function formatMonthYear(isoDate: string): string {
+  return monthYear.format(istNoon(isoDate));
+}
+
+/** "20-22 October 2026", "30 October - 2 November 2026", or one date when the end is missing or the same. */
+export function formatDateRange(startIso: string, endIso?: string | null): string {
+  if (!endIso || endIso === startIso) return formatDate(startIso);
+  const start = istNoon(startIso);
+  const end = istNoon(endIso);
+  const sameYear = startIso.slice(0, 4) === endIso.slice(0, 4);
+  const sameMonth = sameYear && startIso.slice(5, 7) === endIso.slice(5, 7);
+  if (sameMonth) return `${dayOnly.format(start)}–${longDate.format(end)}`;
+  if (sameYear) return `${monthDay.format(start)} – ${longDate.format(end)}`;
+  return `${longDate.format(start)} – ${longDate.format(end)}`;
+}
+
+/** Today's calendar date in Asia/Kolkata as YYYY-MM-DD (the build runs on UTC; the audience does not). */
+export function todayIst(now: Date = new Date()): string {
+  return isoParts.format(now); // en-CA formats as YYYY-MM-DD
+}
+
+/**
+ * Whole calendar days from one IST calendar date to another (negative when `toIso` is earlier). Used by the release check to
+ * warn when an owner-stated, dated figure (site.channel.asOfDate, site.audience.asOfDate) gets old (D-016 item 5, review C-17).
+ */
+export function daysBetween(fromIso: string, toIso: string): number {
+  if (!isIsoDate(fromIso) || !isIsoDate(toIso)) throw new RangeError('daysBetween expects two ISO calendar dates (YYYY-MM-DD)');
+  const utcDay = (iso: string): number => {
+    const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
+    return Date.UTC(y, m - 1, d) / 86_400_000;
+  };
+  return utcDay(toIso) - utcDay(fromIso);
+}
+
+/** A tournament is upcoming until its last day (inclusive) has passed in IST. Plain string comparison is safe for ISO dates. */
+export function isUpcoming(startIso: string, endIso: string | null | undefined, today: string): boolean {
+  return (endIso ?? startIso) >= today;
+}

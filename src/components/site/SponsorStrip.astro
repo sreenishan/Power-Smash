@@ -1,0 +1,51 @@
+---
+// Partners strip (spec 5.5 SponsorStrip, labelled "Partners"). REAL partners only: it shows partners that have written
+// permission recorded (partners.ts) and renders NOTHING when there are none (D-034 hide-section rule, spec 6.2). While hidden it
+// leaves `<template data-owner-hidden="...">` so the release gate can list it (review C-3); every call site passes its own `name`.
+// Sponsored links carry rel="sponsored nofollow" (D-031). Later they go through /go/[slug].
+import { partners as allPartners, showablePartners, type Partner } from '../../content/partners';
+import { path } from '../../lib/urls';
+import OwnerSection from './OwnerSection.astro';
+
+interface Props {
+  /** Defaults to the site's partners list. */
+  partners?: readonly Partner[];
+  /** Show a "Become a partner" link after the logos. */
+  showCta?: boolean;
+  /** Hidden-section marker name, unique per call site (for example "home-partners-strip"). */
+  name?: string;
+  class?: string;
+}
+const { partners = allPartners, showCta = true, name = 'partners-strip', class: className } = Astro.props;
+const shown = showablePartners(partners);
+// D-012, D-016, D-031: NO sponsor on a protected page (review S2-2). The footer strip is on every page, so it renders nothing at all
+// (not even a hidden-section marker) anywhere under /players/ or /matches/: a minimal or protected page can only live there, and a
+// sponsor slot belongs beside the player on a page with real independent content (the M3 PlacementSlot decides that per page).
+const onArchivePage = /^\/(players|matches)(\/|$)/.test(Astro.url.pathname);
+---
+{!onArchivePage && (
+<OwnerSection when={shown} name={name}>
+  <section aria-label="Partners" class:list={['py-10', className]}>
+    <div class="ps-container">
+      <p class="ps-eyebrow">Partners</p>
+      <ul class="mt-5 flex flex-wrap items-center gap-x-10 gap-y-4">
+        {shown.map((p) => (
+          <li>
+            {p.url ? (
+              <a href={p.url} rel="sponsored nofollow noopener" target="_blank" class="inline-flex min-h-tap items-center">
+                <img src={p.logoPath} alt={p.logoAlt} loading="lazy" class="h-10 w-auto max-w-40 object-contain" />
+                <span class="sr-only"> (opens in a new tab)</span>
+              </a>
+            ) : (
+              <img src={p.logoPath} alt={p.logoAlt} loading="lazy" class="h-10 w-auto max-w-40 object-contain" />
+            )}
+          </li>
+        ))}
+      </ul>
+      {showCta && (
+        <p class="mt-4"><a href={path('/partner')}>Become a partner</a></p>
+      )}
+    </div>
+  </section>
+</OwnerSection>
+)}

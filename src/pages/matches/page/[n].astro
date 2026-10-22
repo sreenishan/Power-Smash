@@ -1,0 +1,20 @@
+---
+// /matches/page/N/ for N >= 2: plain static list pages so every match has an ordinary link path (spec 7.2, 9.1).
+import MatchListPage from '../../../components/archive/MatchListPage.astro';
+import { loadPublicArchive, paginate } from '../../../lib/archive/model';
+import { buildMatchIndex, filterOptions } from '../../../lib/archive/search';
+
+export async function getStaticPaths() {
+  const archive = await loadPublicArchive();
+  const { pages } = paginate(archive.grid, 1);
+  const options = filterOptions(buildMatchIndex(archive).items);
+  return Array.from({ length: Math.max(0, pages - 1) }, (_, i) => {
+    const n = i + 2;
+    const slice = paginate(archive.grid, n);
+    return { params: { n: String(n) }, props: { matches: slice.items, pages: slice.pages, total: slice.total, options, source: archive.source } };
+  });
+}
+const { n } = Astro.params;
+const { matches, pages, total, options, source } = Astro.props;
+---
+<MatchListPage matches={matches} page={Number(n)} pages={pages} total={total} options={options} source={source} />

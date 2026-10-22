@@ -1,0 +1,52 @@
+// Display labels for the parsed fields (spec 7.2/7.3). The database stores codes (MS, SF, U15, open); pages show words.
+// Everything shown from these is labelled "by Power Smash" on the page (D-016). Unknown codes are shown as they are, never invented.
+
+export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  MS: "Men's singles",
+  WS: "Women's singles",
+  MD: "Men's doubles",
+  WD: "Women's doubles",
+  XD: 'Mixed doubles',
+  BS: "Boys' singles",
+  GS: "Girls' singles",
+  BD: "Boys' doubles",
+  GD: "Girls' doubles",
+};
+
+export const ROUND_LABELS: Readonly<Record<string, string>> = {
+  R128: 'Round of 128',
+  R64: 'Round of 64',
+  R32: 'Round of 32',
+  R16: 'Round of 16',
+  QF: 'Quarter-final',
+  SF: 'Semi-final',
+  F: 'Final',
+  '3P': 'Third place',
+  league: 'League',
+  group: 'Group stage',
+};
+
+const AGE_WORDS: Readonly<Record<string, string>> = { open: 'Open', senior: 'Senior', veterans: 'Veterans', masters: 'Masters' };
+
+export function categoryLabel(code: string | null | undefined): string | null {
+  return code ? (CATEGORY_LABELS[code] ?? code) : null;
+}
+
+export function roundLabel(code: string | null | undefined): string | null {
+  return code ? (ROUND_LABELS[code] ?? code) : null;
+}
+
+export function ageGroupLabel(code: string | null | undefined): string | null {
+  if (!code) return null;
+  return AGE_WORDS[code] ?? code.replace(/_/g, ' ');
+}
+
+/** ISO 8601 duration for VideoObject (PT1H2M3S). Null for a missing or non-positive length. */
+export function isoDuration(seconds: number | null | undefined): string | null {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) return null;
+  const total = Math.round(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `PT${h ? `${h}H` : ''}${m ? `${m}M` : ''}${s || (!h && !m) ? `${s}S` : ''}`;
+}

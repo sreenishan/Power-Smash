@@ -1,0 +1,156 @@
+---
+// Home (lite, M1). Spec 7.1 without the parts that need the archive: NO search box and NO latest matches yet (M2).
+// Hero with the three audience routes (D-024, D-025), the owner-stated channel figures with their as-of note, a services
+// teaser, upcoming tournaments when there are any, the partners strip when real partners exist, and the community links.
+import Trophy from '@lucide/astro/icons/trophy';
+import Handshake from '@lucide/astro/icons/handshake';
+import Video from '@lucide/astro/icons/video';
+import ArrowRight from '@lucide/astro/icons/arrow-right';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import StatCounter from '../components/ui/StatCounter.astro';
+import PackageCard from '../components/ui/PackageCard.astro';
+import WhatsAppButton from '../components/site/WhatsAppButton.astro';
+import SponsorStrip from '../components/site/SponsorStrip.astro';
+import TournamentCard from '../components/site/TournamentCard.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import { whatsappTextForPath } from '../components/site/whatsappText';
+import { site } from '../content/site';
+import { products, enquiryTarget } from '../content/products';
+import { sponsorPackages } from '../content/sponsor-packages';
+import { tournaments, assertValidTournaments, splitTournaments } from '../content/tournaments';
+import { todayIst } from '../lib/dates';
+import { PAGE_META } from '../lib/seo';
+import { PLAYERS_SECTION, ROUTES } from '../lib/urls';
+
+assertValidTournaments();
+const { upcoming } = splitTournaments(tournaments, todayIst());
+const teaserTournaments = upcoming.slice(0, 3);
+
+// D-024 suggests leading with tournament promotion, finals-day coverage (Essential) and the sponsor starter (Rally Partner).
+// The owner confirms the lead products under OT-20; until then these are the `suggestedLead` ones.
+const teaser = [
+  ...products.filter((p) => p.suggestedLead),
+  ...sponsorPackages.filter((p) => p.suggestedLead),
+].slice(0, 3);
+
+const h1 = site.tagline ?? 'Tamil Nadu badminton, on camera.';
+const meta = PAGE_META.home;
+
+const routes = [
+  {
+    icon: Trophy,
+    title: 'I run a tournament',
+    text: 'Get your tournament filmed, shared and listed.',
+    href: ROUTES.services,
+    label: 'See coverage packages',
+  },
+  {
+    icon: Handshake,
+    title: 'I want to sponsor',
+    text: 'Reach the Power Smash badminton audience.',
+    href: ROUTES.partner,
+    label: 'Partner with us',
+  },
+  {
+    icon: Video,
+    title: 'I am a player or parent',
+    text: 'Ask for a highlight reel or an HD match file.',
+    href: PLAYERS_SECTION,
+    label: 'See player products',
+  },
+];
+---
+<BaseLayout title={meta.title} description={meta.description} organization>
+  <section aria-labelledby="home-title" class="ps-surface-dark ps-hero ps-hero-lg">
+    <div class="ps-container">
+      <div class="ps-rise">
+        <h1 id="home-title" class="max-w-4xl">{h1}</h1>
+        <span aria-hidden="true" class="ps-rule"></span>
+        <p class="mt-5 max-w-2xl text-lead text-fg-muted">
+          Power Smash is a YouTube channel for Tamil Nadu badminton players and tournaments. Book tournament coverage,
+          partner with us, or ask for your highlight reel.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <Button href={ROUTES.book} variant="volt" size="lg">Book coverage</Button>
+          <WhatsAppButton text={whatsappTextForPath('/')} label="Chat on WhatsApp" variant="quiet" size="lg" source="home-hero" />
+        </div>
+      </div>
+
+      <div class="mt-12 grid max-w-xl grid-cols-2 gap-4 sm:mt-16">
+        <StatCounter value={site.channel.subscribers} label="Subscribers" />
+        <StatCounter value={site.channel.videos} label="Videos" />
+      </div>
+      <p class="mt-3 max-w-2xl text-small text-fg-muted">About {site.channel.subscribers} subscribers and {site.channel.videos} videos on the Power Smash YouTube channel (rounded), as of {site.channel.asOf}.</p>
+    </div>
+  </section>
+
+  <Section labelledBy="routes-title">
+    <SectionHeading id="routes-title" title="How can we help?" />
+    <ul class="mt-8 grid gap-6 md:grid-cols-3">
+      {routes.map((route) => (
+        <li class="ps-card ps-card-accent ps-card-hover flex h-full flex-col gap-3 p-5 sm:p-6">
+          <span class="ps-icon-tile"><route.icon size={24} aria-hidden="true" /></span>
+          <h3 class="text-h4">{route.title}</h3>
+          <p class="text-fg-muted">{route.text}</p>
+          <a href={route.href} class="mt-auto inline-flex min-h-tap items-center gap-2 font-bold text-link after:absolute after:inset-0">
+            {route.label}<ArrowRight size={18} aria-hidden="true" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  <Section tone="surface" labelledBy="teaser-title">
+    <SectionHeading id="teaser-title" title="Ways to work with Power Smash" lead="Pick a package, send your details, and we reply with a quote." />
+    <ul class="mt-8 grid gap-6 md:grid-cols-3">
+      {teaser.map((product) => {
+        const target = enquiryTarget(product);
+        return (
+          <li>
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} showInclusions={false} source="home-teaser" />
+          </li>
+        );
+      })}
+    </ul>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href={ROUTES.services} variant="secondary">All services</Button>
+      <Button href={ROUTES.pricing} variant="quiet">Pricing</Button>
+    </div>
+  </Section>
+
+  <Section labelledBy="tournaments-title">
+    {teaserTournaments.length > 0 ? (
+      <>
+        <SectionHeading id="tournaments-title" title="Upcoming tournaments" />
+        <ul class="mt-8 grid gap-6 md:grid-cols-3">
+          {teaserTournaments.map((t) => <li><TournamentCard tournament={t} /></li>)}
+        </ul>
+      </>
+    ) : (
+      <SectionHeading id="tournaments-title" title="Running a tournament?" lead="List it on Power Smash for free, or book coverage for it." />
+    )}
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href={ROUTES.submitTournament} variant="primary">List your tournament - free</Button>
+      <Button href={ROUTES.book} variant="secondary">Book coverage</Button>
+      {teaserTournaments.length > 0 && <Button href={ROUTES.tournaments} variant="quiet">All tournaments</Button>}
+    </div>
+  </Section>
+
+  <SponsorStrip name="home-partners-strip" />
+
+  <Section tone="court" pattern labelledBy="community-title">
+    <SectionHeading id="community-title" title="Follow Power Smash" />
+    <ul class="mt-6 flex flex-wrap gap-3">
+      <li><Button href={site.youtubeUrl} variant="volt" external>Watch on YouTube</Button></li>
+      <li><Button href={site.youtubeJoinUrl} variant="quiet" external>Join the channel</Button></li>
+      <li><Button href={site.instagramUrl} variant="quiet" external>Instagram</Button></li>
+      <li><Button href={site.facebookUrl} variant="quiet" external>Facebook</Button></li>
+      <OwnerSection when={site.whatsappChannelUrl} name="home-whatsapp-channel">
+        <li><Button href={site.whatsappChannelUrl ?? '#'} variant="quiet" external>WhatsApp Channel</Button></li>
+      </OwnerSection>
+    </ul>
+  </Section>
+</BaseLayout>

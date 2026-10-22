@@ -1,0 +1,58 @@
+---
+// Sticky site header (spec 5.5, 6.2, D-025). Logo, the audience entry points (organizers, sponsors, players and parents),
+// Tournaments, a Book coverage button and a prominent WhatsApp button (hidden when there is no number).
+// The mobile menu is a <details> element: it needs no JavaScript.
+import Menu from '@lucide/astro/icons/menu';
+import X from '@lucide/astro/icons/x';
+import { bookCoverageLink, headerNavFor, isCurrent } from './nav';
+import { whatsappTextForPath } from './whatsappText';
+import Button from '../ui/Button.astro';
+import { path } from '../../lib/urls';
+import WhatsAppButton from './WhatsAppButton.astro';
+
+const pathname = Astro.url.pathname;
+const waText = whatsappTextForPath(pathname);
+const linkClass = 'ps-nav-link';
+---
+<header class="ps-surface-dark ps-site-header">
+  <div class="ps-container ps-header-bar">
+    <a href={path('/')} class="inline-flex min-h-tap shrink-0 items-center" aria-label="Power Smash, home">
+      <img src="/brand/logo-full-dark.svg" alt="" width="152" height="24" class="h-5 w-auto sm:h-6 lg:h-8" />
+    </a>
+
+    <nav aria-label="Main" class="hidden lg:block">
+      <ul class="flex items-center gap-1">
+        {headerNavFor().map((item) => (
+          <li>
+            <a href={item.href} class={linkClass} aria-current={isCurrent(item.href, pathname) ? 'page' : undefined}>{item.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <div class="hidden lg:block">
+        <Button href={bookCoverageLink.href} variant="quiet" size="sm">{bookCoverageLink.label}</Button>
+      </div>
+      <WhatsAppButton text={waText} label="WhatsApp" variant="volt" size="sm" source="header" />
+      <details class="group lg:hidden">
+        <summary aria-label="Menu" class="ps-menu-button">
+          <Menu size={22} class="group-open:hidden" aria-hidden="true" />
+          <X size={22} class="hidden group-open:block" aria-hidden="true" />
+        </summary>
+        <nav aria-label="Menu" class="ps-surface-dark ps-menu-panel">
+          <ul class="ps-container flex flex-col py-3">
+            {headerNavFor().map((item) => (
+              <li>
+                <a href={item.href} class={linkClass} aria-current={isCurrent(item.href, pathname) ? 'page' : undefined}>{item.label}</a>
+              </li>
+            ))}
+            <li class="pt-4 pb-1">
+              <Button href={bookCoverageLink.href} variant="volt" size="lg" class="w-full">{bookCoverageLink.label}</Button>
+            </li>
+          </ul>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

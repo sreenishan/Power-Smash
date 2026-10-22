@@ -1,0 +1,151 @@
+---
+// Services (spec 7.9): hero, package groups for organizers, players and promotion (Appendix C, DRAFT data), the process
+// timeline, FAQ (hidden until the owner answers), testimonials (hidden until real ones exist) and CTAs.
+// No price, delivery time, travel policy, cancellation rule or GST treatment is claimed that the owner has not supplied.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import PackageCard from '../components/ui/PackageCard.astro';
+import PriceTag from '../components/ui/PriceTag.astro';
+import FaqList from '../components/ui/FaqList.astro';
+import CtaBlock from '../components/ui/CtaBlock.astro';
+import WhatsAppButton from '../components/site/WhatsAppButton.astro';
+import Todo from '../components/site/Todo.astro';
+import { whatsappTextForPath } from '../components/site/whatsappText';
+import {
+  enquiryTarget,
+  needsInclusionApproval,
+  processSteps,
+  productsInGroup,
+} from '../content/products';
+import { faqItems } from '../content/faq';
+import { showableTestimonials } from '../content/testimonials';
+import { PAGE_META, titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+import OwnerSection from '../components/site/OwnerSection.astro';
+
+const meta = PAGE_META.services;
+const organizers = productsInGroup('organizers');
+const addons = productsInGroup('addons');
+const players = productsInGroup('players');
+const promotion = productsInGroup('promotion');
+const shown = [...organizers, ...players, ...promotion];
+const approvalNeeded = needsInclusionApproval(shown);
+const testimonials = showableTestimonials();
+---
+<BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
+  <PageHero
+    tone="dark"
+    title="Broadcast-quality coverage for your tournament"
+    lead="Pick a package, send your dates and venue, and we reply with a quote."
+    crumbs={[{ name: 'Services' }]}
+  >
+    <Button href={ROUTES.book} variant="volt" size="lg">Book coverage</Button>
+    <WhatsAppButton text={whatsappTextForPath('/services')} label="WhatsApp us" variant="quiet" size="lg" source="services-hero" />
+  </PageHero>
+
+  <Section id="organizers" labelledBy="organizers-title">
+    <SectionHeading id="organizers-title" title="For organizers" lead="Coverage packages for tournament organizers and associations." />
+    {approvalNeeded && <p class="mt-4"><Todo what="owner approval of the suggested package inclusions (OT-20)" /></p>}
+    <ul class="mt-8 grid gap-6 lg:grid-cols-3">
+      {organizers.map((product) => {
+        const target = enquiryTarget(product);
+        return (
+          <li>
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} source="services-organizers" />
+          </li>
+        );
+      })}
+    </ul>
+    {addons.length > 0 && (
+      <div class="mt-10">
+        <h3 class="text-h4">Add-ons</h3>
+        <ul class="mt-4 grid gap-4 md:grid-cols-3">
+          {addons.map((addon) => (
+            <li class="ps-card p-4">
+              <p class="font-bold text-fg">{addon.name}</p>
+              <PriceTag product={addon} class="mt-2" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </Section>
+
+  <Section tone="dark" labelledBy="process-title">
+    <SectionHeading id="process-title" title="How it works" lead="From first message to final delivery." />
+    <ol class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {processSteps.map((step, index) => (
+        <li class="ps-card flex gap-4 p-5">
+          <span class="ps-score text-ps-volt ps-num" style="font-size:2.5rem;line-height:1" aria-hidden="true">{index + 1}</span>
+          <div>
+            <h3 class="text-h4">{step.title}</h3>
+            <p class="mt-1 text-fg-muted">{step.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+    <p class="mt-6 text-small text-fg-muted">
+      See the <a href={ROUTES.refunds}>cancellation and refund policy</a> and the <a href={ROUTES.delivery}>delivery policy</a>.
+    </p>
+  </Section>
+
+  <Section id="players" labelledBy="players-title">
+    <SectionHeading id="players-title" title="For players and parents" lead="Ask for your match video or a highlight reel." />
+    <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {players.map((product) => {
+        const target = enquiryTarget(product);
+        return (
+          <li>
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} source="services-players" headingLevel={3} />
+          </li>
+        );
+      })}
+    </ul>
+  </Section>
+
+  <Section id="promotion" tone="surface" labelledBy="promotion-title">
+    <SectionHeading id="promotion-title" title="Promotion" lead="Get your tournament in front of the community." />
+    <ul class="mt-8 grid gap-6 md:grid-cols-2">
+      {promotion.map((product) => {
+        const target = enquiryTarget(product);
+        return (
+          <li>
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} source="services-promotion" />
+          </li>
+        );
+      })}
+    </ul>
+    <p class="mt-6 text-fg-muted">Want a basic listing only? <a href={ROUTES.submitTournament}>List your tournament - free</a>.</p>
+  </Section>
+
+  <OwnerSection when={testimonials} name="services-testimonials">
+    <Section labelledBy="testimonials-title">
+      <SectionHeading id="testimonials-title" title="What organizers say" />
+      <ul class="mt-8 grid gap-6 md:grid-cols-2">
+        {testimonials.map((t) => (
+          <li>
+            <figure class="ps-card ps-card-accent p-5 sm:p-6">
+              <blockquote class="text-lead">{t.quote}</blockquote>
+              <figcaption class="mt-3 text-small font-bold text-fg-muted">{t.attribution}</figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  </OwnerSection>
+
+  <FaqList items={faqItems} name="services-faq" />
+
+  <CtaBlock
+    id="services-cta"
+    title="Ready to book coverage?"
+    text="Send your dates and venue. We reply with a quote."
+    primaryHref={ROUTES.book}
+    primaryLabel="Book coverage"
+    whatsappText={whatsappTextForPath('/services')}
+    source="services-cta"
+  />
+</BaseLayout>

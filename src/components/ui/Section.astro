@@ -1,0 +1,22 @@
+---
+// A page band with the standard vertical rhythm and the 1200 px container (tokens: py-section, ps-container).
+// tone: default (page background), surface (white band), dark (ink broadcast band), court (deep-green band).
+interface Props {
+  tone?: 'default' | 'surface' | 'dark' | 'court';
+  id?: string;
+  /** id of the heading that names this section (accessible name for the landmark). */
+  labelledBy?: string;
+  class?: string;
+  /** Tighter vertical padding for compact bands. */
+  compact?: boolean;
+  /** Adds the faint badminton-court line pattern (decorative). Use on one band per page at most. */
+  pattern?: boolean;
+}
+const { tone = 'default', id, labelledBy, class: className, compact = false, pattern = false } = Astro.props;
+const toneClass = { default: '', surface: 'border-y border-line bg-surface', dark: 'ps-surface-dark', court: 'ps-surface-court' }[tone];
+---
+<section id={id} aria-labelledby={labelledBy} class:list={[toneClass, pattern && 'ps-pattern', compact ? 'py-8' : 'py-section', className]}>
+  <div class="ps-container">
+    <slot />
+  </div>
+</section>

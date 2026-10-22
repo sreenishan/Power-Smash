@@ -1,0 +1,11 @@
+---
+// /matches/ (spec 7.2): page 1 of the match library. See src/components/archive/MatchListPage.astro.
+import MatchListPage from '../../components/archive/MatchListPage.astro';
+import { loadPublicArchive, paginate } from '../../lib/archive/model';
+import { buildMatchIndex, filterOptions } from '../../lib/archive/search';
+
+const archive = await loadPublicArchive();
+const first = paginate(archive.grid, 1);
+const options = filterOptions(buildMatchIndex(archive).items);
+---
+<MatchListPage matches={first.items} page={1} pages={first.pages} total={first.total} options={options} source={archive.source} />

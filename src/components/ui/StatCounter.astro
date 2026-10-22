@@ -1,0 +1,16 @@
+---
+// Scoreboard-style figure (spec 5.5 StatCounter): big Barlow numerals in volt, small caps label. Meant for a DARK band
+// (volt is allowed on dark only). `note` carries the "as of" wording for owner-stated figures.
+interface Props {
+  value: string;
+  label: string;
+  note?: string;
+  class?: string;
+}
+const { value, label, note, class: className } = Astro.props;
+---
+<div class:list={['ps-scoreboard', className]}>
+  <p class="ps-score text-ps-volt">{value}</p>
+  <p class="ps-scoreboard-label">{label}</p>
+  {note && <p class="mt-1 text-caption text-fg-muted">{note}</p>}
+</div>

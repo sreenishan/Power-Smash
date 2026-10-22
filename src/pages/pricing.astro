@@ -1,0 +1,111 @@
+---
+// Pricing (spec 7.9): every product with its price, inclusions, GST note, delivery times and links to the refund and
+// delivery policies. Every price is a PriceTag: a real price only when the owner supplied it; otherwise a <Todo> that fails
+// the strict release gate (G1 needs OT-20). No static UPI QR or UPI ID here (D-020 item 4, D-035 row 16).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import PackageCard from '../components/ui/PackageCard.astro';
+import PriceTag from '../components/ui/PriceTag.astro';
+import CtaBlock from '../components/ui/CtaBlock.astro';
+import Todo from '../components/site/Todo.astro';
+import { whatsappTextForPath } from '../components/site/whatsappText';
+import { enquiryTarget, needsInclusionApproval, productGroups, productsInGroup } from '../content/products';
+import { sponsorPackages } from '../content/sponsor-packages';
+import { site } from '../content/site';
+import { PAGE_META, titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+import OwnerSection from '../components/site/OwnerSection.astro';
+
+const meta = PAGE_META.pricing;
+const groups = productGroups.filter((g) => g.id !== 'addons').map((g) => ({ ...g, items: productsInGroup(g.id) }));
+const addons = productsInGroup('addons');
+const everything = [...groups.flatMap((g) => g.items), ...addons, ...sponsorPackages];
+const approvalNeeded = needsInclusionApproval(everything);
+const deliveryMissing = everything.some((p) => p.deliveryDays === null);
+---
+<BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
+  <PageHero
+    tone="dark"
+    title="Pricing"
+    lead="Every Power Smash product in one place. Message us if you are not sure which one fits."
+    crumbs={[{ name: 'Pricing' }]}
+  />
+
+  <Section tone="surface" labelledBy="notes-title" compact>
+    <h2 id="notes-title" class="text-h3">Before you read the prices</h2>
+    <ul class="ps-card mt-4 flex max-w-3xl flex-col gap-3 p-5">
+      <li>
+        <strong>GST.</strong>{' '}
+        {site.gstNote ? site.gstNote : <Todo what="GST note: whether the prices include GST (OT-20, confirm with the CA)" />}
+      </li>
+      {deliveryMissing && (
+        <li><strong>Delivery times.</strong> <Todo what="delivery time for each product (OT-20)" /></li>
+      )}
+      {approvalNeeded && (
+        <li><strong>Inclusions.</strong> <Todo what="owner approval of the suggested inclusions (OT-20)" /></li>
+      )}
+      <OwnerSection when={site.paymentNote} name="pricing-payment-note">
+        <li><strong>Payment.</strong> {site.paymentNote}</li>
+      </OwnerSection>
+      <li>
+        Read the <a href={ROUTES.refunds}>cancellation and refund policy</a> and the <a href={ROUTES.delivery}>delivery policy</a>.
+      </li>
+    </ul>
+  </Section>
+
+  {groups.map((group) => (
+    <Section tone={group.id === 'players' ? 'surface' : 'default'} labelledBy={`${group.id}-price-title`}>
+      <SectionHeading id={`${group.id}-price-title`} title={group.title} lead={group.intro} />
+      <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {group.items.map((product) => {
+          const target = enquiryTarget(product);
+          return (
+            <li>
+              <PackageCard product={product} href={target.href} ctaLabel={target.label} showDelivery source="pricing" />
+            </li>
+          );
+        })}
+      </ul>
+      {group.id === 'organizers' && addons.length > 0 && (
+        <div class="mt-10">
+          <h3 class="text-h4">Add-ons</h3>
+          <ul class="mt-4 grid gap-4 md:grid-cols-3">
+            {addons.map((addon) => (
+              <li class="ps-card p-4">
+                <p class="font-bold text-fg">{addon.name}</p>
+                <p class="mt-1 text-small text-fg-muted">{addon.summary}</p>
+                <PriceTag product={addon} class="mt-2" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Section>
+  ))}
+
+  <Section tone="dark" labelledBy="sponsorship-price-title">
+    <SectionHeading id="sponsorship-price-title" title="Sponsorship" lead="For brands that want to reach the Power Smash audience." />
+    <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {sponsorPackages.map((product) => {
+        const target = enquiryTarget(product);
+        return (
+          <li>
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} showDelivery source="pricing-sponsor" headingLevel={3} />
+          </li>
+        );
+      })}
+    </ul>
+  </Section>
+
+  <CtaBlock
+    id="pricing-cta"
+    title="Not sure which one fits?"
+    text="Tell us about your event and we will suggest a package."
+    primaryHref={ROUTES.book}
+    primaryLabel="Book coverage"
+    whatsappText={whatsappTextForPath('/pricing')}
+    source="pricing-cta"
+  />
+</BaseLayout>

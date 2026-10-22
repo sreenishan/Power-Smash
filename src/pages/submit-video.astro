@@ -1,0 +1,52 @@
+---
+// Send your match video (spec 7.12, D-019, D-028): a three-step form, kind "video_submission". A link only: no file upload in
+// Phase 1, and the link is stored as text and never opened or fetched by the website. The last step is the rights flow: who owns the
+// footage, the organizer's name and permission, whether under-18 players can be recognised, and four SEPARATE tick boxes (never
+// pre-ticked) with the exact CONSENT texts; each text's id and version are stored with the submission. Nothing is published from
+// here: the owner reviews every link. The longer licence is docs/legal/video-submission-licence-draft.md (a lawyer reads it, OT-15).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { submitVideoForm } from '../lib/forms/defs/video';
+import { formPageConfig, plainForm } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(submitVideoForm());
+---
+<BaseLayout
+  title={titleWithBrand('Send Your Match Video')}
+  description="Send Power Smash a link to your badminton match video. We review every video before anything is published."
+>
+  <PageHero
+    tone="dark"
+    title="Send your match video"
+    lead="Share a link to a badminton match you filmed. We watch every video and publish only when we are sure we may."
+    crumbs={[{ name: 'Support', href: ROUTES.support }, { name: 'Send your video' }]}
+  />
+
+  <FormSection id="send" title="Send your video form" route="/submit-video/" blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>You send a link, not the file. Put the video on Google Drive (or similar) and let anyone with the link view it.</li>
+        <li>Sending a video does not mean we will publish it. We check who owns it and who can be seen in it.</li>
+        <li>You must be 18 or older. If a player under 18 can be recognised, we may ask a parent or guardian to confirm.</li>
+        <li>Please do not send broadcast or other people's footage, or videos with copyrighted music.</li>
+        <li>We remove a video if a player, a parent or guardian, or a rights holder asks us to. See <a href={ROUTES.contentRemoval}>content removal</a>.</li>
+      </ul>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

@@ -1,0 +1,517 @@
+/*
+ * Power Smash component recipes (premium upgrade). Rules for using them: docs/DESIGN_DIRECTION.md.
+ * Everything is plain CSS in the `components` layer, so Tailwind utilities on an element still win.
+ * Colours come from the semantic roles (--ps-fg, --ps-surface, --ps-link ...), so every recipe re-colours itself inside
+ * .ps-surface-dark and .ps-surface-court. No JavaScript, no images except the two court-line SVGs in public/brand.
+ */
+@layer components {
+  :root {
+    --ps-surface-hover: var(--ps-white);
+  }
+  .ps-surface-dark {
+    --ps-surface-hover: var(--ps-ink-raised);
+  }
+  .ps-surface-court {
+    --ps-surface-hover: var(--ps-court);
+  }
+
+  /* ---------------------------------------------------------------- eyebrow, rule, lower-third */
+  .ps-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  .ps-eyebrow::before {
+    content: "";
+    width: 1.25rem;
+    height: 0.25rem;
+    flex: none;
+    background: var(--ps-link);
+    clip-path: polygon(0.25rem 0, 100% 0, calc(100% - 0.25rem) 100%, 0 100%);
+  }
+
+  .ps-rule {
+    display: block;
+    width: 4rem;
+    height: 0.3125rem;
+    margin-top: 1rem;
+    background: var(--ps-link);
+    clip-path: polygon(0.3125rem 0, 100% 0, calc(100% - 0.3125rem) 100%, 0 100%);
+  }
+  .ps-rule-sm {
+    width: 2.5rem;
+    height: 0.25rem;
+    margin-top: 0.75rem;
+  }
+
+  .ps-lowerthird {
+    display: inline-block;
+    padding: 0.375rem 1.25rem 0.375rem 1rem;
+    background: var(--ps-volt);
+    color: var(--ps-ink);
+    font-family: var(--ps-font-display);
+    font-size: 0.9375rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    clip-path: polygon(0.5rem 0, 100% 0, calc(100% - 0.5rem) 100%, 0 100%);
+  }
+
+  /* ---------------------------------------------------------------- buttons */
+  .ps-btn {
+    display: inline-flex;
+    min-height: var(--ps-tap);
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border: 2px solid transparent;
+    border-radius: var(--ps-radius-md);
+    font-family: var(--ps-font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.045em;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition-property: color, background-color, border-color, box-shadow, transform;
+    transition-duration: var(--ps-dur-base);
+    transition-timing-function: var(--ps-ease);
+  }
+  .ps-btn:hover {
+    transform: translateY(-1px);
+  }
+  .ps-btn:active {
+    transform: translateY(1px);
+    transition-duration: var(--ps-dur-fast);
+  }
+  .ps-btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+  .ps-btn-lg {
+    min-height: 3.25rem;
+    padding: 0.75rem 1.75rem;
+    font-size: 1.25rem;
+  }
+  .ps-btn > svg {
+    flex: none;
+  }
+  .ps-btn-primary {
+    background: var(--ps-court);
+    color: var(--ps-white);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 2px 8px rgb(11 110 79 / 0.28);
+  }
+  .ps-btn-primary:hover {
+    background: var(--ps-court-deep);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 4px 14px rgb(6 69 50 / 0.34);
+  }
+  .ps-btn-primary:active {
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+  }
+  .ps-btn-volt {
+    background: var(--ps-volt);
+    color: var(--ps-ink);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 2px 10px rgb(198 244 50 / 0.22);
+  }
+  .ps-btn-volt:hover {
+    background: var(--ps-volt-hover);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 4px 16px rgb(198 244 50 / 0.3);
+  }
+  .ps-btn-volt:active {
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
+  }
+  .ps-btn-secondary {
+    border-color: var(--ps-court);
+    background: var(--ps-surface);
+    color: var(--ps-court);
+  }
+  .ps-btn-secondary:hover {
+    background: var(--ps-court-tint);
+    border-color: var(--ps-court-deep);
+    color: var(--ps-court-deep);
+  }
+  .ps-btn-quiet {
+    border-color: var(--ps-line-strong);
+    background: transparent;
+    color: var(--ps-fg);
+  }
+  .ps-btn-quiet:hover {
+    border-color: var(--ps-fg);
+    background: var(--ps-surface);
+  }
+
+  /* ---------------------------------------------------------------- cards */
+  .ps-card {
+    position: relative;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-lg);
+    background: var(--ps-surface);
+    box-shadow: var(--ps-shadow-card);
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: var(--ps-dur-base);
+    transition-timing-function: var(--ps-ease);
+  }
+  .ps-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--ps-line-strong);
+    background: var(--ps-surface-hover);
+    box-shadow: var(--ps-shadow-raised);
+  }
+  .ps-card-accent::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 1.25rem;
+    width: 3rem;
+    height: 0.25rem;
+    background: var(--ps-link);
+    clip-path: polygon(0.25rem 0, 100% 0, calc(100% - 0.25rem) 100%, 0 100%);
+  }
+  .ps-surface-dark .ps-card,
+  .ps-surface-court .ps-card {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+  .ps-surface-dark .ps-card-hover:hover,
+  .ps-surface-court .ps-card-hover:hover {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
+  .ps-card:focus-within {
+    border-color: var(--ps-line-strong);
+  }
+
+  .ps-icon-tile {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-court-tint);
+    color: var(--ps-court);
+  }
+  .ps-surface-dark .ps-icon-tile,
+  .ps-surface-court .ps-icon-tile {
+    background: rgb(198 244 50 / 0.12);
+    color: var(--ps-volt);
+  }
+
+  /* ---------------------------------------------------------------- chips */
+  .ps-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.75rem;
+    border-radius: var(--ps-radius-pill);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+  }
+  .ps-chip-court {
+    background: var(--ps-court-tint);
+    color: var(--ps-court);
+  }
+  .ps-chip-ink {
+    background: var(--ps-ink);
+    color: var(--ps-volt);
+  }
+  .ps-chip-live {
+    background: var(--ps-live);
+    color: var(--ps-white);
+  }
+
+  /* ---------------------------------------------------------------- scoreboard (StatCounter) */
+  .ps-scoreboard {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-lg);
+    background: linear-gradient(180deg, var(--ps-surface), var(--ps-bg));
+    padding: 1.25rem 1rem 1rem;
+    text-align: center;
+  }
+  .ps-scoreboard::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 3.5rem;
+    height: 0.25rem;
+    transform: translateX(-50%);
+    background: var(--ps-volt);
+    clip-path: polygon(0.25rem 0, 100% 0, calc(100% - 0.25rem) 100%, 0 100%);
+  }
+  .ps-scoreboard .ps-score {
+    color: var(--ps-volt);
+    text-shadow: 0 0 24px rgb(198 244 50 / 0.18);
+  }
+  .ps-scoreboard-label {
+    margin-top: 0.5rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--ps-line);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ps-fg);
+  }
+
+  /* ---------------------------------------------------------------- hero and patterned bands */
+  .ps-hero,
+  .ps-pattern {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .ps-hero {
+    padding-block: clamp(2.5rem, 1.6rem + 4vw, 4.5rem);
+    background:
+      radial-gradient(60rem 28rem at 100% 0%, rgb(6 69 50 / 0.85), transparent 70%),
+      linear-gradient(180deg, var(--ps-ink), var(--ps-ink));
+  }
+  .ps-hero-lg {
+    padding-block: clamp(3rem, 1.4rem + 7vw, 7rem);
+  }
+  .ps-hero::before,
+  .ps-pattern::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    right: -12%;
+    bottom: -14%;
+    width: min(46rem, 135%);
+    aspect-ratio: 678 / 313;
+    background: url("/brand/court-lines.svg") no-repeat center / contain;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+  .ps-pattern::before {
+    background-image: url("/brand/court-lines-ink.svg");
+    opacity: 0.045;
+  }
+  .ps-surface-dark.ps-pattern::before,
+  .ps-surface-court.ps-pattern::before {
+    background-image: url("/brand/court-lines.svg");
+    opacity: 0.07;
+  }
+  .ps-hero-light {
+    background: var(--ps-surface);
+  }
+  .ps-hero-light::before {
+    background-image: url("/brand/court-lines-ink.svg");
+    opacity: 0.045;
+  }
+  .ps-surface-court.ps-pattern {
+    background-image: radial-gradient(44rem 22rem at 0% 100%, rgb(11 110 79 / 0.55), transparent 70%);
+  }
+
+  /* ---------------------------------------------------------------- entrance (hero text only) */
+  @media (prefers-reduced-motion: no-preference) {
+    .ps-rise {
+      animation: ps-rise var(--ps-dur-slow) var(--ps-ease) both;
+    }
+    .ps-rise-2 {
+      animation-delay: 80ms;
+    }
+    @keyframes ps-rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------- site header */
+  .ps-site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid var(--ps-line);
+    background: var(--ps-ink);
+  }
+  .ps-site-header::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ps-volt) 0, var(--ps-volt) 4rem, transparent 4rem);
+    opacity: 0.9;
+  }
+  .ps-header-bar {
+    display: flex;
+    height: var(--ps-header-h);
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  @media (min-width: 64rem) {
+    .ps-header-bar {
+      gap: 1.5rem;
+    }
+  }
+  .ps-nav-link {
+    position: relative;
+    display: inline-flex;
+    min-height: var(--ps-tap);
+    align-items: center;
+    padding-inline: 0.75rem;
+    border-radius: var(--ps-radius-md);
+    font-family: var(--ps-font-display);
+    font-size: 1.1875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ps-fg);
+    transition: color var(--ps-dur-base) var(--ps-ease), background-color var(--ps-dur-base) var(--ps-ease);
+  }
+  .ps-nav-link:hover {
+    background: var(--ps-surface);
+    color: var(--ps-white);
+  }
+  .ps-nav-link[aria-current="page"] {
+    color: var(--ps-volt);
+  }
+  .ps-nav-link[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0.75rem;
+    bottom: 0.3125rem;
+    height: 0.1875rem;
+    background: var(--ps-volt);
+    clip-path: polygon(0.1875rem 0, 100% 0, calc(100% - 0.1875rem) 100%, 0 100%);
+  }
+  .ps-menu-button {
+    display: flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ps-line-strong);
+    border-radius: var(--ps-radius-md);
+    color: var(--ps-fg);
+    transition: background-color var(--ps-dur-base) var(--ps-ease), border-color var(--ps-dur-base) var(--ps-ease);
+  }
+  .ps-menu-button::-webkit-details-marker {
+    display: none;
+  }
+  .ps-menu-button:hover {
+    border-color: var(--ps-volt);
+    background: var(--ps-surface);
+  }
+  .ps-menu-panel {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    max-height: calc(100dvh - var(--ps-header-h));
+    overflow-y: auto;
+    border-bottom: 1px solid var(--ps-line);
+    background: var(--ps-ink);
+    box-shadow: var(--ps-shadow-overlay);
+  }
+  .ps-menu-panel .ps-nav-link {
+    width: 100%;
+    font-size: 1.375rem;
+    border-bottom: 1px solid var(--ps-line);
+    border-radius: 0;
+  }
+  .ps-menu-panel .ps-nav-link[aria-current="page"]::after {
+    inset-inline: auto;
+    left: 0.75rem;
+    width: 2rem;
+  }
+
+  /* Compact on scroll, CSS only: browsers with scroll-driven animations shrink the bar; others keep it as is. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .ps-header-bar {
+        animation: ps-header-compact linear both;
+        animation-timeline: scroll(root block);
+        animation-range: 0 120px;
+      }
+      .ps-site-header {
+        animation: ps-header-lift linear both;
+        animation-timeline: scroll(root block);
+        animation-range: 0 120px;
+      }
+      @keyframes ps-header-compact {
+        to {
+          height: 3.5rem;
+        }
+      }
+      @keyframes ps-header-lift {
+        to {
+          box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+        }
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------- footer */
+  .ps-footer {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-top: 4px solid var(--ps-court);
+  }
+  .ps-footer::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    right: -22%;
+    bottom: 4rem;
+    width: min(44rem, 120%);
+    aspect-ratio: 678 / 313;
+    background: url("/brand/court-lines.svg") no-repeat center / contain;
+    opacity: 0.04;
+    pointer-events: none;
+  }
+  .ps-footer-link {
+    display: inline-flex;
+    min-height: var(--ps-tap);
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--ps-fg);
+    text-underline-offset: 0.3em;
+    text-decoration-thickness: 0.08em;
+    transition: color var(--ps-dur-base) var(--ps-ease);
+  }
+  .ps-footer-link:hover {
+    color: var(--ps-volt);
+    text-decoration-line: underline;
+  }
+  .ps-footer-heading {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+
+  /* ---------------------------------------------------------------- Tamil: no uppercase, no tracking */
+  :lang(ta) :is(.ps-eyebrow, .ps-btn, .ps-lowerthird, .ps-nav-link, .ps-chip, .ps-scoreboard-label, .ps-footer-heading) {
+    text-transform: none;
+    letter-spacing: normal;
+  }
+}
+
+/* Forced colours: the white wordmark would vanish on the system canvas, so keep the dark header and footer as designed. */
+@media (forced-colors: active) {
+  .ps-site-header,
+  footer.ps-surface-dark {
+    forced-color-adjust: none;
+  }
+}

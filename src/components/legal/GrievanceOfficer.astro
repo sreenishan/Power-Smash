@@ -1,0 +1,49 @@
+---
+// Seller, customer-care and grievance-officer details (D-037, E-Commerce Rules 2020: legal name, address, grievance officer,
+// phone and email). Values come from src/content/site.ts; anything the owner has not supplied is a <Todo> (OT-19), never a
+// made-up value. Used by the legal pages (via LegalBlock) and reusable on /contact.
+import LegalNode from './LegalNode.astro';
+import { grievanceItems } from '../../content/legal/view';
+import { site } from '../../content/site';
+
+const items = grievanceItems(site);
+---
+<dl class="ps-grievance">
+  {
+    items.map((it) => (
+      <div>
+        <dt>{it.label}</dt>
+        <dd><LegalNode node={it.node} /></dd>
+      </div>
+    ))
+  }
+</dl>
+<style>
+  .ps-grievance {
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-surface);
+  }
+  .ps-grievance > div {
+    display: grid;
+    gap: 0.125rem 1rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--ps-line);
+  }
+  .ps-grievance > div:last-child {
+    border-bottom: 0;
+  }
+  dt {
+    font-size: var(--ps-text-small);
+    font-weight: 700;
+    color: var(--ps-fg-muted);
+  }
+  dd {
+    overflow-wrap: anywhere;
+  }
+  @media (min-width: 40rem) {
+    .ps-grievance > div {
+      grid-template-columns: 11rem minmax(0, 1fr);
+    }
+  }
+</style>

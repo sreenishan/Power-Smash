@@ -1,0 +1,391 @@
+/*
+ * Power Smash design tokens (spec 5.3 to 5.5, D-002).
+ *
+ * Single source of truth. Three layers, top to bottom:
+ *   1. :root custom properties  (--ps-*)  plain CSS, usable anywhere, also read by scripts/brand-*.mjs
+ *   2. @theme inline            (Tailwind 4) maps the --ps-* values into utilities. "inline" makes a
+ *                               utility emit var(--ps-...) itself, so a dark section that re-binds
+ *                               --ps-fg (see .ps-surface-dark) re-colours every utility inside it.
+ *   3. @utility / @layer        tabular figures, focus ring, dark surfaces, reduced motion.
+ *
+ * Spec colours are the nine in section 5.3. Tokens marked DERIVED are NOT in the spec: they close gaps the
+ * contrast check found (secondary text on dark, tints, strong borders). They need owner/designer approval.
+ * Contrast results: docs/BRAND.md, rerun with `node scripts/brand-contrast.mjs`.
+ *
+ * Imported from global.css AFTER `@import "tailwindcss"`. Component-scoped <style> blocks that use @apply
+ * or theme values must start with: @reference "../styles/global.css";
+ */
+
+/* ------------------------------------------------------------------ 1. raw tokens */
+:root {
+  color-scheme: light;
+
+  /* Spec 5.3 colours. Do not edit a hex here without updating spec 5.3 and docs/BRAND.md. */
+  --ps-court: #0b6e4f; /* primary: buttons, links, key headings */
+  --ps-court-deep: #064532; /* hover states, dark sections */
+  --ps-ink: #0b1416; /* body text; broadcast dark backgrounds */
+  --ps-volt: #c6f432; /* accent on DARK backgrounds only; CTA fill with ink text. Never text on light. */
+  --ps-feather: #f7f8f5; /* page background */
+  --ps-white: #ffffff; /* cards, court-line motifs, text on dark */
+  --ps-slate: #5b6b70; /* secondary text (on light surfaces only) */
+  --ps-border: #dde3e1; /* decorative borders and dividers (fails 3:1, never the only edge of a control) */
+  --ps-live: #c62a1f; /* LIVE badges, critical alerts */
+
+  /* DERIVED (not in spec 5.3). */
+  --ps-mist: #a7b6ba; /* secondary text on ink / court-deep / ink-soft (slate fails AA on ink) */
+  --ps-ink-soft: #142428; /* card surface inside an ink section */
+  --ps-court-tint: #e6f2ec; /* selected chip, soft court background */
+  --ps-live-tint: #fdecea; /* soft alert background (text: live or ink) */
+  --ps-border-on-dark: #2a3d41; /* decorative divider on ink sections */
+  --ps-volt-hover: #daf87a; /* volt button hover (ink text 16:1) */
+  --ps-ink-raised: #1b3138; /* hovered card inside an ink section */
+
+  /* Semantic roles (light surface default; .ps-surface-dark and .ps-surface-court re-bind them). */
+  --ps-bg: var(--ps-feather);
+  --ps-surface: var(--ps-white);
+  --ps-fg: var(--ps-ink);
+  --ps-fg-muted: var(--ps-slate);
+  --ps-heading: var(--ps-ink);
+  --ps-line: var(--ps-border);
+  --ps-line-strong: var(--ps-slate); /* edge of inputs and outline buttons: 3:1 or better (WCAG 1.4.11) */
+  --ps-link: var(--ps-court);
+  --ps-link-hover: var(--ps-court-deep);
+  --ps-focus: var(--ps-court);
+
+  /* Type scale. Fluid between a 360 px and a 1200 px viewport (spec 5.4: H1 about 2.25rem to 4rem). */
+  --ps-text-h1: clamp(2.25rem, 1.5rem + 3.3333vw, 4rem); /* 36 to 64 px */
+  --ps-text-h2: clamp(1.75rem, 1.3214rem + 1.9048vw, 2.75rem); /* 28 to 44 px */
+  --ps-text-h3: clamp(1.375rem, 1.1607rem + 0.9524vw, 1.875rem); /* 22 to 30 px */
+  --ps-text-h4: clamp(1.125rem, 1.0179rem + 0.4762vw, 1.375rem); /* 18 to 22 px */
+  --ps-text-lead: clamp(1.0625rem, 0.9821rem + 0.3571vw, 1.25rem); /* 17 to 20 px */
+  --ps-text-body: 1rem; /* 16 px, never smaller (also stops iOS zoom on inputs) */
+  --ps-text-small: 0.875rem; /* 14 px */
+  --ps-text-caption: 0.75rem; /* 12 px, the floor */
+  --ps-text-score: clamp(2.5rem, 1.6429rem + 3.8095vw, 4.5rem); /* 40 to 72 px scoreboard numerals */
+  --ps-lh-h1: 1;
+  --ps-lh-h2: 1.05;
+  --ps-lh-h3: 1.15;
+  --ps-lh-h4: 1.25;
+  --ps-lh-lead: 1.55;
+  --ps-lh-body: 1.6;
+  --ps-lh-small: 1.5;
+  --ps-lh-caption: 1.4;
+  --ps-lh-score: 1;
+
+  /* Spacing: 8 px grid. The Tailwind unit stays 4 px (p-4 is 16 px); even steps (p-2, p-4, p-6, p-8...) are on grid. */
+  --ps-space-1: 0.5rem; /* 8 */
+  --ps-space-2: 1rem; /* 16 */
+  --ps-space-3: 1.5rem; /* 24 */
+  --ps-space-4: 2rem; /* 32 */
+  --ps-space-5: 2.5rem; /* 40 */
+  --ps-space-6: 3rem; /* 48 */
+  --ps-space-8: 4rem; /* 64 */
+  --ps-space-10: 5rem; /* 80 */
+  --ps-space-12: 6rem; /* 96 */
+  --ps-gutter: 1rem; /* 16 px side gutter on mobile (spec 5.5); steps up below */
+  --ps-section: clamp(3rem, 1.7143rem + 5.7143vw, 6rem); /* vertical rhythm between page sections, 48 to 96 px */
+  --ps-block: clamp(1.5rem, 1.0714rem + 1.9048vw, 2.5rem); /* gap between blocks inside a section, 24 to 40 px */
+  --ps-container: 75rem; /* 1200 px max content width (spec 5.5) */
+  --ps-header-h: 4rem; /* sticky SiteHeader height; keeps focused items from hiding under it (WCAG 2.4.11) */
+  --ps-tap: 2.75rem; /* 44 px minimum touch target */
+
+  /* Radii */
+  --ps-radius-sm: 0.25rem; /* 4 */
+  --ps-radius-md: 0.5rem; /* 8 */
+  --ps-radius-lg: 0.75rem; /* 12 */
+  --ps-radius-xl: 1rem; /* 16 */
+  --ps-radius-pill: 9999px;
+
+  /* Shadows (ink-tinted, soft; broadcast lower-thirds get depth from colour, not blur) */
+  --ps-shadow-card: 0 1px 2px rgb(11 20 22 / 0.06), 0 2px 8px rgb(11 20 22 / 0.06);
+  --ps-shadow-raised: 0 2px 4px rgb(11 20 22 / 0.08), 0 8px 24px rgb(11 20 22 / 0.1);
+  --ps-shadow-hairline: 0 0 0 1px rgb(11 20 22 / 0.04);
+  --ps-shadow-overlay: 0 8px 16px rgb(11 20 22 / 0.12), 0 24px 48px rgb(11 20 22 / 0.18);
+
+  /* Motion: 150 to 250 ms (spec 5.5). Zeroed under prefers-reduced-motion (bottom of this file). */
+  --ps-dur-fast: 150ms;
+  --ps-dur-base: 200ms;
+  --ps-dur-slow: 250ms;
+  --ps-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Focus ring (WCAG 2.2 AA: 2.4.7, 1.4.11, 2.4.11) */
+  --ps-focus-width: 3px;
+  --ps-focus-offset: 2px;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --ps-gutter: 1.5rem; /* 24 px */
+  }
+}
+
+@media (min-width: 80rem) {
+  :root {
+    --ps-gutter: 2rem; /* 32 px */
+  }
+}
+
+/* ------------------------------------------------------------------ 2. Tailwind 4 theme mapping */
+/* Utilities: bg-ps-court, text-ps-ink, text-fg, bg-surface, border-line, text-h1, rounded-lg, shadow-card, max-w-page ... */
+@theme inline {
+  /* Brand colours */
+  --color-ps-court: var(--ps-court);
+  --color-ps-court-deep: var(--ps-court-deep);
+  --color-ps-ink: var(--ps-ink);
+  --color-ps-volt: var(--ps-volt);
+  --color-ps-feather: var(--ps-feather);
+  --color-ps-white: var(--ps-white);
+  --color-ps-slate: var(--ps-slate);
+  --color-ps-border: var(--ps-border);
+  --color-ps-live: var(--ps-live);
+  --color-ps-mist: var(--ps-mist);
+  --color-ps-ink-soft: var(--ps-ink-soft);
+  --color-ps-court-tint: var(--ps-court-tint);
+  --color-ps-live-tint: var(--ps-live-tint);
+  --color-ps-volt-hover: var(--ps-volt-hover);
+  --color-ps-ink-raised: var(--ps-ink-raised);
+
+  /* Semantic colours: these follow the surface they sit on */
+  --color-page: var(--ps-bg);
+  --color-surface: var(--ps-surface);
+  --color-fg: var(--ps-fg);
+  --color-fg-muted: var(--ps-fg-muted);
+  --color-heading: var(--ps-heading);
+  --color-line: var(--ps-line);
+  --color-line-strong: var(--ps-line-strong);
+  --color-link: var(--ps-link);
+  --color-focus: var(--ps-focus);
+
+  /* Fluid type scale: text-h1 ... text-caption, text-score */
+  --text-h1: var(--ps-text-h1);
+  --text-h1--line-height: var(--ps-lh-h1);
+  --text-h2: var(--ps-text-h2);
+  --text-h2--line-height: var(--ps-lh-h2);
+  --text-h3: var(--ps-text-h3);
+  --text-h3--line-height: var(--ps-lh-h3);
+  --text-h4: var(--ps-text-h4);
+  --text-h4--line-height: var(--ps-lh-h4);
+  --text-lead: var(--ps-text-lead);
+  --text-lead--line-height: var(--ps-lh-lead);
+  --text-body: var(--ps-text-body);
+  --text-body--line-height: var(--ps-lh-body);
+  --text-small: var(--ps-text-small);
+  --text-small--line-height: var(--ps-lh-small);
+  --text-caption: var(--ps-text-caption);
+  --text-caption--line-height: var(--ps-lh-caption);
+  --text-score: var(--ps-text-score);
+  --text-score--line-height: var(--ps-lh-score);
+
+  /* Spacing helpers (the default 4 px --spacing unit is left alone): p-gutter, py-section, gap-block */
+  --spacing-gutter: var(--ps-gutter);
+  --spacing-section: var(--ps-section);
+  --spacing-block: var(--ps-block);
+  --spacing-header: var(--ps-header-h);
+  --spacing-tap: var(--ps-tap);
+  --container-page: var(--ps-container); /* max-w-page */
+
+  /* Radii: these replace Tailwind's default sm/md/lg/xl values on purpose */
+  --radius-sm: var(--ps-radius-sm);
+  --radius-md: var(--ps-radius-md);
+  --radius-lg: var(--ps-radius-lg);
+  --radius-xl: var(--ps-radius-xl);
+  --radius-pill: var(--ps-radius-pill);
+
+  /* Shadows: shadow-card, shadow-raised, shadow-overlay */
+  --shadow-card: var(--ps-shadow-card);
+  --shadow-raised: var(--ps-shadow-raised);
+  --shadow-overlay: var(--ps-shadow-overlay);
+
+  /* Easing: ease-ps. Tailwind 4 has no duration namespace; use duration-(--ps-dur-base) or the ps-transition utility. */
+  --ease-ps: var(--ps-ease);
+}
+
+/* Looping animation for the LiveBadge dot. Reduced motion stops it (section 4). */
+@theme {
+  --animate-live-pulse: ps-live-pulse 1.6s ease-in-out infinite;
+
+  @keyframes ps-live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.8);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ 3. utilities and surfaces */
+
+/* Tabular figures for stats, scoreboards, prices (spec 5.4: Inter with tabular figures). */
+@utility ps-num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Scoreboard numerals: Barlow Condensed 800 with its own tabular figures (it ships the tnum feature). */
+@utility ps-score {
+  font-family: var(--ps-font-display);
+  font-weight: 800;
+  font-size: var(--ps-text-score);
+  line-height: var(--ps-lh-score);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Page container: 1200 px of content, 16 px gutters on mobile (8 px grid at larger sizes). */
+@utility ps-container {
+  width: 100%;
+  max-width: calc(var(--ps-container) + 2 * var(--ps-gutter));
+  margin-inline: auto;
+  padding-inline: var(--ps-gutter);
+}
+
+/* One transition recipe: 200 ms, the brand easing, only the properties that should animate. */
+@utility ps-transition {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--ps-dur-base);
+  transition-timing-function: var(--ps-ease);
+}
+
+/* Heading style with the display italic (800 italic is the only italic cut loaded, see fonts.css). */
+@utility ps-italic {
+  font-style: italic;
+  font-weight: 800;
+}
+
+/* Explicit focus ring for elements that need it outside the default :focus-visible rule. */
+@utility ps-focus-ring {
+  outline: var(--ps-focus-width) solid var(--ps-focus);
+  outline-offset: var(--ps-focus-offset);
+}
+
+@layer components {
+  /* Dark "broadcast" section (hero, live, stats). Volt is allowed here and only here. */
+  .ps-surface-dark {
+    --ps-bg: var(--ps-ink);
+    --ps-surface: var(--ps-ink-soft);
+    --ps-fg: var(--ps-white);
+    --ps-fg-muted: var(--ps-mist);
+    --ps-heading: var(--ps-white);
+    --ps-line: var(--ps-border-on-dark);
+    --ps-line-strong: var(--ps-mist);
+    --ps-link: var(--ps-volt);
+    --ps-link-hover: var(--ps-white);
+    --ps-focus: var(--ps-volt);
+    background-color: var(--ps-bg);
+    color: var(--ps-fg);
+  }
+
+  /* Deep-green section (footer band, sponsor strip). */
+  .ps-surface-court {
+    --ps-bg: var(--ps-court-deep);
+    --ps-surface: var(--ps-court);
+    --ps-fg: var(--ps-white);
+    --ps-fg-muted: var(--ps-mist);
+    --ps-heading: var(--ps-white);
+    --ps-line: rgb(255 255 255 / 0.2);
+    --ps-line-strong: var(--ps-mist);
+    --ps-link: var(--ps-volt);
+    --ps-link-hover: var(--ps-white);
+    --ps-focus: var(--ps-volt);
+    background-color: var(--ps-bg);
+    color: var(--ps-fg);
+  }
+}
+
+/* ------------------------------------------------------------------ 4. base styles */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--ps-header-h) + var(--ps-space-2));
+  }
+
+  body {
+    background-color: var(--ps-bg);
+    color: var(--ps-fg);
+    font-family: var(--ps-font-body);
+    font-size: var(--ps-text-body);
+    line-height: var(--ps-lh-body);
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* H1 and H2 are uppercase display lines (spec 5.4); H3 and H4 keep sentence case. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--ps-font-display);
+    color: var(--ps-heading);
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: var(--ps-text-h1);
+    line-height: var(--ps-lh-h1);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+  }
+  h2 {
+    font-size: var(--ps-text-h2);
+    line-height: var(--ps-lh-h2);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+  }
+  h3 {
+    font-size: var(--ps-text-h3);
+    line-height: var(--ps-lh-h3);
+    font-weight: 700;
+  }
+  h4 {
+    font-size: var(--ps-text-h4);
+    line-height: var(--ps-lh-h4);
+    font-weight: 700;
+  }
+
+  /* Plain links in running text (components style their own). Court on light, volt on dark: both pass AA. */
+  a:not([class]) {
+    color: var(--ps-link);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 0.08em;
+  }
+  a:not([class]):hover {
+    color: var(--ps-link-hover);
+  }
+
+  /* Keyboard focus: always visible, never colour alone, never removed. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--ps-focus-width) solid var(--ps-focus);
+    outline-offset: var(--ps-focus-offset);
+  }
+
+  ::selection {
+    background-color: var(--ps-volt);
+    color: var(--ps-ink);
+  }
+}
+
+/* ------------------------------------------------------------------ 5. reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ps-dur-fast: 0.01ms;
+    --ps-dur-base: 0.01ms;
+    --ps-dur-slow: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

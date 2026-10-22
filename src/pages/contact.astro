@@ -1,0 +1,67 @@
+---
+// Contact (spec 7.15): the owner's contact details, the grievance contact and the general form (kind "general"), with a
+// WhatsApp button next to the form. The details block is the Legal worker's GrievanceOfficer.astro (the same component the
+// legal pages use, so the two can never disagree): anything the owner has not supplied is a <Todo> (OT-19) and the strict
+// release gate fails the build on it, so G1 cannot ship with a gap. Optional lines (opening hours) are hidden until supplied (D-034).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import GrievanceOfficer from '../components/legal/GrievanceOfficer.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { generalForm } from '../lib/forms/defs/general';
+import { formPageConfig, plainForm, topicOptions } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+// /contact?topic=<product key> pre-fills the message, but only for a key in this list (R-TOPIC); never text from the address bar.
+const form = plainForm(generalForm({ topics: topicOptions() }));
+---
+<BaseLayout
+  title={titleWithBrand('Contact')}
+  description="Contact Power Smash: send a message, chat on WhatsApp, or find our business and grievance contact details."
+>
+  <PageHero
+    tone="dark"
+    title="Contact Power Smash"
+    lead="Send us a message, or chat with us on WhatsApp."
+    crumbs={[{ name: 'Contact' }]}
+  />
+
+  <Section labelledBy="details-title" tone="surface">
+    <SectionHeading id="details-title" title="Our details" />
+    <div class="mt-8 max-w-3xl">
+      <GrievanceOfficer />
+    </div>
+    <OwnerSection when={cfg.contactHours} name="contact-hours">
+      <p class="mt-4 text-body"><strong>Hours:</strong> {cfg.contactHours}</p>
+    </OwnerSection>
+    <p class="mt-6 text-small text-fg-muted">
+      For removal of a video or a profile, see the <a href={ROUTES.contentRemoval}>content removal page</a>.
+    </p>
+  </Section>
+
+  <FormSection id="message" title="Contact form" route={ROUTES.contact} blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>Give a phone number, an email address, or both, so we can reply.</li>
+        <li>For a coverage quote, the <a href={ROUTES.book}>booking form</a> is faster.</li>
+        <li>To list a tournament, use the <a href={ROUTES.submitTournament}>listing form</a>.</li>
+      </ul>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

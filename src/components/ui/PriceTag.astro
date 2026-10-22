@@ -1,0 +1,30 @@
+---
+// Price display (money rules, hard rule 7). The DECISION lives in src/lib/money.ts (priceDisplay, unit-tested):
+//  - an amount is supplied     -> the formatted price ("Starting from" wording where the type says so);
+//  - quote + approved wording  -> "On quote - message us on WhatsApp";
+//  - otherwise                 -> <Todo what="price for ...">, which fails the strict release gate until the owner supplies it.
+// Nothing about GST is shown unless the owner has said whether the price includes it (gstInclusive not null).
+import Todo from '../site/Todo.astro';
+import { priceDisplay, type PriceInput } from '../../lib/money';
+import { PERIOD_LABEL } from '../../content/sponsor-packages';
+
+interface Props {
+  /** The product or package: name, priceType, pricePaise, quoteWordingApproved, gstInclusive, period. */
+  product: PriceInput & { name: string; period?: 'month' | 'tournament' | 'quarter' | null };
+  class?: string;
+}
+const { product, class: className } = Astro.props;
+const display = priceDisplay(product);
+---
+<div class={className}>
+  {display.kind === 'amount' && (
+    <p class="flex flex-wrap items-baseline gap-x-2 text-fg">
+      {display.prefix && <span class="text-small font-semibold text-fg-muted">{display.prefix}</span>}
+      <span class="font-display text-h3 font-extrabold ps-num">{display.amountText}</span>
+      {product.period && <span class="text-small text-fg-muted">{PERIOD_LABEL[product.period]}</span>}
+      {display.gstText && <span class="text-small text-fg-muted">{display.gstText}</span>}
+    </p>
+  )}
+  {display.kind === 'quote' && <p class="text-body font-bold text-fg">{display.text}</p>}
+  {display.kind === 'todo' && <p><Todo what={`price for ${product.name}`} /></p>}
+</div>

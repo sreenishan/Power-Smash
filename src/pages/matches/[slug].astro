@@ -1,0 +1,132 @@
+---
+// Match page (spec 7.3). The H1 is the RAW YouTube title, unmodified (D-016). Parsed details are labelled "by Power Smash".
+//   full     adult players only: player chips link to profiles, VideoObject structured data, related matches, WhatsApp share.
+//   listed   a non-Tamil-Nadu event (D-018): raw title, no player links and no tournament link.
+//   minimal  a protected participant (D-012): noindex, generic title and description, NO parsed details, NO player names or links,
+//            NO structured data, NO share button, not in the list, sitemap or search. Only the raw title (YouTube's own public title)
+//            and the click-to-load player are shown.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import SectionHeading from '../../components/ui/SectionHeading.astro';
+import Button from '../../components/ui/Button.astro';
+import MatchCard from '../../components/archive/MatchCard.astro';
+import VideoFacade from '../../components/archive/VideoFacade.astro';
+import ShareBar from '../../components/archive/ShareBar.astro';
+import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
+import { enquiryHref } from '../../content/products';
+import { watchUrl } from '../../content/live';
+import { formatDate } from '../../lib/dates';
+import { ageGroupLabel, categoryLabel, roundLabel } from '../../lib/archive/labels';
+import { matchDescription, videoObjectJsonLd } from '../../lib/archive/jsonld';
+import { loadPublicArchive } from '../../lib/archive/model';
+import { titleWithBrand } from '../../lib/seo';
+import { ARCHIVE_ROUTES, ROUTES, absoluteUrl, matchPath, playerPath } from '../../lib/urls';
+
+export async function getStaticPaths() {
+  const archive = await loadPublicArchive();
+  const bySlug = new Map(archive.grid.map((m) => [m.slug, m]));
+  return archive.matches.map((m) => ({
+    params: { slug: m.slug },
+    props: { match: m, related: m.related.flatMap((s) => (bySlug.has(s) ? [bySlug.get(s)!] : [])), source: archive.source },
+  }));
+}
+const { match: m, related, source } = Astro.props;
+const minimal = m.kind === 'minimal';
+const origin = Astro.site ?? Astro.url;
+const pageUrl = absoluteUrl(matchPath(m.slug), origin);
+const title = minimal ? 'Match video' : titleWithBrand(m.rawTitle);
+const rows: [string, string][] = [];
+if (!minimal) {
+  if (m.tournament) rows.push(['Tournament', m.allIndia ? `${m.tournament.name} (All India)` : m.tournament.name]);
+  else if (m.allIndia) rows.push(['Event', 'All India']);
+  const cat = categoryLabel(m.category);
+  if (cat) rows.push(['Category', cat]);
+  const age = ageGroupLabel(m.ageGroup);
+  if (age) rows.push(['Age group', age]);
+  const round = roundLabel(m.round);
+  if (round) rows.push(['Round', round]);
+}
+rows.push(['Published on YouTube', formatDate(m.publishedAt)]);
+if (!minimal && m.views !== null && m.views > 0) rows.push(['Views on YouTube', new Intl.NumberFormat('en-IN').format(m.views)]);
+const hasSides = m.kind === 'full' && (m.sideA.length > 0 || m.sideB.length > 0);
+const shareText = minimal ? '' : `Watch: ${m.rawTitle} ${pageUrl}`;
+const watch = watchUrl(m.videoId);
+---
+<BaseLayout
+  title={title}
+  description={matchDescription(m)}
+  canonicalPath={matchPath(m.slug)}
+  noindex={minimal}
+  jsonLd={minimal ? undefined : videoObjectJsonLd(m, origin)}
+  ogType={minimal ? 'website' : 'article'}
+>
+  <ArchiveSeedNotice source={source} />
+  <PageHero
+    title={m.rawTitle}
+    crumbs={[{ name: 'Matches', href: ARCHIVE_ROUTES.matches }, { name: 'This match' }]}
+  />
+
+  <Section labelledBy="watch-title">
+    <h2 id="watch-title" class="sr-only">Watch</h2>
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div>
+        <VideoFacade videoId={m.videoId} title={m.rawTitle} />
+        {watch && (
+          <p class="mt-3 text-small">
+            <a href={watch} rel="noopener" target="_blank" class="font-semibold">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+          </p>
+        )}
+      </div>
+      <div class="ps-card h-fit border-t-4 border-t-ps-court p-5 sm:p-6">
+        <h2 class="text-h4">Match details</h2>
+        {!minimal && <p class="mt-1 text-small text-fg-muted">Read from the title by Power Smash. These details can contain mistakes.</p>}
+        <dl class="mt-4 grid grid-cols-1 gap-x-5 gap-y-0.5 sm:grid-cols-[auto_1fr] sm:gap-y-2.5 border-t border-line pt-4">
+          {rows.map(([k, v]) => (
+            <>
+              <dt class="text-small font-bold uppercase tracking-wider text-fg-muted">{k}</dt>
+              <dd class="mb-2 sm:mb-0">{v}</dd>
+            </>
+          ))}
+        </dl>
+        {hasSides && (
+          <div class="mt-5">
+            <h3 class="text-small font-bold uppercase tracking-wider text-fg-muted">Players, by Power Smash</h3>
+            <p class="mt-2 flex flex-wrap items-center gap-2">
+              {m.sideA.map((p) => <a href={playerPath(p.slug)} class="inline-flex min-h-tap items-center rounded-pill bg-ps-court-tint px-3 font-semibold text-ps-court">{p.name}</a>)}
+              <span class="-skew-x-12 bg-ps-ink px-2.5 py-0.5 font-[family-name:var(--ps-font-display)] text-lg font-extrabold uppercase text-ps-volt"><span class="inline-block skew-x-12">vs</span></span>
+              {m.sideB.map((p) => <a href={playerPath(p.slug)} class="inline-flex min-h-tap items-center rounded-pill bg-ps-court-tint px-3 font-semibold text-ps-court">{p.name}</a>)}
+            </p>
+          </div>
+        )}
+        {!minimal && (
+          <div class="mt-6 flex flex-wrap gap-3">
+            <Button href={enquiryHref({ slug: 'hd-match-file', group: 'players' })} variant="primary">Get this match in HD</Button>
+            <Button href={enquiryHref({ slug: 'highlight-reel', group: 'players' })} variant="secondary">Make my highlight reel</Button>
+            <ShareBar text={shareText} source="match-page" />
+          </div>
+        )}
+      </div>
+    </div>
+  </Section>
+
+  {related.length > 0 && (
+    <Section tone="surface" labelledBy="related-title">
+      <SectionHeading id="related-title" title="Related matches" />
+      <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {related.map((r) => <li><MatchCard match={r} /></li>)}
+      </ul>
+    </Section>
+  )}
+
+  <Section compact>
+    <p class="text-small text-fg-muted">
+      Is this you or your child? <a href={ROUTES.contentRemoval}>Request a change or removal</a>.
+    </p>
+  </Section>
+
+  <script>
+    import { installLiveFacade } from '../../lib/live-facade';
+    installLiveFacade(document);
+  </script>
+</BaseLayout>

@@ -1,0 +1,219 @@
+---
+// One printable poster (spec 9.4): "Find your match videos", the tournament (or the channel), a QR code at least 8 cm wide on A4
+// (9 cm here; 13 cm on A3), the address in plain text under it, high contrast (black on white), print CSS with @page margin 0 so
+// the browser prints no header or footer. On screen it is a scaled preview with a toolbar that is hidden when printing.
+// No JavaScript. The QR is an SVG data image (no set:html). Missing owner input = a <Todo> instead of the code (D-034).
+import Todo from '../site/Todo.astro';
+import { posterPath, type PosterSize } from '../../lib/urls';
+import type { PosterModel } from '../../lib/qr/poster';
+
+interface Props {
+  poster: PosterModel;
+  size: PosterSize;
+}
+const { poster, size } = Astro.props as Props;
+const otherSize: PosterSize = size === 'a4' ? 'a3' : 'a4';
+const otherHref = posterPath(poster.slug, otherSize);
+const qr = poster.qr;
+const dataUri = qr.status === 'ok' ? `data:image/svg+xml;utf8,${encodeURIComponent(qr.svg)}` : null;
+---
+<div class="poster-toolbar">
+  <p><strong>Poster: {poster.title}</strong> ({size.toUpperCase()})</p>
+  <p>
+    To print: use your browser's Print command. Choose paper size {size.toUpperCase()}, set margins to None, and switch off "Headers and footers".
+    {otherHref ? <> <a href={otherHref}>Open the {otherSize.toUpperCase()} version</a>.</> : null}
+  </p>
+  {qr.status === 'ok' && qr.preview ? (
+    <p class="poster-warning" role="alert">Preview only: this QR code points at {qr.target}, a local address. Do not print it. Set PUBLIC_SITE_URL to the real site address first.</p>
+  ) : null}
+</div>
+
+<article class={`poster poster--${size}`} aria-label={`Poster: ${poster.title}`}>
+  <header class="poster__top">
+    <p class="poster__brand">Power Smash</p>
+    <h1 class="poster__headline">{poster.headline}</h1>
+    <p class="poster__title">{poster.title}</p>
+    {poster.dateLine ? <p class="poster__meta">{poster.dateLine}</p> : null}
+    {poster.placeLine ? <p class="poster__meta">{poster.placeLine}</p> : null}
+  </header>
+
+  <div class="poster__scan">
+    {dataUri && qr.status === 'ok' ? (
+      <>
+        <img class="poster__qr" src={dataUri} alt={`QR code. Scan it to open ${qr.displayUrl}`} width="900" height="900" />
+        <p class="poster__scanline">{poster.scanLine}</p>
+        <p class="poster__url">{qr.displayUrl}</p>
+      </>
+    ) : qr.status === 'missing' ? (
+      <p class="poster__todo"><Todo what={qr.todo} /></p>
+    ) : null}
+  </div>
+
+  <footer class="poster__bottom">
+    <p>Tamil Nadu badminton, on YouTube</p>
+    <p class="poster__handle">@PowerSmash</p>
+  </footer>
+</article>
+
+<style>
+  .poster-toolbar {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid #dde3e1;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #0b1416;
+  }
+  .poster-toolbar p {
+    margin: 0 0 0.5rem;
+  }
+  .poster-warning {
+    padding: 0.75rem;
+    border: 3px solid #b3261e;
+    font-weight: 700;
+  }
+  .poster {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 auto 2rem;
+    padding: 6%;
+    width: min(100%, 210mm);
+    aspect-ratio: 210 / 297;
+    background: #ffffff;
+    color: #000000;
+    text-align: center;
+    border: 1px solid #767676;
+    border-top: 14px solid #000000;
+    font-family: var(--ps-font-body);
+  }
+  .poster__top {
+    padding-bottom: 0.8em;
+    border-bottom: 3px solid #000000;
+  }
+  .poster__scan {
+    padding: 1.2em 1.6em;
+    border: 3px solid #000000;
+    border-radius: 0.4em;
+  }
+  .poster--a3 {
+    aspect-ratio: 297 / 420;
+    width: min(100%, 297mm);
+  }
+  .poster__brand {
+    margin: 0;
+    font-family: var(--ps-font-display);
+    font-size: clamp(1.1rem, 3.6vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .poster__headline {
+    margin: 0.4em 0 0;
+    font-size: clamp(1.8rem, 8vw, 4rem);
+    font-family: var(--ps-font-display);
+    line-height: 1;
+    color: #000000;
+    text-transform: uppercase;
+  }
+  .poster__title {
+    margin: 0.6em 0 0;
+    font-size: clamp(1.2rem, 4.5vw, 2.2rem);
+    font-weight: 700;
+  }
+  .poster__meta {
+    margin: 0.25em 0 0;
+    font-size: clamp(1rem, 3.2vw, 1.6rem);
+  }
+  .poster__scan {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6em;
+  }
+  .poster__qr {
+    display: block;
+    width: min(70%, 9cm);
+    height: auto;
+    aspect-ratio: 1;
+    background: #ffffff;
+  }
+  .poster--a3 .poster__qr {
+    width: min(70%, 13cm);
+  }
+  .poster__scanline {
+    margin: 0;
+    font-size: clamp(1rem, 3.6vw, 1.8rem);
+    font-weight: 700;
+  }
+  .poster__url {
+    margin: 0;
+    font-size: clamp(0.8rem, 2.6vw, 1.3rem);
+    word-break: break-all;
+  }
+  .poster__bottom {
+    font-size: clamp(0.9rem, 3vw, 1.5rem);
+  }
+  .poster__bottom p {
+    margin: 0;
+  }
+  .poster__handle {
+    font-weight: 800;
+  }
+
+  /* Print: the sheet itself. @page (margin 0) is in each page file because the paper size differs. */
+  @media print {
+    .poster {
+      width: 210mm;
+      height: 297mm;
+      aspect-ratio: auto;
+      margin: 0;
+      padding: 16mm;
+      border: 0;
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+    .poster--a3 {
+      width: 297mm;
+      height: 420mm;
+      padding: 22mm;
+    }
+    .poster__qr {
+      width: 9cm;
+    }
+    .poster--a3 .poster__qr {
+      width: 13cm;
+    }
+    .poster__headline {
+      font-size: 44pt;
+    }
+    .poster--a3 .poster__headline {
+      font-size: 62pt;
+    }
+    .poster__title {
+      font-size: 24pt;
+    }
+    .poster--a3 .poster__title {
+      font-size: 34pt;
+    }
+    .poster__meta,
+    .poster__scanline {
+      font-size: 18pt;
+    }
+    .poster--a3 .poster__meta,
+    .poster--a3 .poster__scanline {
+      font-size: 26pt;
+    }
+    .poster__url,
+    .poster__bottom {
+      font-size: 14pt;
+    }
+    .poster--a3 .poster__url,
+    .poster--a3 .poster__bottom {
+      font-size: 20pt;
+    }
+  }
+</style>

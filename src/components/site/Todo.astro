@@ -1,0 +1,23 @@
+---
+// Visible owner-input marker (D-034). Renders the literal text "TODO(owner): <what>" in EVERY build, so the strict
+// release gate (scripts/check-placeholders.ts) can find it in dist/ and fail. Use it only for inputs the page cannot do
+// without (legal name, address, prices). For optional inputs use <OwnerSection when={value}> instead, which hides the section.
+// Never ship a page to the public with this on it.
+interface Props {
+  what: string;
+}
+const { what } = Astro.props;
+---
+<span class="ps-todo" data-todo-owner>TODO(owner): {what}</span>
+<style>
+  .ps-todo {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border: 2px dashed var(--ps-live);
+    border-radius: 0.375rem;
+    background: var(--ps-live-tint);
+    color: var(--ps-ink);
+    font-size: var(--ps-text-small);
+    font-weight: 600;
+  }
+</style>

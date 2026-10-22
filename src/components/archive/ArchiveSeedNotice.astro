@@ -1,0 +1,30 @@
+---
+// Shown on every archive page while the data is not the real, approved archive.
+//  - Source is the FICTIONAL seed: a visible "sample data" banner; in the STRICT release build it is a <Todo>, so the release gate
+//    refuses to publish made-up players and matches (D-034).
+//  - Real data but the legal switch `features.archivePages` is still off (the protected-player wording of D-012 is not yet approved
+//    by the owner and the lawyer): the same Todo in the strict build only.
+import Todo from '../site/Todo.astro';
+import { features } from '../../content/legal/status';
+
+interface Props {
+  source: 'seed' | 'supabase';
+}
+const { source } = Astro.props;
+const strict = process.env.PS_STRICT === '1';
+const isSeed = source === 'seed';
+const legalOff = features.archivePages !== true;
+---
+{isSeed && (
+  <div class="border-b-2 border-ps-live bg-ps-live-tint" role="note" data-archive-sample>
+    <p class="ps-container py-2 text-small font-semibold text-ps-ink">
+      Sample data: the players, matches and tournaments on this page are made up for testing. They are not real people or real videos.
+    </p>
+  </div>
+)}
+{strict && (isSeed || legalOff) && (
+  <div class="ps-container py-2">
+    {isSeed && <Todo what="connect the real archive data: this page is built from fictional sample data" />}
+    {legalOff && <Todo what="approve the archive wording (features.archivePages in src/content/legal/status.ts) after the owner and the lawyer confirm the protected-player rules (D-012)" />}
+  </div>
+)}

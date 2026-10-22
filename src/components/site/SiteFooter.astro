@@ -1,0 +1,83 @@
+---
+// Site footer (spec 6.2): links to every M1 page including the legal pages, social links, contact details and the partners
+// strip (only when real partners exist, never on the Home page where the page itself shows the strip).
+// Contact details come from site.ts: what the owner has supplied is shown; if any of legal name, address, phone or email is
+// still missing ONE <Todo> marks it (OT-19: these cannot be hidden, so the strict release gate fails until they are supplied).
+import { footerGroupsFor, legalLinks } from './nav';
+import { site } from '../../content/site';
+import { todayIst } from '../../lib/dates';
+import { path } from '../../lib/urls';
+import OwnerSection from './OwnerSection.astro';
+import Todo from './Todo.astro';
+import SponsorStrip from './SponsorStrip.astro';
+import WhatsAppButton from './WhatsAppButton.astro';
+import { whatsappTextForPath } from './whatsappText';
+
+const year = todayIst().slice(0, 4);
+const isHome = Astro.url.pathname === '/';
+const contactIncomplete = !site.legalName || !site.postalAddress || !site.phone || !site.publicEmail;
+const telHref = site.phone ? `tel:${site.phone.replace(/[^\d+]/g, '')}` : null;
+
+const linkClass = 'ps-footer-link';
+---
+<footer class="ps-surface-dark ps-footer">
+  {!isHome && <SponsorStrip name="footer-partners-strip" class="border-b border-line" />}
+
+  <div class="ps-container grid gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:py-16">
+    <div class="flex flex-col gap-5">
+      <a href={path('/')} class="inline-flex min-h-tap items-center" aria-label="Power Smash, home">
+        <img src="/brand/logo-full-dark.svg" alt="" width="203" height="32" class="h-8 w-auto" loading="lazy" />
+      </a>
+      <OwnerSection when={site.tagline} name="footer-tagline"><p class="font-display text-h3 font-bold text-fg">{site.tagline}</p></OwnerSection>
+      <p class="max-w-sm text-fg-muted">
+        Power Smash is a YouTube-first badminton media brand for Tamil Nadu players and tournaments.
+      </p>
+
+      <ul class="flex flex-wrap gap-x-6">
+        <li><a class={linkClass} href={site.youtubeUrl} rel="noopener" target="_blank">YouTube<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class={linkClass} href={site.youtubeJoinUrl} rel="noopener" target="_blank">Join the channel<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class={linkClass} href={site.instagramUrl} rel="noopener" target="_blank">Instagram<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class={linkClass} href={site.facebookUrl} rel="noopener" target="_blank">Facebook<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <OwnerSection when={site.whatsappChannelUrl} name="footer-whatsapp-channel">
+          <li><a class={linkClass} href={site.whatsappChannelUrl ?? '#'} rel="noopener" target="_blank">WhatsApp Channel<span class="sr-only"> (opens in a new tab)</span></a></li>
+        </OwnerSection>
+      </ul>
+
+      <WhatsAppButton text={whatsappTextForPath(Astro.url.pathname)} label="Chat on WhatsApp" variant="volt" source="footer" class="self-start" />
+
+      <address class="flex flex-col gap-1 text-small not-italic text-fg-muted">
+        <OwnerSection when={site.legalName} name="footer-legal-name"><p class="font-semibold text-fg">{site.legalName}</p></OwnerSection>
+        <OwnerSection when={site.postalAddress} name="footer-address"><p class="whitespace-pre-line">{site.postalAddress}</p></OwnerSection>
+        <OwnerSection when={site.phone} name="footer-phone"><p><a href={telHref ?? '#'}>{site.phone}</a></p></OwnerSection>
+        <OwnerSection when={site.publicEmail} name="footer-email"><p><a href={`mailto:${site.publicEmail}`}>{site.publicEmail}</a></p></OwnerSection>
+        {contactIncomplete && <p><Todo what="legal name, address, phone and email in the footer (OT-19)" /></p>}
+      </address>
+    </div>
+
+    <nav aria-label="Footer" class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+      {footerGroupsFor().map((group) => (
+        <div>
+          <p class="ps-footer-heading">{group.title}</p>
+          <ul class="mt-2 flex flex-col">
+            {group.links.map((link) => (
+              <li><a class={linkClass} href={link.href}>{link.label}</a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  </div>
+
+  <div class="border-t border-line bg-ps-ink">
+    <div class="ps-container flex flex-col gap-3 py-6 text-small text-fg-muted lg:flex-row lg:items-center lg:justify-between">
+      <nav aria-label="Legal">
+        <ul class="flex flex-wrap gap-x-6">
+          {legalLinks.map((link) => (
+            <li><a class={linkClass} href={link.href}>{link.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <p>&copy; {year} {site.legalName ?? site.name}</p>
+    </div>
+  </div>
+</footer>

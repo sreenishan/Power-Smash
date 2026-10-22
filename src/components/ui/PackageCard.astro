@@ -1,0 +1,62 @@
+---
+// A package or product card (spec 5.5 PackageCard). Name, one-line summary, price (PriceTag), suggested inclusions and two
+// actions: the enquiry button and WhatsApp. Inclusions are shown only when `showInclusions` is true; the PAGE then shows ONE
+// <Todo> while any of them are unapproved (needsInclusionApproval in src/content/products.ts).
+import Check from '@lucide/astro/icons/check';
+import PriceTag from './PriceTag.astro';
+import Button from './Button.astro';
+import WhatsAppButton from '../site/WhatsAppButton.astro';
+import { whatsappTextForPackage } from '../site/whatsappText';
+import { publicInclusions, type PackageData } from '../../content/products';
+
+interface Props {
+  product: PackageData;
+  href: string;
+  ctaLabel: string;
+  headingLevel?: 2 | 3 | 4;
+  showInclusions?: boolean;
+  /** Show the owner-supplied delivery time (only when the product has one; never a default). */
+  showDelivery?: boolean;
+  /** Small label above the name, for example "Also available" (D-024). */
+  badge?: string;
+  source?: string;
+  class?: string;
+}
+const {
+  product,
+  href,
+  ctaLabel,
+  headingLevel = 3,
+  showInclusions = true,
+  showDelivery = false,
+  badge,
+  source = 'package-card',
+  class: className,
+} = Astro.props;
+const Tag = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
+// Only inclusions without an availableFrom marker are public (R-ALLOWED-CLAIMS).
+const inclusions = publicInclusions(product);
+---
+<article class:list={['ps-card ps-card-hover ps-card-accent flex h-full flex-col p-5 pt-6 sm:p-6 sm:pt-7', className]}>
+  {badge && <p class="ps-eyebrow mb-2">{badge}</p>}
+  <Tag class="text-h4">{product.name}</Tag>
+  <p class="mt-2 text-fg-muted">{product.summary}</p>
+  <PriceTag product={product} class="mt-4 border-t border-line pt-4" />
+  {showDelivery && product.deliveryDays !== null && (
+    <p class="mt-2 text-small text-fg-muted">Delivery: {product.deliveryDays} {product.deliveryDays === 1 ? 'day' : 'days'}</p>
+  )}
+  {showInclusions && inclusions.length > 0 && (
+    <ul class="mt-4 flex flex-col gap-2 text-small text-fg">
+      {inclusions.map((item) => (
+        <li class="flex items-start gap-2">
+          <Check size={18} class="mt-0.5 shrink-0 text-link" aria-hidden="true" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+  <div class="mt-auto flex flex-wrap gap-3 pt-6">
+    <Button href={href} variant="primary">{ctaLabel}<span class="sr-only"> for {product.name}</span></Button>
+    <WhatsAppButton text={whatsappTextForPackage(product.name)} label="Ask on WhatsApp" variant="quiet" source={source} />
+  </div>
+</article>

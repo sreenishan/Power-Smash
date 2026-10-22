@@ -1,0 +1,38 @@
+---
+// WhatsApp button (D-025: WhatsApp-first). The link comes ONLY from waLink(); with no number (PUBLIC_WHATSAPP_NUMBER missing)
+// the button is not rendered at all. `source` is written to data-wa-source so a later click logger (whatsapp_click) can tell
+// which button was used. The prefilled text must contain no personal data (D-029).
+import MessageCircle from '@lucide/astro/icons/message-circle';
+import { waLink } from '../../lib/whatsapp';
+import { site } from '../../content/site';
+import Button from '../ui/Button.astro';
+import type { ButtonSize, ButtonVariant } from '../ui/button';
+
+interface Props {
+  /** Prefilled message (no personal data). */
+  text?: string;
+  label?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Where on the site this button sits, for click logging, e.g. "header", "services-hero". */
+  source?: string;
+  class?: string;
+  /** Override the number (tests, previews). Defaults to the site's number. */
+  number?: string | null;
+}
+const {
+  text,
+  label = 'Chat on WhatsApp',
+  variant = 'quiet',
+  size = 'md',
+  source = 'page',
+  class: className,
+  number = site.whatsappNumber,
+} = Astro.props;
+const href = waLink(number, text);
+---
+{href && (
+  <Button href={href} variant={variant} size={size} external class={className} data-wa-click data-wa-source={source}>
+    <MessageCircle size={size === 'sm' ? 18 : 20} aria-hidden="true" />{label}
+  </Button>
+)}

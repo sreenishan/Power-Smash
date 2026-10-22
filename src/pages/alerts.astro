@@ -1,0 +1,66 @@
+---
+// Alerts (spec 8.7, D-026), the unblocked slice. Two ways to follow Power Smash:
+//   1. the WhatsApp Channel button, hidden until the owner supplies the link (site.whatsappChannelUrl, OT-09, D-034);
+//   2. an email sign-up, kind "alerts_signup", with the alerts consent and the 18+ confirmation as separate unticked boxes.
+// NO phone number is collected. Double opt-in (the spec's rule for email) is pending the email path: no email is sent today
+// (EMAIL_ENABLED is off), the sign-up is only saved, and this page and the confirmation say exactly that. Nothing here promises a send.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { site } from '../content/site';
+import { alertsSignupForm } from '../lib/forms/defs/alerts';
+import { formPageConfig, plainForm } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(alertsSignupForm());
+---
+<BaseLayout
+  title={titleWithBrand('Alerts')}
+  description="Follow Power Smash for Tamil Nadu badminton tournament and match video alerts, on the WhatsApp Channel or by email."
+>
+  <PageHero
+    tone="dark"
+    title="Get alerts"
+    lead="Hear about new Tamil Nadu badminton tournaments and match videos."
+    crumbs={[{ name: 'Support', href: ROUTES.support }, { name: 'Alerts' }]}
+  />
+
+  <OwnerSection when={site.whatsappChannelUrl} name="alerts-whatsapp-channel">
+    <Section labelledBy="channel-title" tone="surface">
+      <SectionHeading id="channel-title" title="WhatsApp Channel" lead="Follow the channel in WhatsApp. You do not share your number with us." />
+      <div class="mt-6">
+        <Button href={site.whatsappChannelUrl ?? '#'} variant="primary" size="lg" external>Follow on the WhatsApp Channel</Button>
+      </div>
+    </Section>
+  </OwnerSection>
+
+  <FormSection id="email" title="Email alerts sign-up form" route="/alerts/" blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>We ask only for your name and email address. We do not ask for a phone number.</li>
+        <li><strong>Email alerts are not switched on yet.</strong> Signing up saves your address for when they are. Until then you will not get any email from us.</li>
+        <li>When alerts start, the first email will ask you to confirm your address. We send alerts only after you confirm.</li>
+        <li>Every email will have an unsubscribe link.</li>
+        <li>You must be 18 or older to sign up.</li>
+      </ul>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

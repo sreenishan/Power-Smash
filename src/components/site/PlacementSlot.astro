@@ -1,0 +1,106 @@
+---
+// One sponsor slot (spec 8.3, D-031, D-016, D-012). The HTML never holds a placement: the box is rendered with its RESERVED size
+// (so the layout never shifts) and ALWAYS carries its label; a ~1 KB first-party script (src/lib/placements/client.ts) reads
+// `/api/placements` and draws the creative for today's date in India.
+//
+// Guard: the slot renders NOTHING (no box, no script data, no beacon) when `checkSlotOnPage` refuses: a protected page, a page
+// without real independent content, a switched-off slot, a page that is not a content page. A protected-player page therefore
+// never carries a slot (D-031). Banners are never placed inside the video player: put this component BESIDE it, never in it.
+//
+// Empty state: a strip with no partner collapses (it sits at the end of the page, so nothing moves); a banner keeps its box and shows
+// a quiet house link "Partner with Power Smash" to /partner (not a paid placement, so it carries no sponsor label), so there is no
+// gap and no layout shift. Every drawn creative gets its label ("Sponsored", "Partner" or, for a strip, "Partners") before it shows.
+import { checkSlotOnPage } from '../../lib/placements/guard';
+import type { PageContext } from '../../lib/placements/guard';
+import { SLOTS } from '../../lib/placements/slots';
+import type { SlotKey } from '../../lib/placements/slots';
+import { path } from '../../lib/urls';
+
+interface Props {
+  slot: SlotKey;
+  /** What kind of page this is and whether it may carry a slot (see PageContext). The caller must say `isProtected` explicitly. */
+  page: PageContext;
+  /** Tournament slug, for the per-tournament slots. */
+  scope?: string | null;
+  class?: string;
+}
+const { slot, page, scope = null, class: className } = Astro.props;
+const def = SLOTS[slot];
+const allowed = checkSlotOnPage(page, slot).allowed && (def.scoped !== 'required' || (scope !== null && scope !== ''));
+const tokenRaw = import.meta.env.PUBLIC_PLACEMENT_BEACON_TOKEN;
+const token = typeof tokenRaw === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(tokenRaw.trim()) ? tokenRaw.trim() : '';
+const heading = def.form === 'strip' ? 'Partners' : '';
+---
+{allowed && (
+  <aside
+    class:list={['ps-slot', `ps-slot-${def.form}`, className]}
+    aria-label={def.form === 'strip' ? 'Partners' : def.form === 'title' ? 'Coverage partner' : 'Sponsor'}
+    data-placement-slot={slot}
+    data-slot-form={def.form}
+    data-scope={scope ?? ''}
+    data-state="loading"
+    data-beacon-token={token}
+    data-house-href={path('/partner')}
+    style={`--slot-h-mobile:${def.reserved.mobileHeight}px;--slot-h-desktop:${def.reserved.desktopHeight}px;--slot-w-mobile:${def.reserved.mobileMaxWidth}px;--slot-w-desktop:${def.reserved.desktopMaxWidth}px`}
+  >
+    <p class="ps-slot-label text-small font-bold uppercase tracking-wider text-fg-muted" data-slot-label hidden>{heading}</p>
+    {def.form === 'strip' ? <ul class="ps-slot-content" data-slot-content></ul> : <div class="ps-slot-content" data-slot-content></div>}
+    <noscript><p class="text-small text-fg-muted">Sponsor content needs JavaScript.</p></noscript>
+  </aside>
+)}
+<script>
+  import { initPlacementSlots } from '../../lib/placements/client';
+  // Runs once per page even when several slots exist (Astro bundles and deduplicates this module script).
+  void initPlacementSlots();
+</script>
+<style>
+  .ps-slot {
+    min-height: var(--slot-h-mobile);
+    max-width: var(--slot-w-mobile);
+    margin-inline: auto;
+    contain: layout;
+  }
+  .ps-slot-strip {
+    max-width: 100%;
+  }
+  .ps-slot-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .ps-slot-link {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+  }
+  .ps-slot-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    max-height: var(--slot-h-mobile);
+    object-fit: contain;
+  }
+  .ps-slot-house {
+    font-size: 0.875rem;
+  }
+  .ps-slot[data-state='empty'][data-slot-form='strip'] {
+    min-height: 0;
+  }
+  @media (min-width: 768px) {
+    .ps-slot {
+      min-height: var(--slot-h-desktop);
+      max-width: var(--slot-w-desktop);
+    }
+    .ps-slot-strip {
+      max-width: 100%;
+    }
+    .ps-slot-img {
+      max-height: var(--slot-h-desktop);
+    }
+  }
+</style>

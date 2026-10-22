@@ -1,0 +1,16 @@
+---
+// Neutral "this page has been removed" page: where redirects.ts sends removed, merged-away and protected old addresses when a real
+// 410 is not possible on static assets. Names nobody, always noindex, no sponsor strip (SponsorStrip hides under /matches/).
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import Button from '../../components/ui/Button.astro';
+import { ARCHIVE_ROUTES, ROUTES } from '../../lib/urls';
+---
+<BaseLayout title="This page has been removed" description="This page is no longer available." canonicalPath="/matches/gone/" noindex>
+  <PageHero title="This page has been removed" lead="The page you opened is no longer available.">
+    <Button href={ARCHIVE_ROUTES.matches} variant="primary">Browse match videos</Button>
+    <Button href={ROUTES.contentRemoval} variant="secondary">Request a change or removal</Button>
+  </PageHero>
+  <Section compact><p class="text-small text-fg-muted">If you followed an old link, the page was removed or moved.</p></Section>
+</BaseLayout>

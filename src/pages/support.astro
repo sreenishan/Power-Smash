@@ -1,0 +1,90 @@
+---
+// Support (spec 7.14): the YouTube Join link, a short factual explainer of Super Chat, Super Stickers and Super Thanks,
+// the WhatsApp Channel (hidden until the owner supplies the link, OT-09), Instagram, Facebook and a share-the-channel line.
+// No link to /submit-video until that page exists (M3).
+//
+// The explainer sticks to what YouTube's own Help pages say (checked 2026-10-21):
+//   Super Chat / Super Stickers: https://support.google.com/youtube/answer/9178363
+//   Super Thanks:                https://support.google.com/youtube/answer/9632365
+// It makes no claim about which of these are switched on for this channel, about fees, or about perks.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import WhatsAppButton from '../components/site/WhatsAppButton.astro';
+import { whatsappTextForPath } from '../components/site/whatsappText';
+import { site } from '../content/site';
+import { PAGE_META, titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const meta = PAGE_META.support;
+const SUPER_CHAT_HELP = 'https://support.google.com/youtube/answer/9178363';
+const SUPER_THANKS_HELP = 'https://support.google.com/youtube/answer/9632365';
+---
+<BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
+  <PageHero
+    tone="dark"
+    title="Support Power Smash"
+    lead="The simplest ways to back the channel: join it, follow it and share it."
+    crumbs={[{ name: 'Support' }]}
+  />
+
+  <Section tone="court" pattern labelledBy="join-title">
+    <SectionHeading id="join-title" title="Join the channel" lead="Channel memberships are run by YouTube. You join from YouTube itself." />
+    <div class="mt-6 flex flex-wrap gap-3">
+      <Button href={site.youtubeJoinUrl} variant="volt" size="lg" external>Join on YouTube</Button>
+      <Button href={site.youtubeUrl} variant="quiet" size="lg" external>Watch on YouTube</Button>
+    </div>
+  </Section>
+
+  <Section tone="surface" labelledBy="supers-title">
+    <SectionHeading id="supers-title" title="Super Chat, Super Stickers and Super Thanks" />
+    <div class="mt-4 flex max-w-3xl flex-col gap-3">
+      <p>
+        <strong>Super Chat and Super Stickers</strong> are paid options in the live chat of a live stream. They make your
+        message or sticker stand out in the chat.
+      </p>
+      <p>
+        <strong>Super Thanks</strong> is a paid thank-you on an eligible video: a short animation over the video and a
+        highlighted comment.
+      </p>
+      <p>
+        You buy these on YouTube, not on this website. YouTube decides where and on which videos they are available, so you
+        will only see them when they are available to you.
+      </p>
+      <p class="text-small text-fg-muted">
+        More from YouTube Help:
+        <a href={SUPER_CHAT_HELP} rel="noopener" target="_blank">Buy a Super Chat or Super Sticker<span class="sr-only"> (opens in a new tab)</span></a>
+        and
+        <a href={SUPER_THANKS_HELP} rel="noopener" target="_blank">Buy Super Thanks<span class="sr-only"> (opens in a new tab)</span></a>.
+      </p>
+    </div>
+  </Section>
+
+  <Section labelledBy="follow-title">
+    <SectionHeading id="follow-title" title="Follow Power Smash" />
+    <ul class="mt-6 flex flex-wrap gap-3">
+      <OwnerSection when={site.whatsappChannelUrl} name="support-whatsapp-channel">
+        <li><Button href={site.whatsappChannelUrl ?? '#'} variant="primary" external>Follow on the WhatsApp Channel</Button></li>
+      </OwnerSection>
+      <li><Button href={site.instagramUrl} variant="secondary" external>Instagram</Button></li>
+      <li><Button href={site.facebookUrl} variant="secondary" external>Facebook</Button></li>
+    </ul>
+  </Section>
+
+  <Section tone="surface" labelledBy="share-title">
+    <SectionHeading id="share-title" title="Share the channel" lead="Know a badminton player? Send them this link." />
+    <p class="ps-card mt-4 break-all p-4 font-semibold text-fg">{site.youtubeUrl}</p>
+    <p class="mt-3 text-small text-fg-muted">Copy the link and paste it into WhatsApp, Instagram or any chat.</p>
+  </Section>
+
+  <Section labelledBy="questions-title" compact>
+    <h2 id="questions-title" class="text-h3">Questions?</h2>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <WhatsAppButton text={whatsappTextForPath('/support')} label="Ask on WhatsApp" variant="secondary" source="support" />
+      <Button href={ROUTES.contact} variant="quiet">Contact us</Button>
+    </div>
+  </Section>
+</BaseLayout>

@@ -1,0 +1,20 @@
+---
+// Section heading: optional small eyebrow, the heading, an optional lead line. `level` picks h2 (default) or h3 so a page
+// keeps ONE h1 and a clean outline. The h1 itself is written by each page (or PageHero).
+interface Props {
+  title: string;
+  eyebrow?: string;
+  lead?: string;
+  level?: 2 | 3;
+  id?: string;
+  class?: string;
+}
+const { title, eyebrow, lead, level = 2, id, class: className } = Astro.props;
+const Tag = level === 3 ? 'h3' : 'h2';
+---
+<div class:list={['max-w-3xl', className]}>
+  {eyebrow && <p class="ps-eyebrow mb-3">{eyebrow}</p>}
+  <Tag id={id}>{title}</Tag>
+  <span aria-hidden="true" class="ps-rule"></span>
+  {lead && <p class="mt-4 text-lead text-fg-muted">{lead}</p>}
+</div>

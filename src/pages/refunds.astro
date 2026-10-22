@@ -1,0 +1,10 @@
+---
+// refunds page (Legal-drafts worker). The wording lives in src/content/legal/refunds.ts as data; LegalDocument.astro renders it
+// and shows the draft notice (<LegalDraftNotice />) until src/content/legal/status.ts says a lawyer reviewed the page (OT-15).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LegalDocument from '../components/legal/LegalDocument.astro';
+import { refundsDoc } from '../content/legal/refunds';
+---
+<BaseLayout title={refundsDoc.title} description={refundsDoc.description}>
+  <LegalDocument doc={refundsDoc} />
+</BaseLayout>

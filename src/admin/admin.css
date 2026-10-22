@@ -1,0 +1,13 @@
+/* Admin-only rules; everything else is tokens and Tailwind utilities from the global stylesheet. Loaded with the lazy admin chunk only. */
+#admin-main a:not([class*='bg-']) {
+  text-underline-offset: 3px;
+}
+#admin-main [role='tab'],
+#admin-main [role='radio'] {
+  cursor: pointer;
+}
+/* Card titles were rendering at line-height 1, touching the content below. */
+#admin-main :is(h2, h3) {
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}

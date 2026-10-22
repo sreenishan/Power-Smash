@@ -1,0 +1,29 @@
+---
+// Printable A4 poster for one tournament, or /posters/channel/ for the generic channel poster (spec 9.4, M3). Always noindex, never
+// linked from the site. One page per slug from src/content/tournaments.ts (empty today: only the channel poster is built).
+// The QR address and the poster text come from src/lib/qr/poster.ts (unit-tested); this file only lays them out.
+import type { GetStaticPaths } from 'astro';
+import PosterLayout from '../../../components/poster/PosterLayout.astro';
+import Poster from '../../../components/poster/Poster.astro';
+import { env } from '../../../config/env';
+import { assertValidTournaments, tournaments } from '../../../content/tournaments';
+import { buildPoster, posterSlugs } from '../../../lib/qr/poster';
+
+export const getStaticPaths = (() => {
+  assertValidTournaments();
+  return posterSlugs(tournaments).map((slug) => ({ params: { slug } }));
+}) satisfies GetStaticPaths;
+
+const { slug } = Astro.params;
+const poster = buildPoster({ slug: String(slug), tournaments, siteUrl: env.siteUrl, strict: process.env.PS_STRICT === '1' });
+if (!poster) throw new Error(`No poster for "${String(slug)}".`);
+---
+<PosterLayout title={`Poster (A4): ${poster.title}`}>
+  <Poster poster={poster} size="a4" />
+</PosterLayout>
+<style is:global>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+</style>

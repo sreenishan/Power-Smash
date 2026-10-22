@@ -1,0 +1,54 @@
+---
+// Book coverage (spec 7.10, D-019, D-025): a three-step enquiry form, kind "coverage". Creates a lead through
+// POST /api/lead. Package choices come from src/content/products.ts; no price is shown or sent. The form definition is built here
+// at build time and handed to the one generic island (LeadForm), which hydrates when it scrolls into view (client:visible);
+// Cloudflare Turnstile loads only on the first touch of the form (D-010).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { coverageForm } from '../lib/forms/defs/coverage';
+import { formPageConfig, plainForm } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(coverageForm({ packages: cfg.coveragePackages, addOns: cfg.coverageAddOns }));
+---
+<BaseLayout
+  title={titleWithBrand('Book Tournament Coverage')}
+  description="Tell us about your Tamil Nadu badminton tournament in three short steps. This is an enquiry: you pay nothing on this page."
+>
+  <PageHero
+    tone="dark"
+    title="Book coverage for your tournament"
+    lead="Three short steps. This is an enquiry, so you pay nothing on this page."
+    crumbs={[{ name: 'Services', href: ROUTES.services }, { name: 'Book coverage' }]}
+  />
+
+  <FormSection id="enquiry" title="Coverage booking form" route={ROUTES.book} blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>Step 1 asks only for the basics: the tournament name, the first day, your name and your phone number.</li>
+        <li>You can pick a package, or just tell us what you need and we will help you choose.</li>
+        <li>
+          We ask whether you have written permission or agreement from the organizer or association for us to film the matches,
+          publish them and earn money from them. A WhatsApp message or an email counts, and we can help you ask.
+        </li>
+        <li>No payment is taken here.</li>
+      </ul>
+      <p class="text-small text-fg-muted">Not ready? See the <a href={ROUTES.services}>services and packages</a> first.</p>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

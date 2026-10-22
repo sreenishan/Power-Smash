@@ -1,0 +1,22 @@
+---
+// "Share on WhatsApp" for archive pages (D-025, D-029). The link comes ONLY from waShareLink() (no number: the visitor picks the chat).
+// The text is public content only: a title and a page address. Pages pass a text built from a FULL match or an ADULT profile; a minimal
+// or protected page never renders a ShareBar, so no protected name can reach a share text (D-012).
+import MessageCircle from '@lucide/astro/icons/message-circle';
+import { waShareLink } from '../../lib/whatsapp';
+import Button from '../ui/Button.astro';
+
+interface Props {
+  /** The full message, for example "Watch: <title> https://...". */
+  text: string;
+  source: string;
+  label?: string;
+}
+const { text, source, label = 'Share on WhatsApp' } = Astro.props;
+const href = waShareLink(text);
+---
+{href && (
+  <Button href={href} variant="quiet" external data-wa-click data-wa-source={source}>
+    <MessageCircle size={20} aria-hidden="true" />{label}
+  </Button>
+)}

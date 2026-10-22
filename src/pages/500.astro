@@ -1,0 +1,38 @@
+---
+// 500 (spec 7.17). Shown when the site itself has a problem. Static, no data access, nothing that can fail again.
+// Popular links and WhatsApp. Always noindex.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/ui/Section.astro';
+import Button from '../components/ui/Button.astro';
+import WhatsAppButton from '../components/site/WhatsAppButton.astro';
+import { PAGE_META, titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const meta = PAGE_META.serverError;
+const popular = [
+  { label: 'Services', href: ROUTES.services },
+  { label: 'Pricing', href: ROUTES.pricing },
+  { label: 'Book coverage', href: ROUTES.book },
+  { label: 'Tournaments', href: ROUTES.tournaments },
+  { label: 'Contact', href: ROUTES.contact },
+];
+---
+<BaseLayout title={titleWithBrand(meta.title)} description={meta.description} noindex>
+  <Section tone="dark" pattern labelledBy="err-title">
+    <p class="ps-eyebrow mb-3">Error 500</p>
+    <h1 id="err-title">Something went wrong</h1>
+    <span aria-hidden="true" class="ps-rule"></span>
+    <p class="mt-4 max-w-2xl text-lead text-fg-muted">
+      The site had a problem on our side. Please try again in a minute. If it keeps happening, message us on WhatsApp.
+    </p>
+    <ul class="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {popular.map((link) => (
+        <li><Button href={link.href} variant="quiet" class="w-full">{link.label}</Button></li>
+      ))}
+    </ul>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <Button href={ROUTES.home} variant="volt">Go to the home page</Button>
+      <WhatsAppButton text="Hi Power Smash, the website showed an error." label="Ask on WhatsApp" variant="quiet" source="500" />
+    </div>
+  </Section>
+</BaseLayout>

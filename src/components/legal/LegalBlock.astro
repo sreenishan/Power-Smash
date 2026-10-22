@@ -1,0 +1,136 @@
+---
+// One block of a legal page: paragraph, list, table, note, the grievance-officer block or the removal-request contact routes.
+// Tables turn into stacked rows below 40rem so nothing scrolls sideways on a phone.
+import LegalInline from './LegalInline.astro';
+import GrievanceOfficer from './GrievanceOfficer.astro';
+import Todo from '../site/Todo.astro';
+import { legalFacts } from '../../content/legal/facts';
+import { visibleRows, type Block } from '../../content/legal/model';
+import { resolveContactRoutes } from '../../content/legal/routes';
+import { site } from '../../content/site';
+
+interface Props {
+  block: Block;
+}
+const { block } = Astro.props;
+const routes = block.k === 'routes' ? resolveContactRoutes(site, legalFacts.removalFormPath) : null;
+const buttonClass =
+  'inline-flex min-h-tap items-center rounded-md bg-ps-court px-4 py-2 font-semibold text-ps-white no-underline hover:bg-ps-court-deep';
+---
+{block.k === 'p' && <p><LegalInline items={block.c} /></p>}
+{block.k === 'note' && <p class="ps-legal-note"><LegalInline items={block.c} /></p>}
+{block.k === 'ul' && <ul>{block.items.map((item) => <li><LegalInline items={item} /></li>)}</ul>}
+{block.k === 'ol' && <ol>{block.items.map((item) => <li><LegalInline items={item} /></li>)}</ol>}
+{
+  block.k === 'table' && (
+    <div class="ps-legal-table">
+      <table>
+        <caption class="sr-only">{block.caption}</caption>
+        <thead>
+          <tr>{block.head.map((h) => <th scope="col">{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {visibleRows(block, legalFacts).map((row) => (
+            <tr>
+              {row.map((cell, i) => (
+                <td data-label={block.head[i]}><LegalInline items={cell} /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+{block.k === 'grievance' && <GrievanceOfficer />}
+{
+  routes && (
+    <div class="ps-legal-routes">
+      <ul>
+        {routes.whatsapp && (
+          <li><a class={buttonClass} href={routes.whatsapp} rel="noopener">Message us on WhatsApp</a></li>
+        )}
+        {routes.email && <li>Email: <a href={routes.email.href}>{routes.email.address}</a></li>}
+        {routes.formPath && <li><a href={routes.formPath}>Use our online request form</a></li>}
+        {routes.phone && <li>For a court or government order that cannot wait, call <a href={routes.phone.href}>{routes.phone.display}</a>.</li>}
+      </ul>
+      {!routes.hasRoute && <p><Todo what="a way to reach us about removal requests: a WhatsApp number or a public email address (OT-19)" /></p>}
+    </div>
+  )
+}
+<style>
+  .ps-legal-note {
+    padding: var(--ps-space-2);
+    border-left: 4px solid var(--ps-court);
+    background: var(--ps-court-tint);
+    border-radius: var(--ps-radius-sm);
+  }
+
+  .ps-legal-table {
+    margin-top: var(--ps-space-2);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--ps-text-small);
+  }
+  th,
+  td {
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--ps-line);
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--ps-court-tint);
+    font-weight: 700;
+  }
+  @media (max-width: 39.99rem) {
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    table,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+    tr {
+      margin-top: var(--ps-space-2);
+      border: 1px solid var(--ps-line);
+      border-radius: var(--ps-radius-md);
+      background: var(--ps-surface);
+    }
+    td {
+      border: 0;
+      border-bottom: 1px solid var(--ps-line);
+    }
+    td:last-child {
+      border-bottom: 0;
+    }
+    td::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.125rem;
+      font-size: var(--ps-text-caption);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ps-fg-muted);
+    }
+  }
+
+  .ps-legal-routes ul {
+    margin-top: var(--ps-space-1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ps-space-1);
+    list-style: none;
+    padding: 0;
+  }
+</style>

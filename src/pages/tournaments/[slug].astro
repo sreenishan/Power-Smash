@@ -1,0 +1,87 @@
+---
+// Tournament page (spec 7.7, M1 version) from the owner-entered list in src/content/tournaments.ts.
+// getStaticPaths returns ZERO pages while the list is empty. SportsEvent structured data only for upcoming tournaments.
+// The organizer contact block is shown ONLY when the record says showContact is true; organizer phone numbers and emails
+// are not part of the record at all (D-029, D-035 row 4: they come through a click-to-reveal endpoint later).
+// Everything the page shows is computed by tournamentPageModel() in src/content/tournaments.ts, a pure function that
+// tests/site/tournament-page.test.ts runs with fictional records (review C-22), so the template only lays the values out.
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import SectionHeading from '../../components/ui/SectionHeading.astro';
+import Button from '../../components/ui/Button.astro';
+import CtaBlock from '../../components/ui/CtaBlock.astro';
+import { whatsappTextForPath } from '../../components/site/whatsappText';
+import {
+  assertValidTournaments,
+  tournamentPageModel,
+  tournaments,
+  type TournamentRecord,
+} from '../../content/tournaments';
+import { todayIst } from '../../lib/dates';
+import { titleWithBrand } from '../../lib/seo';
+import { ROUTES } from '../../lib/urls';
+
+export const getStaticPaths = (() => {
+  assertValidTournaments();
+  return tournaments.map((tournament) => ({ params: { slug: tournament.slug }, props: { tournament } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  tournament: TournamentRecord;
+}
+const { tournament: t } = Astro.props;
+const { upcoming, when, place, description, statusLabel, contact, jsonLd } = tournamentPageModel(t, {
+  today: todayIst(),
+  origin: Astro.site ?? Astro.url,
+});
+---
+<BaseLayout title={titleWithBrand(t.name)} description={description} jsonLd={jsonLd}>
+  <PageHero
+    tone="dark"
+    title={t.name}
+    lead={when}
+    crumbs={[{ name: 'Tournaments', href: ROUTES.tournaments }, { name: t.name }]}
+  />
+
+  <Section labelledBy="details-title">
+    <SectionHeading id="details-title" title="Details" />
+    <ul class="mt-4 flex flex-wrap gap-2 text-caption font-bold">
+      {statusLabel && <li class="ps-chip ps-chip-live">{statusLabel}</li>}
+      <li class="ps-chip ps-chip-court">{upcoming ? 'Upcoming' : 'Past'}</li>
+      {t.coveredByPowerSmash && <li class="ps-chip ps-chip-ink">Covered by Power Smash</li>}
+    </ul>
+    <dl class="mt-6 grid max-w-3xl gap-x-6 gap-y-4 sm:grid-cols-[10rem_1fr]">
+      <dt class="font-bold text-fg">Dates</dt>
+      <dd class="ps-num">{when}</dd>
+      {place && (<><dt class="font-bold text-fg">Venue</dt><dd>{place}</dd></>)}
+      {t.level && (<><dt class="font-bold text-fg">Level</dt><dd>{t.level}</dd></>)}
+      {t.categories.length > 0 && (<><dt class="font-bold text-fg">Categories</dt><dd>{t.categories.join(', ')}</dd></>)}
+      {t.organizerName && (<><dt class="font-bold text-fg">Organizer</dt><dd>{t.organizerName}</dd></>)}
+    </dl>
+    {t.description && <p class="mt-6 max-w-3xl whitespace-pre-line">{t.description}</p>}
+
+    {contact && (
+      <div class="ps-card mt-8 max-w-3xl p-5 sm:p-6">
+        <h3 class="text-h4">Registration</h3>
+        {contact.name && <p class="mt-2">Contact person: {contact.name}</p>}
+        {contact.registrationUrl && (
+          <p class="mt-3">
+            <Button href={contact.registrationUrl} variant="primary" external rel="noopener noreferrer nofollow ugc">Open the registration link</Button>
+          </p>
+        )}
+      </div>
+    )}
+  </Section>
+
+  <CtaBlock
+    id="tournament-cta"
+    title="Is this your tournament?"
+    text="Book coverage or have it featured."
+    primaryHref={ROUTES.book}
+    primaryLabel="Book coverage"
+    whatsappText={whatsappTextForPath(Astro.url.pathname)}
+    source="tournament-page"
+  />
+</BaseLayout>

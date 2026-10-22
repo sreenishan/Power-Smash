@@ -1,0 +1,118 @@
+---
+// The match library (spec 7.2). Page 1 is /matches/ (with the filter form, drawn from one prebuilt JSON by a tiny script); the other pages
+// are plain static /matches/page/N/ lists so every match is reachable by an ordinary link without JavaScript (and by search engines).
+// The list holds FULL and LISTED matches only: a protected (minimal) match is never listed here, and non-Tamil-Nadu events are listed
+// with the raw title and the label "All India", without player links (D-018).
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../ui/PageHero.astro';
+import Section from '../ui/Section.astro';
+import Button from '../ui/Button.astro';
+import EmptyState from '../ui/EmptyState.astro';
+import MatchCard from './MatchCard.astro';
+import ArchiveSeedNotice from './ArchiveSeedNotice.astro';
+import { features } from '../../content/legal/status';
+import { ARCHIVE_ROUTES, matchListPath } from '../../lib/urls';
+import { titleWithBrand } from '../../lib/seo';
+import type { ArchiveMatch } from '../../lib/archive/model';
+import type { FilterOptions } from '../../lib/archive/search';
+import { ROUTES } from '../../lib/urls';
+
+interface Props {
+  matches: ArchiveMatch[];
+  page: number;
+  pages: number;
+  total: number;
+  options: FilterOptions;
+  source: 'seed' | 'supabase';
+}
+const { matches, page, pages, total, options, source } = Astro.props;
+const title = page === 1 ? 'Badminton match videos' : `Badminton match videos, page ${page}`;
+const description =
+  'Browse Tamil Nadu badminton match videos from the Power Smash YouTube channel. Titles are shown exactly as published on YouTube.';
+const selects: { name: string; label: string; options: { value: string; label: string }[] }[] = [
+  { name: 'year', label: 'Year', options: options.years },
+  { name: 'tournament', label: 'Tournament', options: options.tournaments },
+  { name: 'category', label: 'Category', options: options.categories },
+  { name: 'ageGroup', label: 'Age group', options: options.ageGroups },
+  { name: 'round', label: 'Round', options: options.rounds },
+  { name: 'district', label: 'District', options: options.districts },
+].filter((s) => s.options.length > 0);
+const pageNumbers = Array.from({ length: pages }, (_, i) => i + 1);
+---
+<BaseLayout title={titleWithBrand(title)} description={description} canonicalPath={matchListPath(page)}>
+  <ArchiveSeedNotice source={source} />
+  <PageHero title="Match videos" lead="Tamil Nadu badminton matches from the Power Smash channel." crumbs={[{ name: 'Matches' }]}>
+    <Button href={ROUTES.book} variant="secondary" size="lg">Book coverage</Button>
+  </PageHero>
+
+  {total === 0 ? (
+    <Section>
+      <EmptyState title="No match videos are listed yet">
+        <p>Match videos show up here once they have been added to the archive.</p>
+      </EmptyState>
+    </Section>
+  ) : (
+    <Section labelledBy="matches-title">
+      <h2 id="matches-title" class="sr-only">Matches</h2>
+      <p class="max-w-3xl text-fg-muted">
+        Titles are exactly as on YouTube. Details such as category and round are read from the title by Power Smash and can contain mistakes.
+      </p>
+
+      {page === 1 && (
+        <form data-match-filters data-index-url="/matches/index.json" hidden class="mt-6 grid grid-cols-2 gap-3 rounded-lg border border-line border-t-4 border-t-ps-court bg-surface p-4 shadow-card sm:grid-cols-2 sm:p-5 lg:grid-cols-4" aria-label="Filter matches">
+          <div class="col-span-2 lg:col-span-4">
+            <label for="f-q" class="block text-small font-bold uppercase tracking-wider">Search titles</label>
+            <input id="f-q" name="q" type="search" autocomplete="off" class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court" />
+          </div>
+          {selects.map((s) => (
+            <div>
+              <label for={`f-${s.name}`} class="block text-small font-bold uppercase tracking-wider">{s.label}</label>
+              <select id={`f-${s.name}`} name={s.name} class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
+                <option value="">All</option>
+                {s.options.map((o) => <option value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          ))}
+          <div>
+            <label for="f-sort" class="block text-small font-bold uppercase tracking-wider">Sort by</label>
+            <select id="f-sort" name="sort" class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
+              <option value="newest">Newest first</option>
+              <option value="views">Most viewed on YouTube</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button type="reset" class="min-h-[3rem] rounded-md border-2 border-line-strong px-5 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider ps-transition hover:bg-ps-court-tint">Clear filters</button>
+          </div>
+        </form>
+      )}
+
+      <p data-match-count aria-live="polite" class="mt-8 text-small font-semibold uppercase tracking-wider text-fg-muted ps-num">{total} matches{pages > 1 ? `, page ${page} of ${pages}` : ''}</p>
+      <ul data-match-grid data-thumbs={features.youtubeEmbeds === true ? '1' : '0'} class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {matches.map((m) => <li><MatchCard match={m} /></li>)}
+      </ul>
+      <button type="button" data-match-more hidden class="mt-8 min-h-[3rem] rounded-md border-2 border-ps-court px-6 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider text-ps-court ps-transition hover:bg-ps-court-tint">Show more</button>
+
+      {pages > 1 && (
+        <nav data-match-pager aria-label="Match list pages" class="mt-8">
+          <ul class="flex flex-wrap gap-2">
+            {pageNumbers.map((n) => (
+              <li>
+                {n === page ? (
+                  <span aria-current="page" class="inline-flex min-h-tap min-w-tap items-center justify-center rounded-md bg-ps-ink px-3 font-bold text-ps-volt">{n}</span>
+                ) : (
+                  <a href={matchListPath(n)} class="inline-flex min-h-tap min-w-tap items-center justify-center rounded-md border-2 border-line-strong px-3 font-bold ps-transition hover:bg-ps-court-tint">{n}<span class="sr-only"> (page {n})</span></a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      <p class="mt-8 text-small text-fg-muted">Looking for a player? <a href={ARCHIVE_ROUTES.players}>Search the player directory</a>.</p>
+    </Section>
+  )}
+
+  <script>
+    import { installMatchFilters } from '../../lib/archive/matches-client';
+    installMatchFilters(document);
+  </script>
+</BaseLayout>

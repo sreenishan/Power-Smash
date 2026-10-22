@@ -1,0 +1,37 @@
+---
+// Breadcrumbs (spec 7: every public page except Home). Home is added automatically. The last item is the current page.
+// Also writes the BreadcrumbList structured data. Links and JSON-LD urls use the same canonical slash form (R-LINKS).
+import JsonLd from './JsonLd.astro';
+import { breadcrumbJsonLd } from '../../lib/jsonld';
+import { absoluteUrl, path } from '../../lib/urls';
+
+interface Item {
+  name: string;
+  /** Omit for the current page (last item). */
+  href?: string;
+}
+interface Props {
+  items: readonly Item[];
+  /** Use on dark bands. */
+  class?: string;
+}
+const { items, class: className } = Astro.props;
+const origin = Astro.site ?? Astro.url;
+const all: Item[] = [{ name: 'Home', href: '/' }, ...items];
+const ld = breadcrumbJsonLd(all.map((i) => ({ name: i.name, url: absoluteUrl(i.href ?? Astro.url.pathname, origin) })));
+---
+<nav aria-label="Breadcrumb" class={className}>
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-fg-muted">
+    {all.map((item, i) => (
+      <li class="flex items-center gap-2">
+        {i > 0 && <span aria-hidden="true" class="opacity-60">/</span>}
+        {i === all.length - 1 ? (
+          <span aria-current="page" class="font-semibold text-fg">{item.name}</span>
+        ) : (
+          <a href={path(item.href ?? '/')} class="inline-flex min-h-tap items-center underline underline-offset-4 hover:text-fg">{item.name}</a>
+        )}
+      </li>
+    ))}
+  </ol>
+  <JsonLd data={ld} />
+</nav>

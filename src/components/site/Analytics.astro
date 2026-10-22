@@ -1,0 +1,19 @@
+---
+// Cloudflare Web Analytics beacon (BUILD_PLAN M1 item 4, D-029, D-031). Renders NOTHING unless PUBLIC_CF_ANALYTICS_TOKEN is set, so
+// local builds, previews and the build before the owner creates the Cloudflare site send no analytics at all.
+//
+// Privacy: Cloudflare states the beacon does not store data in the browser or read cookies, localStorage or IP address, and does not
+// track people across sites (developers.cloudflare.com/web-analytics, checked 2026-10-21). No consent banner is needed for it; the
+// privacy page still names it. The token is a public identifier (it is visible in page source), not a secret.
+//
+// Snippet: the manual-embed form from Cloudflare's FAQ (type="module", token in data-cf-beacon). A module script is deferred by
+// nature; `defer` is kept as well for clarity. `is:inline` stops Astro bundling the tag. The CSP allows exactly this script file and
+// connect-src https://cloudflareinsights.com (src/lib/infra/headers.ts), and only when the token is configured.
+// Whether a *.workers.dev hostname can be registered as a Web Analytics site is unknown (docs/m1/third-party-integration-facts.md TP-A3):
+// prove it on the first preview or leave the token unset there.
+const raw = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
+const token = typeof raw === 'string' ? raw.trim() : '';
+// Only plain letters and digits are accepted, so nothing can break out of the attribute.
+const valid = /^[A-Za-z0-9]{16,64}$/.test(token);
+---
+{valid && <script is:inline type="module" defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token })}></script>}

@@ -1,0 +1,10 @@
+---
+// terms page (Legal-drafts worker). The wording lives in src/content/legal/terms.ts as data; LegalDocument.astro renders it
+// and shows the draft notice (<LegalDraftNotice />) until src/content/legal/status.ts says a lawyer reviewed the page (OT-15).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LegalDocument from '../components/legal/LegalDocument.astro';
+import { termsDoc } from '../content/legal/terms';
+---
+<BaseLayout title={termsDoc.title} description={termsDoc.description}>
+  <LegalDocument doc={termsDoc} />
+</BaseLayout>

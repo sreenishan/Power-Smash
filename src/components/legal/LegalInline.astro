@@ -1,0 +1,15 @@
+---
+// A run of inline content on a legal page: plain text, links, bold text, owner facts from site.ts and Todos.
+import LegalNode from './LegalNode.astro';
+import { legalFacts } from '../../content/legal/facts';
+import type { Inline } from '../../content/legal/model';
+import { site } from '../../content/site';
+import { inlineNodes } from '../../content/legal/view';
+
+interface Props {
+  items: readonly Inline[];
+}
+const { items } = Astro.props;
+const nodes = inlineNodes(items, site, legalFacts);
+---
+{nodes.map((node) => <LegalNode node={node} />)}

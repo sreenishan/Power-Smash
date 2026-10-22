@@ -1,0 +1,17 @@
+---
+// One resolved inline node (see src/content/legal/view.ts). A missing owner fact is a <Todo>, never a made-up value.
+import Todo from '../site/Todo.astro';
+import type { InlineNode } from '../../content/legal/view';
+
+interface Props {
+  node: InlineNode;
+}
+const { node } = Astro.props;
+---
+{node.kind === 'text' && node.text}
+{node.kind === 'strong' && <strong>{node.text}</strong>}
+{node.kind === 'todo' && <Todo what={node.what} />}
+{node.kind === 'link' && (node.external ? <a href={node.href} rel="noopener">{node.text}</a> : <a href={node.href}>{node.text}</a>)}
+{node.kind === 'email' && <a href={node.href}>{node.address}</a>}
+{node.kind === 'phone' && <a href={node.href}>{node.display}</a>}
+{node.kind === 'address' && <span class="whitespace-pre-line">{node.text}</span>}

@@ -1,0 +1,139 @@
+---
+// Player page (spec 7.5, D-012, D-013). Two kinds:
+//   full     an adult_confirmed player: profile, stats from FULL matches, matches, partner and opponent links (to adult players with a
+//            page only), ProfilePage structured data, share. Indexable.
+//   minimal  an unknown-age player while `unknown_match_mode` is `noindex_minimal`: noindex, generic title, NO NAME (a name is shown only
+//            where a match's raw YouTube title already shows it), an opaque address and a removal link. No photo, bio, district, stats, match list, parsed links, structured data or share button.
+// A player who is a confirmed or suspected minor has no page at all (nothing is generated for them).
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import SectionHeading from '../../components/ui/SectionHeading.astro';
+import Button from '../../components/ui/Button.astro';
+import MatchCard from '../../components/archive/MatchCard.astro';
+import ShareBar from '../../components/archive/ShareBar.astro';
+import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
+import { enquiryHref } from '../../content/products';
+import { formatDate } from '../../lib/dates';
+import { categoryLabel } from '../../lib/archive/labels';
+import { profilePageJsonLd } from '../../lib/archive/jsonld';
+import { loadPublicArchive } from '../../lib/archive/model';
+import { titleWithBrand } from '../../lib/seo';
+import { ARCHIVE_ROUTES, ROUTES, absoluteUrl, playerPath } from '../../lib/urls';
+
+export async function getStaticPaths() {
+  const archive = await loadPublicArchive();
+  return [
+    ...archive.players.map((p) => ({ params: { slug: p.slug }, props: { kind: 'full' as const, player: p, source: archive.source } })),
+    ...archive.minimalPlayers.map((p) => ({ params: { slug: p.slug }, props: { kind: 'minimal' as const, player: null, source: archive.source } })),
+  ];
+}
+const { kind, player: p, source } = Astro.props;
+const origin = Astro.site ?? Astro.url;
+const slug = Astro.params.slug as string;
+const full = kind === 'full' && p !== null;
+const pageUrl = absoluteUrl(playerPath(slug), origin);
+const topTournaments = full ? p.tournaments.slice(0, 3).map((t) => t.name) : [];
+const description = full
+  ? `${p.matchCount} match ${p.matchCount === 1 ? 'video' : 'videos'} of ${p.name}${topTournaments.length ? ` from ${topTournaments.join(', ')}` : ''}.`
+  : 'A player page on Power Smash.';
+const stats: [string, string][] = full
+  ? [
+      ['Matches on record', String(p.matchCount)],
+      ['Tournaments', String(p.tournamentCount)],
+      ['First seen', formatDate(p.firstDate)],
+      ['Latest match', formatDate(p.latestDate)],
+    ]
+  : [];
+---
+<BaseLayout
+  title={full ? titleWithBrand(`${p.name} - Badminton Match Videos`) : 'Player'}
+  description={description}
+  canonicalPath={playerPath(slug)}
+  noindex={!full}
+  jsonLd={full ? profilePageJsonLd(p, origin) : undefined}
+  ogType={full ? 'article' : 'website'}
+>
+  <ArchiveSeedNotice source={source} />
+  <PageHero title={full ? p.name : 'Player page'} crumbs={[{ name: 'Players', href: ARCHIVE_ROUTES.players }, { name: full ? p.name : 'Player' }]}>
+    {full && <Button href={enquiryHref({ slug: 'highlight-reel', group: 'players' })} variant="primary" size="lg">Get my highlight reel</Button>}
+  </PageHero>
+
+  {!full && (
+    <Section>
+      <p class="max-w-2xl text-body">
+        This player's age has not been confirmed, so this page shows no name, details or match list. If this is you or your child and you want a change or a removal,
+        <a href={ROUTES.contentRemoval}>send us a request</a>.
+      </p>
+    </Section>
+  )}
+
+  {full && (
+    <>
+      <Section labelledBy="profile-title">
+        <h2 id="profile-title" class="sr-only">Profile</h2>
+        <ul class="flex flex-wrap gap-2 text-caption font-bold">
+          {p.district && <li class="rounded-pill bg-ps-court-tint px-3 py-1 text-ps-court">{p.district}</li>}
+          {p.academy && <li class="rounded-pill bg-ps-court-tint px-3 py-1 text-ps-court">{p.academy}</li>}
+          {p.categories.map((c) => <li class="rounded-pill bg-ps-ink px-3 py-1 text-ps-volt">{categoryLabel(c)}</li>)}
+        </ul>
+        <dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
+          {stats.map(([k, v]) => (
+            <div class="rounded-md border-2 border-line bg-surface p-3">
+              <dt class="text-small font-bold text-fg-muted">{k}</dt>
+              <dd class="mt-1 text-h4 ps-num">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p class="mt-3 text-small text-fg-muted">Counts are read from video titles by Power Smash.</p>
+        <div class="mt-6"><ShareBar text={`${p.name} - badminton match videos on Power Smash ${pageUrl}`} source="player-page" /></div>
+      </Section>
+
+      <Section tone="surface" labelledBy="matches-title">
+        <SectionHeading id="matches-title" title="Matches" lead="Newest first. Titles are exactly as on YouTube." />
+        <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {p.matches.map((m) => <li><MatchCard match={m} /></li>)}
+        </ul>
+      </Section>
+
+      {(p.partners.length > 0 || p.opponents.length > 0) && (
+        <Section labelledBy="with-title">
+          <SectionHeading id="with-title" title="Played with and against" lead="Players with a profile page, by Power Smash." />
+          <div class="mt-6 grid gap-8 md:grid-cols-2">
+            {p.partners.length > 0 && (
+              <div>
+                <h3 class="text-h4">Partners</h3>
+                <ul class="mt-3 flex flex-col gap-1">
+                  {p.partners.map((o) => <li><a href={playerPath(o.slug)} class="inline-flex min-h-tap items-center font-semibold">{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
+                </ul>
+              </div>
+            )}
+            {p.opponents.length > 0 && (
+              <div>
+                <h3 class="text-h4">Opponents</h3>
+                <ul class="mt-3 flex flex-col gap-1">
+                  {p.opponents.map((o) => <li><a href={playerPath(o.slug)} class="inline-flex min-h-tap items-center font-semibold">{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {p.tournaments.length > 0 && (
+        <Section tone="surface" labelledBy="tournaments-title">
+          <SectionHeading id="tournaments-title" title="Tournaments" />
+          <ul class="mt-6 flex flex-col gap-2">
+            {p.tournaments.map((t) => <li>{t.name} <span class="text-small text-fg-muted">({t.count} {t.count === 1 ? 'match' : 'matches'})</span></li>)}
+          </ul>
+        </Section>
+      )}
+
+      <Section compact>
+        <p class="text-small text-fg-muted">
+          Is this you or your child? <a href={ROUTES.contentRemoval}>Request a change or removal</a>.
+        </p>
+      </Section>
+    </>
+  )}
+</BaseLayout>

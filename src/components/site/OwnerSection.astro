@@ -1,0 +1,18 @@
+---
+// Hide-section rule (D-034): renders its slot only when the owner has supplied the input it depends on.
+//   <OwnerSection when={site.whatsappChannelUrl} name="home-whatsapp-channel"> ... </OwnerSection>
+// The decision is in owner-section.ts (unit-tested). Nothing visible is rendered when hidden (no placeholder). Instead an
+// invisible `<template data-owner-hidden="name">` is left so the release gate (scripts/check-placeholders.ts) can list which
+// sections are waiting for an owner input. EVERY call site passes a unique kebab-case `name` (tests/site/owner-section.test.ts
+// fails when one is missing or repeated; tests/build/hidden-sections.test.ts checks the built pages).
+import { decideOwnerSection } from './owner-section';
+
+interface Props {
+  when: unknown;
+  /** Unique per call site, kebab-case, for example "about-story". */
+  name?: string;
+}
+const { when, name } = Astro.props;
+const decision = decideOwnerSection(when, name);
+---
+{decision.kind === 'show' ? <slot /> : <template data-owner-hidden={decision.marker}></template>}

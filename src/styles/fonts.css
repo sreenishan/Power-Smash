@@ -1,0 +1,131 @@
+/*
+ * Self-hosted fonts (D-002, spec 5.4). All three families are SIL OFL-1.1 (docs/licenses).
+ * The .woff2 files come from the installed Fontsource packages, nothing is fetched from a CDN:
+ *   @fontsource/barlow-condensed 5.3.0   static 700, 800, 800 italic     (headings)
+ *   @fontsource-variable/inter   5.3.0   variable wght 100-900           (body and UI)
+ *   @fontsource/noto-sans-tamil  5.3.0   static 400, 600                 (Tamil, and the rupee sign)
+ *
+ * Rules kept here on purpose:
+ *  - Only the subsets in use. Latin for Barlow and Inter; the Tamil subset for Noto Sans Tamil.
+ *  - woff2 only (every browser the site targets reads it). The .woff twins would add dist files for nothing.
+ *  - Every face carries a unicode-range, so a face downloads only when the page contains characters it covers.
+ *    Tamil headings do not pull Barlow, and English pages never pull a Tamil face.
+ *  - font-display: swap everywhere (spec 5.4).
+ *
+ * The rupee sign U+20B9 is NOT in the Barlow or Inter latin subsets (it is in latin-ext: Inter's latin-ext is
+ * 85 KB). The Noto Sans Tamil Tamil subset has it, and Noto Sans Tamil sits in every stack below, so prices fall
+ * back to that 15 KB face instead. Do not add Inter latin-ext just for the rupee sign.
+ *
+ * Imported from global.css AFTER tokens.css (the :lang(ta) type-scale re-binding below must come later).
+ */
+
+/* ------------------------------------------------------------------ Barlow Condensed (latin) */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* The display italic is loaded at 800 only. A 700 italic would be a faux oblique: use .ps-italic (800). */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: italic;
+  font-weight: 800;
+  font-display: swap;
+  src: url("@fontsource/barlow-condensed/files/barlow-condensed-latin-800-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------ Inter (variable, latin, upright only) */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------ Noto Sans Tamil (Tamil subset) */
+@font-face {
+  font-family: "Noto Sans Tamil";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("@fontsource/noto-sans-tamil/files/noto-sans-tamil-tamil-400-normal.woff2") format("woff2");
+  unicode-range: U+0964-0965, U+0B82-0BFA, U+200C-200D, U+20B9, U+25CC;
+}
+
+/* 600 is the heaviest Tamil cut: any requested weight of 600 or more renders this face (no faux bold). */
+@font-face {
+  font-family: "Noto Sans Tamil";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("@fontsource/noto-sans-tamil/files/noto-sans-tamil-tamil-600-normal.woff2") format("woff2");
+  unicode-range: U+0964-0965, U+0B82-0BFA, U+200C-200D, U+20B9, U+25CC;
+}
+
+/* ------------------------------------------------------------------ stacks */
+:root {
+  /* Headings: Barlow has no Tamil glyphs, so Noto Sans Tamil is second (D-002). */
+  --ps-font-display: "Barlow Condensed", "Noto Sans Tamil", "Arial Narrow", "Roboto Condensed", ui-sans-serif,
+    system-ui, sans-serif;
+  /* Body and UI: Inter, then Noto Sans Tamil for Tamil and the rupee sign, then the system. */
+  --ps-font-body: "Inter Variable", "Noto Sans Tamil", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Nirmala UI", "Helvetica Neue", Arial, sans-serif;
+  /* Tamil-first text, for the font-tamil utility. */
+  --ps-font-tamil: "Noto Sans Tamil", "Inter Variable", "Nirmala UI", Latha, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tailwind 4: font-sans (also the page default), font-display, font-tamil. Plain @theme, not inline: stacks are never re-bound. */
+@theme {
+  --font-sans: var(--ps-font-body);
+  --font-display: var(--ps-font-display);
+  --font-tamil: var(--ps-font-tamil);
+}
+
+/* ------------------------------------------------------------------ Tamil (:lang(ta)) */
+/*
+ * Tamil needs more line height (stacked vowel signs), no tracking, no case change, no faux styles, and a smaller
+ * heading scale than Barlow Condensed capitals (Tamil glyphs are wider). Re-binding the --ps-* tokens here means
+ * text-h1 and the h1 to h4 defaults adapt automatically inside any element marked lang="ta".
+ * DRAFT: sizes are a typographic estimate. A native Tamil reader must review them on a phone (OT-23, spec App. B).
+ */
+:lang(ta) {
+  --ps-text-h1: clamp(1.75rem, 1.1071rem + 2.8571vw, 3.25rem); /* 28 to 52 px */
+  --ps-text-h2: clamp(1.4375rem, 1.0893rem + 1.5476vw, 2.25rem); /* 23 to 36 px */
+  --ps-text-h3: clamp(1.1875rem, 1rem + 0.8333vw, 1.625rem); /* 19 to 26 px */
+  --ps-text-h4: clamp(1.0625rem, 0.9821rem + 0.3571vw, 1.25rem); /* 17 to 20 px */
+  --ps-text-score: clamp(2.25rem, 1.6071rem + 2.8571vw, 3.75rem); /* 36 to 60 px */
+  --ps-lh-h1: 1.25;
+  --ps-lh-h2: 1.25;
+  --ps-lh-h3: 1.3;
+  --ps-lh-h4: 1.35;
+  --ps-lh-lead: 1.7;
+  --ps-lh-body: 1.75;
+  --ps-lh-small: 1.65;
+  --ps-lh-caption: 1.5;
+
+  font-synthesis: none; /* no faux bold or italic: only 400 and 600 are loaded */
+  font-style: normal; /* Tamil is not set in italic */
+  letter-spacing: normal; /* tracking breaks conjunct shaping */
+  word-spacing: normal;
+  text-transform: none; /* Tamil has no case; this also stops uppercase headings shouting Latin names */
+}

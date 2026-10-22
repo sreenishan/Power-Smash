@@ -1,0 +1,28 @@
+---
+// Owner-only admin shell (D-006). A static, EMPTY page: no data, no links from the public site, always noindex. The app is a React island
+// that loads on demand (src/admin/AdminLoader.tsx), signs in with Supabase Auth (password + TOTP) and talks only to /api/admin/*.
+// Without the Supabase build variables it runs as a labelled preview with made-up data. It does not use BaseLayout on purpose: no public
+// header, footer, analytics or JSON-LD belong on an admin page.
+import '../../styles/global.css';
+import AdminLoader from '../../admin/AdminLoader';
+import { absoluteUrl } from '../../lib/urls';
+
+// Canonical and og:url are this page's own slash URL (tests/build/links.test.ts); the page stays noindex either way.
+const canonical = absoluteUrl('/admin/', Astro.site ?? Astro.url);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:url" content={canonical} />
+    <title>Power Smash admin</title>
+  </head>
+  <body class="bg-page text-fg">
+    <noscript><p style="padding:1rem">The admin needs JavaScript.</p></noscript>
+    <AdminLoader client:only="react" />
+  </body>
+</html>

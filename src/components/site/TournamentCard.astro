@@ -1,0 +1,26 @@
+---
+// Tournament card for /tournaments and the Home teaser (spec 5.5 TournamentCard: date block, level badge, place).
+// Dates are IST calendar dates and are formatted only through src/lib/dates.ts. The link uses the canonical slash form (R-LINKS).
+import { formatDateRange } from '../../lib/dates';
+import { path } from '../../lib/urls';
+import { tournamentPlace, tournamentStatusLabel, type TournamentRecord } from '../../content/tournaments';
+
+interface Props {
+  tournament: TournamentRecord;
+  headingLevel?: 2 | 3;
+}
+const { tournament: t, headingLevel = 3 } = Astro.props;
+const Tag = headingLevel === 2 ? 'h2' : 'h3';
+const place = tournamentPlace(t);
+const statusLabel = tournamentStatusLabel(t);
+---
+<article class="ps-card ps-card-hover ps-card-accent flex h-full flex-col p-5 pt-6">
+  <p class="ps-eyebrow ps-num">{formatDateRange(t.startDate, t.endDate)}</p>
+  <Tag class="mt-2 text-h4"><a href={path(`/tournaments/${t.slug}`)} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a></Tag>
+  {place && <p class="mt-2 text-fg-muted">{place}</p>}
+  <ul class="mt-auto flex flex-wrap gap-2 pt-4">
+    {statusLabel && <li class="ps-chip ps-chip-live">{statusLabel}</li>}
+    {t.level && <li class="ps-chip ps-chip-court">{t.level}</li>}
+    {t.coveredByPowerSmash && <li class="ps-chip ps-chip-ink">Covered by Power Smash</li>}
+  </ul>
+</article>

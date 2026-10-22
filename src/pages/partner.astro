@@ -1,0 +1,101 @@
+---
+// Partner with us (spec 7.11, D-024, D-025): why Power Smash, owner-stated channel figures (dated), the sponsor packages
+// (Appendix C.4, DRAFT data, every price null until the owner supplies it), a media-kit download ONLY when the owner has
+// supplied a PDF path (site.mediaKitPdfPath), and a two-step enquiry form, kind "sponsorship".
+// No sponsor, logo, case study or audience claim appears that the owner has not supplied (partners.ts is empty until then).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import Section from '../components/ui/Section.astro';
+import SectionHeading from '../components/ui/SectionHeading.astro';
+import Button from '../components/ui/Button.astro';
+import StatCounter from '../components/ui/StatCounter.astro';
+import PackageCard from '../components/ui/PackageCard.astro';
+import AudienceFigures from '../components/site/AudienceFigures.astro';
+import OwnerSection from '../components/site/OwnerSection.astro';
+import SponsorStrip from '../components/site/SponsorStrip.astro';
+import Todo from '../components/site/Todo.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { site } from '../content/site';
+import { needsInclusionApproval, enquiryTarget } from '../content/products';
+import { sponsorPackages } from '../content/sponsor-packages';
+import { sponsorshipForm } from '../lib/forms/defs/sponsorship';
+import { formPageConfig, plainForm } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(sponsorshipForm({ packages: cfg.sponsorPackages }));
+const approvalNeeded = needsInclusionApproval(sponsorPackages);
+---
+<BaseLayout
+  title={titleWithBrand('Partner With Us')}
+  description="Reach Tamil Nadu's badminton community through the Power Smash YouTube channel and website. See the partner packages and send an enquiry."
+>
+  <PageHero
+    tone="dark"
+    title="Partner with Power Smash"
+    lead="Reach Tamil Nadu's badminton community."
+    crumbs={[{ name: 'Partner with us' }]}
+  >
+    <Button href="#enquiry" variant="volt" size="lg">Send an enquiry</Button>
+    <OwnerSection when={cfg.mediaKitPath} name="partner-media-kit">
+      <Button href={cfg.mediaKitPath ?? '#'} variant="quiet" size="lg" external download>Download the media kit (PDF)</Button>
+    </OwnerSection>
+  </PageHero>
+
+  <Section tone="court" pattern labelledBy="why-title">
+    <SectionHeading id="why-title" title="Why Power Smash" lead="A YouTube channel about Tamil Nadu badminton: tournaments, matches and players." />
+    <OwnerSection when={site.channel.subscribers} name="partner-channel-figures">
+      <div class="mt-8 grid max-w-xl grid-cols-2 gap-4">
+        <StatCounter value={site.channel.subscribers} label="Subscribers" />
+        <StatCounter value={site.channel.videos} label="Videos" />
+      </div>
+      <p class="mt-3 text-small text-fg-muted">
+        Rounded figures from the Power Smash YouTube channel, as of {site.channel.asOf}.
+      </p>
+    </OwnerSection>
+    <p class="mt-6 max-w-3xl text-body text-fg-muted">Paid placements are always labelled.</p>
+  </Section>
+
+  <!-- OT-12 (G1 input): the owner's dated YouTube Studio audience figures; shows one <Todo> until they are supplied (review C-8). -->
+  <AudienceFigures />
+
+  <SponsorStrip showCta={false} />
+
+  <Section id="packages" labelledBy="packages-title">
+    <SectionHeading id="packages-title" title="Partner packages" lead="Pick the one that fits, or tell us what you want to achieve and we will suggest a plan." />
+    {approvalNeeded && <p class="mt-4"><Todo what="owner approval of the suggested sponsor package inclusions (OT-22)" /></p>}
+    <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {sponsorPackages.map((pkg) => {
+        const target = enquiryTarget(pkg);
+        return (
+          <li>
+            <PackageCard product={pkg} href={`${target.href}#enquiry`} ctaLabel={target.label} headingLevel={3} source="partner-packages" />
+          </li>
+        );
+      })}
+    </ul>
+  </Section>
+
+  <FormSection id="enquiry" title="Sponsorship enquiry form" route={ROUTES.partner} blocked={cfg.turnstileMode === 'blocked'} tone="surface">
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.leadNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>Step 1 asks only for the basics: your name, phone number and company.</li>
+        <li>Step 2 is optional. It helps us reply with something useful.</li>
+        <li>No payment is taken here.</li>
+      </ul>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

@@ -1,0 +1,58 @@
+---
+// Audience figures for /partner (review C-8; OT-12 is a G1 input). A self-contained band: heading, the owner's dated YouTube
+// Studio figures, and the "as of" line. The decision is in audience.ts (unit-tested):
+//  - no figure supplied, or figures without an "as of" date -> one <Todo> (the strict release gate fails until OT-12 is answered);
+//  - dated figures supplied -> only the fields the owner filled in, every value in the owner's own wording.
+// Nothing here is computed or invented. The Forms worker places <AudienceFigures /> on /partner (src/pages/partner.astro).
+import Section from '../ui/Section.astro';
+import SectionHeading from '../ui/SectionHeading.astro';
+import Todo from './Todo.astro';
+import { audienceView, type AudienceInput } from './audience';
+import { site } from '../../content/site';
+
+interface Props {
+  /** Defaults to site.audience. Pass another object only in tests and previews. */
+  audience?: AudienceInput;
+  tone?: 'default' | 'surface' | 'dark' | 'court';
+  id?: string;
+  title?: string;
+}
+const { audience = site.audience, tone = 'surface', id = 'audience-title', title = 'Who watches Power Smash' } = Astro.props;
+const view = audienceView(audience);
+---
+<Section tone={tone} labelledBy={id}>
+  <SectionHeading id={id} title={title} />
+  {view.kind === 'todo' && <p class="mt-4"><Todo what={view.what} /></p>}
+  {view.kind === 'figures' && (
+    <>
+      {view.facts.length > 0 && (
+        <dl class="mt-6 grid max-w-3xl gap-4 sm:grid-cols-2">
+          {view.facts.map((fact) => (
+            <div class="ps-card p-4">
+              <dt class="ps-eyebrow">{fact.label}</dt>
+              <dd class="mt-1 font-display text-h3 font-extrabold text-fg ps-num">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {view.groups.length > 0 && (
+        <div class="mt-6 grid gap-6 md:grid-cols-3">
+          {view.groups.map((group) => (
+            <div>
+              <h3 class="text-h4">{group.title}</h3>
+              <ul class="mt-3 flex flex-col gap-2">
+                {group.items.map((item) => (
+                  <li class="flex items-baseline justify-between gap-3 border-b border-line pb-2">
+                    <span>{item.label}</span>
+                    <span class="font-bold ps-num">{item.share}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+      <p class="mt-6 text-small text-fg-muted">Figures from YouTube Studio, reported by Power Smash, as of {view.asOf}.</p>
+    </>
+  )}
+</Section>

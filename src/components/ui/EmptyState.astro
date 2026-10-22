@@ -1,0 +1,17 @@
+---
+// Empty state (spec 5.5): says what is missing in one plain line and always offers the next step.
+// Default slot = the explanation. Slot "actions" = the buttons.
+interface Props {
+  title: string;
+  level?: 2 | 3;
+  class?: string;
+}
+const { title, level = 2, class: className } = Astro.props;
+const Tag = level === 3 ? 'h3' : 'h2';
+const hasActions = Astro.slots.has('actions');
+---
+<div class:list={['ps-pattern rounded-lg border-2 border-dashed border-line-strong bg-surface p-6 text-center sm:p-10', className]}>
+  <Tag class="text-h3">{title}</Tag>
+  <div class="mx-auto mt-2 max-w-prose text-fg-muted"><slot /></div>
+  {hasActions && <div class="mt-5 flex flex-wrap justify-center gap-3"><slot name="actions" /></div>}
+</div>

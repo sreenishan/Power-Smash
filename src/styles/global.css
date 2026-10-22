@@ -1,0 +1,14 @@
+/*
+ * Power Smash global stylesheet: the single Tailwind 4 entry point (Tailwind 4.3.3 via @tailwindcss/vite).
+ * Import it once from the base layout:  import "../styles/global.css";
+ *
+ * Order matters:
+ *   1. tailwindcss  - theme, preflight and utilities layers
+ *   2. tokens.css   - --ps-* tokens, the @theme mapping, utilities, dark surfaces, base styles, reduced motion
+  *   4. components.css - ps-* recipes (buttons, cards, hero, header, footer, motifs)
+ *   3. fonts.css    - @font-face, font stacks, :lang(ta) rules (after tokens so the Tamil re-binding wins)
+ */
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./fonts.css";
+@import "./components.css";

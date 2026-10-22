@@ -1,0 +1,90 @@
+---
+// Tournaments (spec 7.6, M1 version): a simple list of OWNER-ENTERED tournaments from src/content/tournaments.ts, split into
+// Upcoming and Past by the IST calendar date at build time (D-030; the nightly deploy refreshes it). No filters yet.
+// With nothing listed it shows an EmptyState with the two organizer calls to action.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import SectionHeading from '../../components/ui/SectionHeading.astro';
+import Button from '../../components/ui/Button.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import CtaBlock from '../../components/ui/CtaBlock.astro';
+import TournamentCard from '../../components/site/TournamentCard.astro';
+import { whatsappTextForPath } from '../../components/site/whatsappText';
+import { assertValidTournaments, splitTournaments, tournaments } from '../../content/tournaments';
+import { formatMonthYear, todayIst } from '../../lib/dates';
+import { PAGE_META, titleWithBrand } from '../../lib/seo';
+import { ROUTES } from '../../lib/urls';
+
+assertValidTournaments();
+const meta = PAGE_META.tournaments;
+const { upcoming, past } = splitTournaments(tournaments, todayIst());
+
+// Upcoming tournaments grouped by month (soonest first).
+const months: { label: string; items: typeof upcoming }[] = [];
+for (const t of upcoming) {
+  const label = formatMonthYear(t.startDate);
+  const last = months[months.length - 1];
+  if (last && last.label === label) last.items.push(t);
+  else months.push({ label, items: [t] });
+}
+const isEmpty = upcoming.length === 0 && past.length === 0;
+---
+<BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
+  <PageHero
+    tone="dark"
+    title="Badminton tournaments"
+    lead="Tamil Nadu badminton tournaments listed by Power Smash."
+    crumbs={[{ name: 'Tournaments' }]}
+  >
+    <Button href={ROUTES.submitTournament} variant="volt" size="lg">List your tournament - free</Button>
+    <Button href={ROUTES.book} variant="quiet" size="lg">Book coverage</Button>
+  </PageHero>
+
+  {isEmpty && (
+    <Section>
+      <EmptyState title="No tournaments are listed yet">
+        <p>Tournaments show up here once they are listed. Are you organizing one?</p>
+        <Fragment slot="actions">
+          <Button href={ROUTES.submitTournament} variant="primary">List your tournament - free</Button>
+          <Button href={ROUTES.book} variant="secondary">Book coverage</Button>
+        </Fragment>
+      </EmptyState>
+    </Section>
+  )}
+
+  {upcoming.length > 0 && (
+    <Section labelledBy="upcoming-title">
+      <SectionHeading id="upcoming-title" title="Upcoming" />
+      {months.map((month) => (
+        <div class="mt-8">
+          <h3 class="text-h4">{month.label}</h3>
+          <ul class="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {month.items.map((t) => <li><TournamentCard tournament={t} headingLevel={3} /></li>)}
+          </ul>
+        </div>
+      ))}
+    </Section>
+  )}
+
+  {past.length > 0 && (
+    <Section tone="surface" labelledBy="past-title">
+      <SectionHeading id="past-title" title="Past" />
+      <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {past.map((t) => <li><TournamentCard tournament={t} headingLevel={3} /></li>)}
+      </ul>
+    </Section>
+  )}
+
+  {!isEmpty && (
+  <CtaBlock
+    id="tournaments-cta"
+    title="Is your tournament missing?"
+    text="List it for free, or book coverage for it."
+    primaryHref={ROUTES.submitTournament}
+    primaryLabel="List your tournament - free"
+    whatsappText={whatsappTextForPath('/tournaments')}
+    source="tournaments-cta"
+  />
+  )}
+</BaseLayout>

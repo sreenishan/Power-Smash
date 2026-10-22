@@ -1,0 +1,91 @@
+---
+// Player directory (spec 7.4): search-first, then an A to Z index. Lists ADULT_CONFIRMED players with a profile page only. A protected
+// or unknown-age player is not here, not searchable, and not named anywhere on this page (D-012). The search box reads the one
+// prebuilt /search-index.json on first focus; without JavaScript the A to Z list below does the job.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../../components/ui/PageHero.astro';
+import Section from '../../components/ui/Section.astro';
+import EmptyState from '../../components/ui/EmptyState.astro';
+import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
+import { formatDate } from '../../lib/dates';
+import { loadPublicArchive } from '../../lib/archive/model';
+import { azLetter } from '../../lib/archive/search';
+import { titleWithBrand } from '../../lib/seo';
+import { ARCHIVE_ROUTES, playerPath } from '../../lib/urls';
+
+const archive = await loadPublicArchive();
+const groups = new Map<string, typeof archive.players>();
+for (const p of archive.players) {
+  const letter = azLetter(p.name);
+  const list = groups.get(letter);
+  if (list) list.push(p);
+  else groups.set(letter, [p]);
+}
+const letters = [...groups.keys()].sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a < b ? -1 : 1));
+---
+<BaseLayout
+  title={titleWithBrand('Badminton players')}
+  description="Find Tamil Nadu badminton players with match videos on the Power Smash channel. Search by name or browse A to Z."
+  canonicalPath={ARCHIVE_ROUTES.players}
+>
+  <ArchiveSeedNotice source={archive.source} />
+  <PageHero title="Players" lead="Players with match videos on the Power Smash channel." crumbs={[{ name: 'Players' }]} />
+
+  {archive.players.length === 0 ? (
+    <Section>
+      <EmptyState title="No player profiles are listed yet">
+        <p>Player profiles appear here once players have been confirmed as adults and have match videos.</p>
+      </EmptyState>
+    </Section>
+  ) : (
+    <>
+      <Section labelledBy="search-title">
+        <h2 id="search-title" class="text-h3">Find a player</h2>
+        <div class="mt-4 max-w-2xl">
+          <label for="player-search" class="block text-small font-bold uppercase tracking-wider">Player or tournament name</label>
+          <input
+            id="player-search"
+            type="search"
+            autocomplete="off"
+            data-player-search
+            data-index-url="/search-index.json"
+            class="mt-1.5 min-h-[3.5rem] w-full rounded-md border-2 border-line-strong bg-surface px-4 text-lead shadow-card ps-transition hover:border-ps-ink focus-visible:border-ps-court"
+          />
+          <p data-player-status aria-live="polite" class="mt-2 text-small text-fg-muted"></p>
+          <ul data-player-results class="mt-2"></ul>
+        </div>
+      </Section>
+
+      <Section tone="surface" labelledBy="az-title">
+        <h2 id="az-title" class="text-h3">A to Z</h2>
+        <nav aria-label="Jump to a letter" class="mt-4">
+          <ul class="flex flex-wrap gap-2">
+            {letters.map((l) => (
+              <li><a href={`#letter-${l === '#' ? 'other' : l}`} class="inline-flex min-h-tap min-w-tap items-center justify-center rounded-md border-2 border-line-strong bg-surface px-3 font-[family-name:var(--ps-font-display)] text-lg font-bold ps-transition hover:border-ps-court hover:bg-ps-court-tint">{l}</a></li>
+            ))}
+          </ul>
+        </nav>
+        {letters.map((l) => (
+          <div class="mt-8">
+            <h3 id={`letter-${l === '#' ? 'other' : l}`} class="scroll-mt-24 border-b-2 border-ps-ink pb-1 text-h3 text-ps-court">{l}</h3>
+            <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(groups.get(l) ?? []).map((p) => (
+                <li class="relative rounded-lg border border-line bg-page p-4 ps-transition hover:-translate-y-0.5 hover:shadow-card">
+                  <a href={playerPath(p.slug)} class="font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">{p.name}</a>
+                  <p class="mt-1 text-small text-fg-muted">
+                    {p.district ? `${p.district} | ` : ''}{p.matchCount} {p.matchCount === 1 ? 'match' : 'matches'} | latest {formatDate(p.latestDate)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </Section>
+    </>
+  )}
+
+  <script>
+    import { installPlayerSearch } from '../../lib/archive/players-client';
+    installPlayerSearch(document);
+  </script>
+</BaseLayout>

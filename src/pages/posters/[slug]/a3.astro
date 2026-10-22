@@ -1,0 +1,27 @@
+---
+// The A3 version of the poster at /posters/<slug>/ (same content, bigger sheet, QR 13 cm). Always noindex, never linked from the site.
+import type { GetStaticPaths } from 'astro';
+import PosterLayout from '../../../components/poster/PosterLayout.astro';
+import Poster from '../../../components/poster/Poster.astro';
+import { env } from '../../../config/env';
+import { assertValidTournaments, tournaments } from '../../../content/tournaments';
+import { buildPoster, posterSlugs } from '../../../lib/qr/poster';
+
+export const getStaticPaths = (() => {
+  assertValidTournaments();
+  return posterSlugs(tournaments).map((slug) => ({ params: { slug } }));
+}) satisfies GetStaticPaths;
+
+const { slug } = Astro.params;
+const poster = buildPoster({ slug: String(slug), tournaments, siteUrl: env.siteUrl, strict: process.env.PS_STRICT === '1' });
+if (!poster) throw new Error(`No poster for "${String(slug)}".`);
+---
+<PosterLayout title={`Poster (A3): ${poster.title}`}>
+  <Poster poster={poster} size="a3" />
+</PosterLayout>
+<style is:global>
+  @page {
+    size: A3;
+    margin: 0;
+  }
+</style>

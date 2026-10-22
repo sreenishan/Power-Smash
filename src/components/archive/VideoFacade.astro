@@ -1,0 +1,92 @@
+---
+// Click-to-load YouTube player for a match page (D-016, spec 7.3): on the privacy-enhanced domain, the iframe is created only when the
+// visitor presses the button, and the page says so. Nothing is requested from YouTube before that. Without JavaScript, and while the legal
+// switch for embeds (features.youtubeEmbeds) is off, the visitor gets a plain "Watch on YouTube" link instead. The click handler is
+// src/lib/live-facade.ts (shared with /live): include `installLiveFacade(document)` in the page script.
+import { features } from '../../content/legal/status';
+import { embedUrl, isVideoId, watchUrl } from '../../content/live';
+
+interface Props {
+  videoId: string;
+  title: string;
+}
+const { videoId, title } = Astro.props;
+const valid = isVideoId(videoId);
+const embed = valid && features.youtubeEmbeds === true ? embedUrl(videoId) : null;
+const watch = valid ? watchUrl(videoId) : null;
+---
+{embed ? (
+  <div class="ps-live-box" data-live-facade data-embed-src={embed} data-title={title}>
+    <div class="ps-live-facade">
+      <button type="button" data-live-load hidden class="ps-live-button">Load the video</button>
+      <noscript>
+        <a href={watch ?? '#'} rel="noopener" target="_blank">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+      </noscript>
+      <p class="ps-live-notice">
+        This loads YouTube. When you press the button, your browser connects to YouTube and YouTube's own rules apply to the player.
+      </p>
+    </div>
+  </div>
+) : (
+  watch && (
+    <div class="ps-live-box">
+      <div class="ps-live-facade">
+        <a href={watch} rel="noopener" target="_blank">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+      </div>
+    </div>
+  )
+)}
+
+<style is:global>
+  .ps-live-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 2px solid var(--ps-ink);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-ink);
+    color: #ffffff;
+    overflow: hidden;
+  }
+  .ps-live-facade {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+  .ps-live-facade a {
+    color: var(--ps-volt);
+    font-weight: 700;
+  }
+  .ps-live-button {
+    min-height: 3rem;
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-volt);
+    color: var(--ps-ink);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .ps-live-button:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 3px;
+  }
+  .ps-live-notice {
+    margin: 0;
+    max-width: 36rem;
+    font-size: 0.9375rem;
+  }
+  .ps-live-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

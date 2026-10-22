@@ -1,0 +1,37 @@
+---
+// FAQ accordion without JavaScript (<details>). Items with no owner-supplied answer are HIDDEN; with none left the whole
+// component renders nothing, so the page never shows an empty "FAQ" heading (D-034 hide-section rule). While hidden it leaves
+// `<template data-owner-hidden="...">` for the release gate (review C-3); every call site passes its own `name`.
+import ChevronDown from '@lucide/astro/icons/chevron-down';
+import { answeredFaq, type FaqItem } from '../../content/faq';
+import OwnerSection from '../site/OwnerSection.astro';
+
+interface Props {
+  items: readonly FaqItem[];
+  title?: string;
+  id?: string;
+  /** Hidden-section marker name, unique per call site (for example "services-faq"). */
+  name?: string;
+}
+const { items, title = 'Questions people ask', id = 'faq-heading', name = 'faq' } = Astro.props;
+const shown = answeredFaq(items);
+---
+<OwnerSection when={shown} name={name}>
+  <section aria-labelledby={id} class="py-section">
+    <div class="ps-container">
+      <h2 id={id}>{title}</h2>
+      <span aria-hidden="true" class="ps-rule"></span>
+      <div class="mt-8 max-w-3xl ps-card divide-y divide-line overflow-hidden">
+        {shown.map((item) => (
+          <details class="group px-4 ps-transition open:bg-page sm:px-6">
+            <summary class="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 py-4 text-body font-bold text-fg [&::-webkit-details-marker]:hidden">
+              <span>{item.question}</span>
+              <ChevronDown size={20} class="shrink-0 text-link ps-transition group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <p class="pb-4 text-fg-muted">{item.answer}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</OwnerSection>

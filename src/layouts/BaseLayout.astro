@@ -1,0 +1,128 @@
+---
+// Base layout (Site-shell worker). The Props API is stable: title, description, canonicalPath, noindex, lang and the "head"
+// slot are used by every other page; the optional props below are additive.
+//
+// Indexing safety (hard rule 9): every page is noindex unless the build variable PUBLIC_ALLOW_INDEXING is EXACTLY "true"
+// (set only at G1). A page cannot turn that off; `noindex` can only add it. The X-Robots-Tag header is the Infra worker's job.
+import '../styles/global.css';
+import Analytics from '../components/site/Analytics.astro';
+import SiteHeader from '../components/site/SiteHeader.astro';
+import SiteFooter from '../components/site/SiteFooter.astro';
+import JsonLd from '../components/ui/JsonLd.astro';
+import { env } from '../config/env';
+import { site } from '../content/site';
+import { organizationJsonLd } from '../lib/jsonld';
+import { DEFAULT_OG_IMAGE_ALT, DEFAULT_OG_IMAGE_PATH, OG_IMAGE_SIZE, SITE_NAME, shouldNoindex } from '../lib/seo';
+import { absoluteUrl } from '../lib/urls';
+
+export interface Props {
+  title: string;
+  description?: string;
+  /** Path for the canonical link, default: the current path. */
+  canonicalPath?: string;
+  /** Adds <meta name="robots" content="noindex">. Default false. It is ALSO forced on unless PUBLIC_ALLOW_INDEXING is "true". */
+  noindex?: boolean;
+  lang?: 'en' | 'ta';
+  /** Open Graph image path under public/ (default: the brand image, see src/lib/seo.ts). */
+  ogImagePath?: string;
+  ogImageAlt?: string;
+  ogType?: 'website' | 'article';
+  /** Structured data for the page (objects built with src/lib/jsonld.ts). Written through the safe serialiser. */
+  jsonLd?: object | readonly object[];
+  /** Add the Organization structured data (Home only). */
+  organization?: boolean;
+}
+const {
+  title,
+  description = '',
+  canonicalPath = Astro.url.pathname,
+  noindex = false,
+  lang = 'en',
+  ogImagePath = DEFAULT_OG_IMAGE_PATH,
+  ogImageAlt = DEFAULT_OG_IMAGE_ALT,
+  ogType = 'website',
+  jsonLd,
+  organization = false,
+} = Astro.props;
+
+const origin = Astro.site ?? Astro.url;
+// Canonical and og:url use the same slash form as every internal link (src/lib/urls.ts, R-LINKS).
+const canonical = absoluteUrl(canonicalPath, origin);
+const ogImage = absoluteUrl(ogImagePath, origin);
+const robotsNoindex = shouldNoindex({ pageNoindex: noindex, allowIndexing: env.allowIndexing });
+const jsonLdBlocks: object[] = [
+  ...(organization
+    ? [
+        organizationJsonLd({
+          name: site.name,
+          url: absoluteUrl('/', origin),
+          legalName: site.legalName,
+          sameAs: [site.youtubeUrl, site.instagramUrl, site.facebookUrl, site.whatsappChannelUrl],
+        }),
+      ]
+    : []),
+  ...(jsonLd === undefined ? [] : Array.isArray(jsonLd) ? [...jsonLd] : [jsonLd as object]),
+];
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1416" />
+    {robotsNoindex && <meta name="robots" content="noindex" />}
+
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'ta' ? 'ta_IN' : 'en_IN'} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content={String(OG_IMAGE_SIZE.width)} />
+    <meta property="og:image:height" content={String(OG_IMAGE_SIZE.height)} />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    {description && <meta name="twitter:description" content={description} />}
+    <meta name="twitter:image" content={ogImage} />
+
+    {jsonLdBlocks.map((block) => <JsonLd data={block} />)}
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="ps-skip-link" href="#main">Skip to content</a>
+    <SiteHeader />
+    <main id="main"><slot /></main>
+    <SiteFooter />
+    <Analytics />
+    <script>
+      // One delegated, passive listener that logs `whatsapp_click` (place only, no personal data) for every button with data-wa-click.
+      import { installWaClickListener } from '../lib/wa-click';
+      installWaClickListener(document);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  /* Skip link: off-screen until it receives keyboard focus, then a visible volt-on-ink chip above the header. */
+  .ps-skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-volt);
+    color: var(--ps-ink);
+    font-weight: 700;
+    transform: translateY(-200%);
+  }
+  .ps-skip-link:focus {
+    transform: translateY(0);
+  }
+</style>

@@ -1,0 +1,45 @@
+---
+// A bare document for a printable poster: no site header, no footer, no analytics, no navigation. Always noindex and nofollow, even
+// after the G1 go-live (a poster is a print job, not a page for search). Nothing on the site links to a poster; the owner opens it
+// by its address (docs/m1/m3-slice-notes.md). Global styles are the same tokens and fonts as the site.
+import '../../styles/global.css';
+import { absoluteUrl } from '../../lib/urls';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const canonical = absoluteUrl(Astro.url.pathname, Astro.site ?? Astro.url);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <meta property="og:url" content={canonical} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <slot name="head" />
+  </head>
+  <body class="poster-body">
+    <main id="main"><slot /></main>
+  </body>
+</html>
+
+<style is:global>
+  .poster-body {
+    margin: 0;
+    background: #ffffff;
+  }
+  @media print {
+    .poster-body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .poster-toolbar {
+      display: none !important;
+    }
+  }
+</style>

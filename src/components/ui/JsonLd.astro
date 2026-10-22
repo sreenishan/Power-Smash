@@ -1,0 +1,12 @@
+---
+// The ONE place structured data is written into a page. The data goes through safeJsonLd (src/lib/jsonld.ts), which escapes
+// <, >, &, U+2028 and U+2029 so the payload cannot close the script tag (D-029). This is the only allowed use of set:html;
+// no other file may use it.
+import { safeJsonLd } from '../../lib/jsonld';
+
+interface Props {
+  data: unknown;
+}
+const { data } = Astro.props;
+---
+<script type="application/ld+json" set:html={safeJsonLd(data)}></script>

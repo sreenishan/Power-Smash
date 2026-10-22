@@ -1,0 +1,54 @@
+---
+// Profile and content-removal requests (spec 7.5 footer, 15.3, 15.6, D-012, D-015, D-019): ONE form with a type selector (claim a profile,
+// correct details, hide a profile, remove a video or other content). It goes through the lead endpoint as kind "profile_request" or
+// "content_removal" and shows the request notice. A parent or guardian is verified LATER by a one-time code on their own phone: the page
+// says so plainly. No timing is promised unless the owner has supplied site.replyTimePromise (cfg.replyPromise). WhatsApp is offered
+// first-hand next to the form like on every other form page.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/ui/PageHero.astro';
+import FormSection from '../components/forms/FormSection.astro';
+import LeadForm from '../components/forms/LeadForm';
+import { PARENT_VERIFICATION_NOTE, requestForm } from '../lib/forms/defs/request';
+import { formPageConfig, plainForm } from '../lib/forms/page-config';
+import { titleWithBrand } from '../lib/seo';
+import { M3_ROUTES, ROUTES } from '../lib/urls';
+
+const cfg = formPageConfig();
+const form = plainForm(requestForm());
+---
+<BaseLayout
+  title={titleWithBrand('Profile and Removal Requests')}
+  description="Ask Power Smash to claim, correct or hide a player profile, or to remove a video or other content."
+>
+  <PageHero
+    tone="dark"
+    title="Profile and removal requests"
+    lead="Claim or correct a profile, hide a profile, or ask us to remove a video or other content."
+    crumbs={[{ name: 'Content removal', href: ROUTES.contentRemoval }, { name: 'Make a request' }]}
+  />
+
+  <FormSection id="request" title="Profile and removal request form" route={M3_ROUTES.request} blocked={cfg.turnstileMode === 'blocked'}>
+    <LeadForm
+      client:visible
+      form={form}
+      leadNotice={cfg.requestNotice}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+      whatsappNumber={cfg.whatsappNumber}
+      replyPromise={cfg.replyPromise}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>One form for all four: pick what you need in the first box.</li>
+        <li>Give a link to the profile, video or page if you can. We read it by hand. The website never opens it.</li>
+        <li><strong>Parents and guardians:</strong> {PARENT_VERIFICATION_NOTE}</li>
+        <li>We ask for a name and a phone number so we can reply. We do not ask for an email address.</li>
+        <li>Please do not write a child's full name, school or address in the form.</li>
+        {cfg.replyPromise ? <li>We reply within {cfg.replyPromise}.</li> : <li>We reply as soon as we can. We do not promise a time.</li>}
+      </ul>
+      <p class="text-small text-fg-muted">See also the <a href={ROUTES.contentRemoval}>content removal page</a>.</p>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

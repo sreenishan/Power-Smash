@@ -1,0 +1,38 @@
+---
+// One match in a list. Shows the RAW YouTube title exactly as stored (D-016), then a small line of parsed details. The parsed details are
+// labelled "by Power Smash" on the page that holds them (the list header says so once). A thumbnail loads from YouTube's image server
+// ONLY while the legal switch for YouTube images is on (features.youtubeEmbeds); otherwise a plain block stands in, so nothing is
+// requested from YouTube by a list page. Links go through matchPath() (R-LINKS). No script here: /matches re-draws these cards from JSON
+// with the same markup in src/lib/archive/matches-client.ts, so keep the two in step.
+import { features } from '../../content/legal/status';
+import { formatDate } from '../../lib/dates';
+import { categoryLabel, roundLabel } from '../../lib/archive/labels';
+import type { ArchiveMatch } from '../../lib/archive/model';
+import { ytThumb } from '../../lib/archive/youtube';
+import { matchPath } from '../../lib/urls';
+
+interface Props {
+  match: ArchiveMatch;
+  headingLevel?: 2 | 3;
+}
+const { match: m, headingLevel = 3 } = Astro.props;
+const Tag = headingLevel === 2 ? 'h2' : 'h3';
+const showThumb = features.youtubeEmbeds === true;
+const details = [categoryLabel(m.category), roundLabel(m.round)].filter(Boolean);
+---
+<article class="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card ps-transition hover:-translate-y-0.5 hover:shadow-raised" data-match-card>
+  <div class="relative aspect-video w-full overflow-hidden bg-ps-ink bg-[url('/brand/court-lines.svg')] bg-[length:70%] bg-[position:right_-10%_bottom_-20%] bg-no-repeat">
+    {showThumb && <img src={ytThumb(m.videoId)} alt="" width="320" height="180" loading="lazy" decoding="async" class="absolute inset-0 h-full w-full object-cover" />}
+    <div aria-hidden="true" class="absolute inset-x-0 bottom-0 flex items-stretch bg-gradient-to-t from-ps-ink/90 to-transparent pt-8">
+      <span class="ml-3 -skew-x-12 bg-ps-volt px-3 py-1 font-[family-name:var(--ps-font-display)] text-lg font-extrabold uppercase leading-none text-ps-ink"><span class="inline-block skew-x-12">VS</span></span>
+      {details[0] && <span class="mb-0 flex items-center px-3 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider text-ps-white">{details[0]}</span>}
+    </div>
+  </div>
+  <div class="flex flex-1 flex-col p-4 sm:p-5">
+    <p class="text-small font-bold uppercase tracking-wider text-fg-muted ps-num">{formatDate(m.date)}</p>
+    <Tag class="mt-1 text-h4"><a href={matchPath(m.slug)} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{m.rawTitle}</a></Tag>
+    {m.tournament && <p class="mt-2 text-fg-muted">{m.tournament.name}{m.allIndia ? ' (All India)' : ''}</p>}
+    {!m.tournament && m.allIndia && <p class="mt-2 text-fg-muted">All India</p>}
+    {details.length > 0 && <p class="mt-1 text-small text-fg-muted">{details.join(' | ')}</p>}
+  </div>
+</article>
