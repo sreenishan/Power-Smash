@@ -1,0 +1,43 @@
+# dependencies and build output
+node_modules/
+dist/
+.astro/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+.lighthouseci/
+
+# secrets and local environment (docs/SECRETS.md, DECISIONS D-027) - NEVER commit
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+.secrets.local
+# every variant of the owner's secrets file: .secrets.local.bak, .secrets.local.txt, .secrets.local~ ... (review S-11)
+.secrets.local*
+.secrets*
+*.secrets
+*.pem
+*.key
+age-key*.txt
+# written by `supabase link` and `supabase db push` (project ref, pooler URL): D-027
+supabase/.temp/
+
+# scratch and tooling
+spike/
+tmp/
+# scratch test files of reviewers and spikes are never project files: tests/zz_* can never be committed (review C-15)
+tests/zz_*
+tests/**/zz_*
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+
+# portable PostgreSQL binaries and data directory (docs/m1/tooling-notes.md)
+tools/
+
+# Vercel CLI local link and build output (never commit: project ids and generated functions)
+.vercel/
