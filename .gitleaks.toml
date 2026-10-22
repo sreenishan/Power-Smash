@@ -1,0 +1,108 @@
+# .gitleaks.toml - Power Smash secret-scan configuration (D-027, D-002)
+#
+# Used by the `secret-scan` job in .github/workflows/ci.yml (gitleaks-action,
+# GITLEAKS_CONFIG=.gitleaks.toml). gitleaks is NOT installed on the owner's PC,
+# so CI is where this file is first exercised; the TOML syntax was only checked
+# with a TOML parser. A local pre-commit hook needs the gitleaks binary and an
+# explicit yes from the owner (it is an install, see CLAUDE.md "Ask first").
+#
+# Policy: keep ALL default rules, add the gaps, and allow only values that are
+# public by design. Keep every allowlist as narrow as possible: never allowlist a
+# whole directory against every rule and never use regexTarget = "line" (that
+# would hide a real secret sitting on the same line as an allowed value).
+# Do not paste a real secret into this file to "test" it.
+
+title = "Power Smash gitleaks config"
+
+[extend]
+useDefault = true
+
+# --- Gap rules -------------------------------------------------------------
+# The default ruleset (gitleaks master config read on 2026-10-20) has no rule
+# for Supabase secret keys. The prefix comes from docs/VERIFIED_FACTS.md VF-B9;
+# the minimum length after the prefix is a conservative guess, not a documented
+# format. The default `jwt` rule already catches a legacy service_role JWT.
+#
+# Review S-12: CI gitleaks is the only secret layer for the repository and its
+# history (GitHub push protection is unavailable on a private Free repository),
+# and the default rules need a recognised variable name next to a value. So the
+# shapes the dist/ privacy scan already knows (scripts/lib/privacy-rules.ts) are
+# repeated here and the two scans agree: a database connection string with a
+# password, a Telegram bot token, a Turnstile secret key and a Resend key. The
+# Turnstile and Resend shapes are conservative guesses, not documented formats.
+# tests/infra/gitleaks-config.test.ts reads this file and checks every rule
+# and every allowlist with sample strings built at run time (gitleaks itself is
+# not installed on the owner's PC, so CI is where the rules first run for real).
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret API key (sb_secret_...). Server-side only: never in the repo, the build or a PUBLIC_ variable (D-005, D-027)."
+regex = '''\bsb_secret_[A-Za-z0-9_\-]{16,}'''
+keywords = ["sb_secret_"]
+
+[[rules.allowlists]]
+description = "Obvious placeholders in documentation: the prefix followed only by x, dot, star, dash or underscore characters."
+regexTarget = "secret"
+regexes = ['''(?i)^sb_secret_[x*._\-]+$''']
+
+[[rules]]
+id = "database-url-with-password"
+description = "Database connection string with a password (postgres:// or postgresql://, the SUPABASE_DB_URL shape). Never in the repository (D-027, D-011)."
+regex = '''\bpostgres(?:ql)?://[^\s:@/'"]+:[^\s@/'"]+@[^\s'"]+'''
+keywords = ["postgres://", "postgresql://"]
+
+[[rules.allowlists]]
+description = "Documentation placeholders: the password part is a bracketed, angled or ${VARIABLE} placeholder, the word password, or only stars, x or dots."
+regexTarget = "secret"
+regexes = ['''(?i)^postgres(?:ql)?://[^\s:@/]*:(?:\[[^\]\s]*\]|<[^>\s]*>|\$\{?[A-Za-z_]+\}?|your[-_]?password|password|\*+|x{3,}|\.{3,})@''']
+
+[[rules]]
+id = "telegram-bot-token-bare"
+description = "Telegram bot token shape (8 to 10 digits, a colon, 35 letters, digits, dashes or underscores) even with no variable name next to it."
+regex = '''\b\d{8,10}:[A-Za-z0-9_\-]{35}\b'''
+
+[[rules]]
+id = "turnstile-secret-key"
+description = "Cloudflare Turnstile secret key shape (0x4 and at least 30 more characters). The public site key is shorter, and Cloudflare's published test secrets start with 1x, 2x or 3x, so neither matches."
+regex = '''\b0x4[A-Za-z0-9_\-]{30,}\b'''
+keywords = ["0x4"]
+
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key shape (re_ and at least 24 letters, digits or underscores). The exact format is not documented, so this is a conservative guess."
+regex = '''\bre_[A-Za-z0-9_]{24,}\b'''
+keywords = ["re_"]
+
+[[rules.allowlists]]
+description = "A snake_case identifier in code (letters and underscores of one case, no digit) is not a key: a real key is mixed-case with digits."
+regexTarget = "secret"
+regexes = ['''^re_(?:[a-z_]+|[A-Z_]+)$''']
+
+# --- Allowlists ------------------------------------------------------------
+# Values the spec publishes on purpose (spec 13.1 and 13.2): the official
+# WhatsApp number, the public channel id and the current public contact email.
+# No default rule flags these today; they are listed so a future PII-style rule
+# does not trip on them. Matching is anchored and applies to the matched secret
+# value only. The contact email is replaced publicly by hello@<domain> at launch
+# (spec 13.2); update this entry then.
+[[allowlists]]
+description = "Public-by-design values published in the spec (WhatsApp number, channel id, contact email)."
+regexTarget = "secret"
+regexes = [
+  '''^(?:\+?91[ -]?)?73733[ -]?51087$''',
+  '''^UCRhIwO47uhJIM5Iw4uybcFQ$''',
+  '''^powersmash1102@gmail\.com$''',
+]
+
+# Parser fixtures are lists of public video titles (private repo, D-017). Titles
+# are not credentials, but long mixed-case names can trip the entropy-based
+# generic rule. Suppress ONLY that one rule, and only for these exact files.
+# Any specific-token rule (Telegram, Supabase, JWT, private keys, ...) still fires.
+# A test that needs a fake secret must build it at run time instead of committing
+# it; if a committed dummy is unavoidable, ask the lead before widening this list.
+[[allowlists]]
+description = "Parser fixture files: suppress the generic entropy rule only."
+targetRules = ["generic-api-key"]
+paths = [
+  '''^tests/fixtures/real-titles\.[a-z]+\.json$''',
+  '''^tests/fixtures/titles\.proposed\.json$''',
+]

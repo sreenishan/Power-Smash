@@ -1,0 +1,62 @@
+{
+  "name": "power-smash",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Power Smash - Tamil Nadu badminton archive and revenue platform",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/build.mjs",
+    "build:strict": "node scripts/build-strict.mjs",
+    "finalize:headers": "node scripts/finalize-headers.ts",
+    "check:placeholders": "node scripts/check-placeholders.ts",
+    "check:privacy": "node scripts/privacy-scan.ts",
+    "check:release": "node scripts/check-release.ts",
+    "check:js-budget": "node scripts/check-js-budget.ts",
+    "secrets:load": "node scripts/load-secrets.mjs",
+    "telegram:chat-id": "node scripts/telegram-chat-id.mjs",
+    "age:keys": "node scripts/make-age-keys.mjs",
+    "preview": "node scripts/serve-output.mjs",
+    "profile": "node scripts/profile-catalogue.ts",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:red": "vitest run --config vitest.red.config.ts",
+    "e2e": "playwright test",
+    "pg:local": "node scripts/pg-local.mjs",
+    "vercel:install": "npm ci --ignore-scripts --prefix ci/vercel-cli",
+    "vercel": "node scripts/vercel.mjs"
+  },
+  "dependencies": {
+    "@astrojs/react": "7.0.1",
+    "@astrojs/vercel": "11.0.14",
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource/barlow-condensed": "5.3.0",
+    "@fontsource/noto-sans-tamil": "5.3.0",
+    "@lucide/astro": "1.56.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@vercel/functions": "3.10.1",
+    "astro": "7.3.8",
+    "jose": "6.2.12",
+    "qrcode": "1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "@types/qrcode": "1.5.6",
+    "esbuild": "0.28.2",
+    "jiti": "2.7.0",
+    "opentype.js": "2.0.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}

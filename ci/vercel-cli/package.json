@@ -1,0 +1,12 @@
+{
+  "name": "power-smash-vercel-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CI only. Holds the Vercel CLI and its locked dependency tree for deploy.yml and preview.yml. Never part of the site (D-097, review fix-infra 3).",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "dependencies": {
+    "vercel": "64.2.0"
+  }
+}
