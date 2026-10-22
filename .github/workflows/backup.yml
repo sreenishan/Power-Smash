@@ -1,0 +1,175 @@
+# Backup - weekly encrypted dump of the production database (DECISIONS D-011; BUILD_PLAN M1 item 4; OT-31, OT-43).
+#
+# STATUS: DISABLED until the owner switches it on. The job runs only when the repository VARIABLE BACKUP_ENABLED is "true" and only on main
+# (a manual run started on another branch is skipped: review fix-infra 2)
+# (GitHub: Settings > Secrets and variables > Actions > Variables). Switch it on only when ALL of these exist:
+#   - the production Supabase project (OT-27) and the read-only backup login (OT-43),
+#   - the repository SECRET SUPABASE_DB_URL = the session-pooler connection string, port 5432 (OT-43),
+#   - the repository VARIABLE AGE_PUBLIC_KEY = the PUBLIC age key (OT-31). The matching private key stays offline with the owner.
+# The first green run is on the G1 list: backups must start the moment real enquiries exist.
+#
+# What a run does:
+#   1. installs postgresql-client-17 from the official PostgreSQL apt repository (the runner image ships an older client; a client
+#      older than the server refuses to dump) and age from the Ubuntu archive (noble: 1.1.1, source: launchpad.net/ubuntu/noble/+source/age,
+#      checked 2026-10-21; the version actually used is printed in the log);
+#   2. pg_dump --format=custom --no-owner of the whole database, piped straight into `age`: the dump is NEVER written to disk unencrypted;
+#   3. checks the result (age header, not empty), writes a SHA-256 next to it, uploads both as an artifact kept 60 days (D-011: 56-60);
+#   4. on any failure the job fails loudly (red run; GitHub also emails the repository owner about failed scheduled runs) and, if the
+#      owner enabled it, a plain-text Telegram message with only the run link is sent (optional step at the end).
+# An off-GitHub copy (the owner's Google Drive) and the Storage-objects backup are separate steps of D-011, not built here. The "newest
+# backup older than 9 days" alert (D-011) belongs to the M2 dead-man switch work.
+#
+# Security notes:
+#   - No checkout, `contents: read` only: this workflow never touches the code. Third-party actions are pinned to full commit SHAs (D-002).
+#   - The database URL contains a password. It is NEVER on a command line (review S-13): the step splits it into PGHOST, PGPORT, PGUSER,
+#     PGPASSWORD and PGDATABASE, masks the password in the log (::add-mask::), unsets the URL, and pg_dump reads the connection from those
+#     variables. It is never echoed. Not done here: the age recipient is still read from a repository VARIABLE; committing the public key
+#     to the repository (so a change needs a reviewed commit) has to wait until the key exists (OT-31), see docs/m1/fix-infra-notes.md.
+#   - Repository secrets are readable by every workflow in this repository (docs/SECRETS.md): "backup job only" is a rule kept by review.
+name: Backup
+
+on:
+  schedule:
+    # Sunday 21:41 UTC = Monday 03:11 IST, an off-peak minute (scheduled runs on the hour are often delayed).
+    - cron: "41 21 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One backup at a time; a running backup is never cancelled.
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted database dump
+    # Switch AND main-only (review fix-infra 2): skipped entirely unless the owner-approved repository variable is "true" and the run is on
+    # main. workflow_dispatch can start on ANY branch, where edited YAML could read SUPABASE_DB_URL; scheduled runs always use the default
+    # branch. tests/infra/workflow-guards.test.ts enforces the pattern for every workflow that reads a repository secret.
+    if: ${{ vars.BACKUP_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    # Pinned image, not ubuntu-latest, so the `age` package and the PostgreSQL apt suite (noble-pgdg) stay what was verified.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Install postgresql-client-17 and age
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-common age
+          # Official PostgreSQL apt repository setup (postgresql.org/download/linux/ubuntu). Any option, here -y, skips the prompt.
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          pg_dump --version
+          age --version
+          pg_dump --version | grep -q ' 17\.' || { echo "::error::pg_dump is not version 17"; exit 1; }
+
+      - name: Dump the database and encrypt it (no plaintext on disk)
+        env:
+          # The only step that sees the connection string and the public key.
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AGE_PUBLIC_KEY: ${{ vars.AGE_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::The secret SUPABASE_DB_URL is not set (OT-43). No backup was made."
+            exit 1
+          fi
+          # An age PUBLIC key is age1 plus 58 lower-case letters and digits. A private key (AGE-SECRET-KEY-...) must never be used here.
+          if ! printf '%s' "${AGE_PUBLIC_KEY:-}" | grep -Eq '^age1[0-9a-z]{58}$'; then
+            echo "::error::The variable AGE_PUBLIC_KEY is missing or is not an age public key (OT-31). No backup was made."
+            exit 1
+          fi
+          # The password must never sit on a command line (S-13): any other process on the runner can read the argument list of pg_dump.
+          # Split the connection string into the PG* variables libpq reads itself. The URL parser handles a percent-encoded password.
+          # The decoded and the raw (still encoded) password are masked in the log before anything else can print them.
+          command -v node > /dev/null || { echo "::error::node is not available on this runner. No backup was made."; exit 1; }
+          pgpart() {
+            node -e '
+              try {
+                const u = new URL(process.env.SUPABASE_DB_URL);
+                const parts = {
+                  host: u.hostname,
+                  port: u.port || "5432",
+                  user: decodeURIComponent(u.username),
+                  password: decodeURIComponent(u.password),
+                  rawpassword: u.password,
+                  database: decodeURIComponent(u.pathname.replace(/^\//, "")) || "postgres",
+                };
+                process.stdout.write(parts[process.argv[1]] ?? "");
+              } catch {
+                process.stderr.write("SUPABASE_DB_URL could not be read as a connection string.\n");
+                process.exit(1);
+              }
+            ' "$1"
+          }
+          pg_password="$(pgpart password)"
+          pg_raw_password="$(pgpart rawpassword)"
+          if [ -n "$pg_password" ]; then echo "::add-mask::${pg_password}"; fi
+          if [ -n "$pg_raw_password" ]; then echo "::add-mask::${pg_raw_password}"; fi
+          export PGHOST="$(pgpart host)" PGPORT="$(pgpart port)" PGUSER="$(pgpart user)" PGDATABASE="$(pgpart database)"
+          export PGPASSWORD="$pg_password"
+          unset SUPABASE_DB_URL pg_password pg_raw_password
+          if [ -z "$PGHOST" ] || [ -z "$PGUSER" ] || [ -z "$PGPASSWORD" ]; then
+            echo "::error::The secret SUPABASE_DB_URL does not contain a host, a user and a password (OT-43). No backup was made."
+            exit 1
+          fi
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          mkdir -p backup
+          out="backup/powersmash-prod-${stamp}.dump.age"
+          export PGSSLMODE=require
+          if ! pg_dump --format=custom --no-owner | age -r "$AGE_PUBLIC_KEY" -o "$out"; then
+            rm -f "$out"
+            echo "::error::The dump or the encryption failed. No backup was kept."
+            exit 1
+          fi
+          size="$(wc -c < "$out")"
+          if [ "$size" -lt 1024 ]; then
+            rm -f "$out"
+            echo "::error::The encrypted backup is suspiciously small (${size} bytes). Discarded."
+            exit 1
+          fi
+          if [ "$(head -c 21 "$out")" != "age-encryption.org/v1" ]; then
+            rm -f "$out"
+            echo "::error::The backup file is not an age file. Discarded."
+            exit 1
+          fi
+          ( cd backup && sha256sum "$(basename "$out")" > "$(basename "$out").sha256" )
+          # Belt and braces: nothing unencrypted may be left in the folder that is uploaded.
+          unexpected="$(ls backup | grep -Ev '\.dump\.age(\.sha256)?$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "::error::Unexpected file in the backup folder. Nothing uploaded."
+            exit 1
+          fi
+          echo "Encrypted backup ${out} written (${size} bytes)."
+
+      - name: Upload the encrypted backup (kept 60 days)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: powersmash-prod-backup-${{ github.run_id }}
+          path: backup/
+          retention-days: 60
+          if-no-files-found: error
+
+      # Optional failure alert, OFF by default. Turn on with the repository VARIABLE BACKUP_TELEGRAM_ALERTS = "true"; it uses the
+      # secrets TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (the same names as the sync workflow). Plain text, only the run link (D-029).
+      # The token goes into curl through standard input, so it is not on a command line; do not add `set -x` here.
+      - name: Alert the owner on Telegram (optional, off by default)
+        if: ${{ failure() && vars.BACKUP_TELEGRAM_ALERTS == 'true' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -eu
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "::warning::Telegram alert is switched on but TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing."
+            exit 0
+          fi
+          curl --silent --show-error --fail --max-time 20 --config - > /dev/null <<EOF
+          url = "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+          data-urlencode = "chat_id=${TELEGRAM_CHAT_ID}"
+          data-urlencode = "text=Power Smash weekly backup FAILED. Details: ${RUN_URL}"
+          EOF

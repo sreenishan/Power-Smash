@@ -1,0 +1,109 @@
+# Dependabot version updates (D-002). Weekly, small batches, never ahead of the 7-day package-age rule
+# in .npmrc (min-release-age=7). Dependabot pull requests run ci.yml with a read-only token and no
+# secrets. Read every lockfile diff before merging (D-002); merges need the owner's yes (D-038).
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    # Same idea as .npmrc min-release-age=7: do not propose a release younger than 7 days.
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+      include: "scope"
+    ignore:
+      # D-002: TypeScript 7 breaks `astro check` (@astrojs/check supports TypeScript 5 and 6 only) until
+      # Astro announces support. Ignore major 7. Minor updates are also ignored so the pin stays on
+      # 6.0.x as D-002 requires (~6.0.3); lift this line deliberately when Astro supports a newer TypeScript.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    groups:
+      # Order matters: a dependency joins the first group that matches it.
+      # Majors are not grouped; each major arrives as its own pull request.
+      astro-stack:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+        update-types:
+          - "minor"
+          - "patch"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+        update-types:
+          - "minor"
+          - "patch"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+        update-types:
+          - "minor"
+          - "patch"
+      fonts-and-icons:
+        patterns:
+          - "@fontsource/*"
+          - "@fontsource-variable/*"
+          - "@lucide/*"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # The Vercel CLI that deploy.yml, preview.yml and the owner's secrets loader run (ci/vercel-cli, its own lockfile). It holds the deploy
+  # token in CI, so every update is read before merging; the 7-day rule applies here too.
+  - package-ecosystem: "npm"
+    directory: "/ci/vercel-cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:15"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+
+  # Keeps the SHA-pinned actions in .github/workflows current. A change here can read secrets in later
+  # workflows, so review the new commit and its release notes before merging.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

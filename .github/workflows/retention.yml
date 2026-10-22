@@ -1,0 +1,88 @@
+# Retention job (DECISIONS D-028 retention schedule, spec 15.4, BUILD_PLAN M4, R-31). Migration 0010 holds the logic.
+#
+# STATUS: DISABLED until the owner switches it on. The job runs only when the repository VARIABLE RETENTION_ENABLED is "true" and only on main
+# (a manual run started on another branch is skipped: review fix-infra 2).
+# It must be running before the first record reaches its stated age (D-044, D-061). Needs, as repository SECRETS (same names as sync.yml):
+#   SUPABASE_URL (https://<project-ref>.supabase.co) and SUPABASE_SECRET_KEY (the secret key; the only place this workflow reads it).
+#
+# What a run does: calls the database function public.admin_run_retention (service_role only, audited, idempotent) through the REST API:
+#   - anonymises completed or lost leads not changed for 24 months (name, phone, email, notes, payload cleared; counters kept),
+#   - deletes rate-limit hits older than 2 days and daily salts older than 2 days,
+#   - never touches suppression tombstones, the audit log, consent evidence or lead timelines.
+# Event documents (30 days after the event) are not built yet and the lawyer holds the rule back (D-019): the function reports "not_built".
+# DRY RUN: a manual run has the input dry_run (default true). A dry run changes nothing and prints COUNTS ONLY. The weekly scheduled run is real.
+# The log never contains contact data: the function returns only numbers.
+#
+# Security notes: `contents: read` only, no checkout, no third-party action. The secret key goes into curl through standard input
+# (--config -), never on a command line; do not add `set -x`.
+name: Retention
+
+on:
+  schedule:
+    # Sunday 22:41 UTC = Monday 04:11 IST.
+    - cron: "41 22 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: count only, change nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retention
+  cancel-in-progress: false
+
+jobs:
+  retention:
+    name: Retention and clean-up
+    # Switch AND main-only (review fix-infra 2): workflow_dispatch can start on ANY branch, where edited YAML could read the secret key.
+    # Scheduled runs always run on the default branch. tests/infra/workflow-guards.test.ts enforces the pattern.
+    if: ${{ vars.RETENTION_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Run the retention function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          # A manual run follows its input; the scheduled run is always real.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SECRET_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_SECRET_KEY is not set. Nothing was changed."
+            exit 1
+          fi
+          if ! printf '%s' "$SUPABASE_URL" | grep -Eq '^https://[a-z0-9]{20}\.supabase\.co/?$'; then
+            echo "::error::SUPABASE_URL is not a https://<project-ref>.supabase.co address. The key was not sent."
+            exit 1
+          fi
+          case "$DRY_RUN" in
+            true) dry=true ;;
+            false) dry=false ;;
+            *) echo "::error::Unexpected dry-run value."; exit 1 ;;
+          esac
+          base="${SUPABASE_URL%/}"
+          result="$(mktemp)"
+          trap 'rm -f "$result"' EXIT
+          status="$(curl --silent --show-error --max-time 60 --output "$result" --write-out '%{http_code}' --config - <<EOF
+          url = "${base}/rest/v1/rpc/admin_run_retention"
+          request = "POST"
+          header = "apikey: ${SUPABASE_SECRET_KEY}"
+          header = "Authorization: Bearer ${SUPABASE_SECRET_KEY}"
+          header = "Content-Type: application/json"
+          data = "{\"p_actor\":\"retention-workflow\",\"p_dry_run\":${dry}}"
+          EOF
+          )"
+          if [ "$status" != "200" ]; then
+            echo "::error::The retention function answered HTTP ${status}. Nothing is known to have changed; see the run in Supabase logs."
+            exit 1
+          fi
+          # Print only the counts the function returns (numbers and the dry-run flag).
+          if [ "$dry" = true ]; then echo "DRY RUN (nothing changed). Counts:"; else echo "Retention run done. Counts:"; fi
+          cat "$result"
+          echo

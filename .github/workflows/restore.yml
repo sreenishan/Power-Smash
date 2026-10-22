@@ -1,0 +1,198 @@
+# Restore drill, part 1 of 2 (DECISIONS D-011; BUILD_PLAN M2 "Restore job", M4 re-run; DoD 10).
+#
+# STATUS: DISABLED until the owner switches it on. The job runs only when the repository VARIABLE RESTORE_DRILL_ENABLED is "true" and only on main
+# (a manual run started on another branch is skipped: review fix-infra 2).
+# Switch it on only when ALL of these exist (docs/m2/m4-infra-notes.md has the owner steps):
+#   - the DEV Supabase project (powersmash-dev) holding MADE-UP DATA ONLY (D-004), with the migrations applied,
+#   - the repository SECRET DEV_SUPABASE_DB_URL = a read-only session-pooler connection string (port 5432) of the DEV project,
+#   - the repository VARIABLE AGE_DRILL_PUBLIC_KEY = the PUBLIC half of the DRILL age key (node scripts/make-age-keys.mjs --drill),
+#   - the repository SECRET AGE_DRILL_KEY = the PRIVATE half of the same drill key. It can decrypt made-up data and nothing else;
+#     the production backup key (AGE_PUBLIC_KEY) and its private half are never used here (the owner keeps that one offline).
+#
+# What a run does (it never reads production: it has no production secret in its steps, and the production backup is never decrypted in CI):
+#   1. installs postgresql-client-17 and age exactly as backup.yml does;
+#   2. dumps the DEV database the same way backup.yml dumps production (pg_dump --format=custom --no-owner piped straight into age),
+#      encrypted to the DRILL public key; the dump is never on disk unencrypted;
+#   3. creates the roles a Supabase project already has, decrypts with AGE_DRILL_KEY and pipes the result straight into pg_restore against
+#      the postgres:17 service container (no plaintext file; the private key sits in a 0600 file removed at the end of the step, never echoed);
+#   4. re-applies the erasure log when it exists (scripts/restore-drill-erasure.sql), compares row counts table by table with the dev source,
+#      asserts RLS is on and anon/authenticated hold nothing (scripts/restore-drill.sql), and runs every file in supabase/checks.
+# Known residual risk (D-011): Supabase-specific objects (auth and storage schemas, role ownership) are not restored; only the schemas
+# public, app and api are, which is all this project owns. The manual real-data drill with the owner is part 2.
+#
+# Security notes: `contents: read` only; third-party actions pinned to full SHAs copied from the existing workflows (D-002), no new action;
+# the database URL is split into PG* variables, the password is masked and the URL unset (same as backup.yml, S-13); no `set -x`.
+name: Restore drill
+
+on:
+  schedule:
+    # 1st-ish of each month, 22:17 UTC (03:47 IST), an off-peak minute.
+    - cron: "17 22 5 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: Restore a made-up-data dump into Postgres 17
+    # Switch AND main-only (review fix-infra 2): this job reads DEV secrets (DEV_SUPABASE_DB_URL, AGE_DRILL_KEY) and workflow_dispatch can
+    # start on ANY branch. Scheduled runs always run on the default branch. tests/infra/workflow-guards.test.ts enforces the pattern.
+    if: ${{ vars.RESTORE_DRILL_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # A throwaway container that lives for this job only and listens on the runner's loopback; no password, nothing in it but the restore.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: drill
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out (the check scripts only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install postgresql-client-17 and age
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-common age
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          pg_dump --version
+          pg_restore --version
+          age --version
+          pg_dump --version | grep -q ' 17\.' || { echo "::error::pg_dump is not version 17"; exit 1; }
+
+      - name: Dump the DEV database and encrypt it to the drill key (no plaintext on disk)
+        env:
+          # This step sees the DEV connection string and the PUBLIC drill key only.
+          DEV_SUPABASE_DB_URL: ${{ secrets.DEV_SUPABASE_DB_URL }}
+          AGE_DRILL_PUBLIC_KEY: ${{ vars.AGE_DRILL_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${DEV_SUPABASE_DB_URL:-}" ]; then
+            echo "::error::The secret DEV_SUPABASE_DB_URL is not set. No drill was run."
+            exit 1
+          fi
+          if ! printf '%s' "${AGE_DRILL_PUBLIC_KEY:-}" | grep -Eq '^age1[0-9a-z]{58}$'; then
+            echo "::error::The variable AGE_DRILL_PUBLIC_KEY is missing or is not an age public key. No drill was run."
+            exit 1
+          fi
+          pgpart() {
+            node -e '
+              try {
+                const u = new URL(process.env.DEV_SUPABASE_DB_URL);
+                const parts = {
+                  host: u.hostname,
+                  port: u.port || "5432",
+                  user: decodeURIComponent(u.username),
+                  password: decodeURIComponent(u.password),
+                  rawpassword: u.password,
+                  database: decodeURIComponent(u.pathname.replace(/^\//, "")) || "postgres",
+                };
+                process.stdout.write(parts[process.argv[1]] ?? "");
+              } catch {
+                process.stderr.write("DEV_SUPABASE_DB_URL could not be read as a connection string.\n");
+                process.exit(1);
+              }
+            ' "$1"
+          }
+          pg_password="$(pgpart password)"
+          pg_raw_password="$(pgpart rawpassword)"
+          if [ -n "$pg_password" ]; then echo "::add-mask::${pg_password}"; fi
+          if [ -n "$pg_raw_password" ]; then echo "::add-mask::${pg_raw_password}"; fi
+          export PGHOST="$(pgpart host)" PGPORT="$(pgpart port)" PGUSER="$(pgpart user)" PGDATABASE="$(pgpart database)"
+          export PGPASSWORD="$pg_password"
+          unset DEV_SUPABASE_DB_URL pg_password pg_raw_password
+          if [ -z "$PGHOST" ] || [ -z "$PGUSER" ] || [ -z "$PGPASSWORD" ]; then
+            echo "::error::DEV_SUPABASE_DB_URL does not contain a host, a user and a password. No drill was run."
+            exit 1
+          fi
+          export PGSSLMODE=require
+          mkdir -p drill
+          # The source row counts, taken from the same database just before the dump (the dev project is quiet, nothing else writes to it).
+          psql -X -A -t -v ON_ERROR_STOP=1 -c "select c.relname || '|' || (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', c.relname), false, true, '')))[1]::text from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' order by c.relname" > drill/source-counts.txt
+          if [ ! -s drill/source-counts.txt ]; then
+            echo "::error::The dev database has no tables in public (are the migrations applied?). No drill was run."
+            exit 1
+          fi
+          out="drill/powersmash-dev-drill.dump.age"
+          if ! pg_dump --format=custom --no-owner | age -r "$AGE_DRILL_PUBLIC_KEY" -o "$out"; then
+            rm -f "$out"
+            echo "::error::The dump or the encryption failed."
+            exit 1
+          fi
+          if [ "$(head -c 21 "$out")" != "age-encryption.org/v1" ]; then
+            rm -f "$out"
+            echo "::error::The drill dump is not an age file."
+            exit 1
+          fi
+          echo "Encrypted drill dump written ($(wc -c < "$out") bytes) and $(wc -l < drill/source-counts.txt) table counts taken."
+
+      - name: Decrypt with the drill key and restore into the Postgres 17 container
+        env:
+          # The only step that sees the private DRILL key. It is written to a 0600 file, used, and removed.
+          AGE_DRILL_KEY: ${{ secrets.AGE_DRILL_KEY }}
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGDATABASE: drill
+          PGSSLMODE: disable
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! printf '%s' "${AGE_DRILL_KEY:-}" | grep -q '^AGE-SECRET-KEY-'; then
+            echo "::error::The secret AGE_DRILL_KEY is missing or is not an age private key. No restore was done."
+            exit 1
+          fi
+          keyfile="$(mktemp)"
+          trap 'rm -f "$keyfile"' EXIT
+          printf '%s\n' "$AGE_DRILL_KEY" > "$keyfile"
+          unset AGE_DRILL_KEY
+          # Roles that every Supabase project already has; the dump's grants refer to them.
+          psql -X -q -v ON_ERROR_STOP=1 -f supabase/local/roles.sql
+          # Only the schemas this project owns. --exit-on-error: a partial restore is a failed drill.
+          age -d -i "$keyfile" drill/powersmash-dev-drill.dump.age \
+            | pg_restore --no-owner --exit-on-error --schema=public --schema=app --schema=api -d drill
+          rm -f "$keyfile" drill/powersmash-dev-drill.dump.age
+          echo "Restore finished."
+
+      - name: Apply the erasure log, then assert counts, row level security and grants
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGDATABASE: drill
+          PGSSLMODE: disable
+        run: |
+          set -euo pipefail
+          psql -X -q -v ON_ERROR_STOP=1 -f scripts/restore-drill-erasure.sql
+          psql -X -A -t -v ON_ERROR_STOP=1 -c "select c.relname || '|' || (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', c.relname), false, true, '')))[1]::text from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' order by c.relname" > drill/restored-counts.txt
+          if ! diff -u drill/source-counts.txt drill/restored-counts.txt; then
+            echo "::error::Row counts differ between the dev source and the restored copy."
+            exit 1
+          fi
+          echo "Row counts equal on every table ($(wc -l < drill/restored-counts.txt) tables)."
+          result="$(psql -X -A -t -v ON_ERROR_STOP=1 -f scripts/restore-drill.sql)"
+          printf '%s' "$result" | grep -q 'ok: restore drill assertions passed' || { echo "::error::Restore assertions failed."; exit 1; }
+          for f in supabase/checks/*.sql; do
+            result="$(psql -X -A -t -v ON_ERROR_STOP=1 -f "$f")"
+            printf '%s' "$result" | grep -q 'assertions passed' || { echo "::error::Check $f failed on the restored database."; exit 1; }
+            echo "check passed: $f"
+          done
+          echo "Restore drill passed."

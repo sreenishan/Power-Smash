@@ -1,0 +1,123 @@
+# CI - runs on every pull request and every push to main.
+#
+# Rules (DECISIONS D-002, D-027, D-038):
+#   - Third-party actions are pinned to a FULL commit SHA, the tag is in the trailing comment.
+#     Dependabot (see dependabot.yml) proposes updates; read the diff before merging.
+#   - Read-only token, no repository secrets, never `pull_request_target`.
+#   - Linux runner only (GitHub Free private minutes are limited: 2,000 a month).
+#   - Node version comes from .nvmrc. `npm ci` honours .npmrc (install scripts are OFF,
+#     7-day minimum package age, exact pins). If the G0 smoke test finds a package that needs a
+#     build step, add an explicit `npm rebuild <package>` step after `npm ci` and record it in
+#     docs/DECISIONS.md D-002; never turn scripts back on globally.
+#   - M1 adds the build-output gates, NON-strict here (scripts/check-placeholders.ts, privacy-scan.ts, check-release.ts): they print a
+#     summary and never fail a pull request, EXCEPT that a secret-shaped value in .vercel/output/static fails every build (D-027). The strict
+#     versions (PS_STRICT=1: fail on any TODO(owner), phone, email, localhost URL or missing release variable) run only in
+#     deploy.yml through `npm run build:strict`.
+#   - The first-party JavaScript budget (npm run check:js-budget, 80 KB gzip per page) is NOT summary-only: it fails the run when a page is over.
+#   - Later milestones add here: Playwright/axe/Lighthouse on pull requests to main (D-038), anon-access tests (M0 harness).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per branch or pull request; a newer push cancels the older run. Never cancel runs on main:
+# the secret scan of a push covers only the commits of that push, so a cancelled run would leave
+# those commits unscanned.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # D-030: the audience is on IST and date formatting must not depend on the runner clock zone.
+  TZ: Asia/Kolkata
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # the action lists the commits of a pull request through the API
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # gitleaks-action is under its own licence: personal-account repositories need no licence key,
+      # organisation repositories need a free GITLEAKS_LICENSE secret. This repository belongs to the
+      # owner's personal account (OT-01). If it ever moves to an organisation, the job fails until a key is added.
+      - name: Scan commits for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # the automatic per-run token, not a stored secret
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: "false" # needs pull-requests: write; findings are in the job log
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false" # keep reports containing matched text out of artifacts
+
+  verify:
+    name: Check, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install (exact lockfile)
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        env:
+          # D-009: CI value for the build heap. No secrets and no secret key in this job (D-005).
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run build
+
+      # Build-output gates, non-strict (see the header). `npm run build` ends with the step that writes the CSP and noindex
+      # rules into .vercel/output/config.json (scripts/finalize-headers.ts).
+      - name: Placeholder gate (summary only)
+        run: npm run check:placeholders
+
+      - name: Privacy scan (secret-shaped values fail the build; the rest is a summary)
+        run: npm run check:privacy
+
+      - name: Release check (summary only)
+        run: npm run check:release
+
+      # First-party JavaScript budget (spec 12.5, review C-1): FAILS above 81,920 bytes gzip on any built page, strict or not. It counts
+      # the scripts a page loads, the chunks its islands import and the inline hydration scripts (scripts/check-js-budget.ts).
+      - name: First-party JavaScript budget (80 KB gzip per page)
+        run: npm run check:js-budget
+
+      # Build-output tests (hidden-section markers, internal links resolve, owner-section names). They need .vercel/output/static, so they run
+      # AFTER the build; PS_REQUIRE_DIST=1 makes a missing .vercel/output/static a failure instead of a silent skip (shell fix-wave request).
+      - name: Build-output tests
+        env:
+          PS_REQUIRE_DIST: '1'
+        run: npx vitest run tests/build

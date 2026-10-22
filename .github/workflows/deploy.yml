@@ -1,0 +1,138 @@
+# Deploy to Vercel - OFF until the owner switches it on (DECISIONS D-008; Vercel port 2026-10-22, docs/m3/vercel-deploy-notes.md).
+# Production deploys happen ONLY from this workflow, never from a laptop and never from Vercel's Git integration.
+#
+# This workflow can deploy only when ALL of these are true. Today none is:
+#   1. The repository VARIABLE DEPLOY_ENABLED is "true" (GitHub: Settings > Secrets and variables > Actions > Variables).
+#      While it is unset the whole job is skipped: no runner minutes, no secret read.
+#   2. The repository SECRETS VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID exist (owner task; a Vercel PRO account, because the
+#      site sells services and sponsor slots: Hobby is for non-commercial use only).
+#   3. The Vercel project's Git integration does NOT deploy production, so only this workflow promotes a build. vercel.json carries
+#      `git.deploymentEnabled: false` for that (review fix-infra 1); the owner still disconnects the repository in Vercel project >
+#      Settings > Git (OT-02), because the repository file is only a second guard.
+#
+# Why "build here, upload the finished output" (`vercel deploy --prebuilt`) and NOT `vercel pull` + `vercel build`:
+#   - `vercel pull` would download the project's PRODUCTION environment (including SUPABASE_SECRET_KEY, HMAC_KEY ...) into the build job.
+#     The build job must never hold them (D-005, D-027). Runtime secrets live in the Vercel project settings, set by the owner.
+#   - `vercel build` would run the project's own build command, which is not the strict release gate. The ONLY build here is
+#     `npm run build:strict`, which writes the Build Output API folder `.vercel/output` (the Astro Vercel adapter).
+#   - With VERCEL_ORG_ID and VERCEL_PROJECT_ID set as environment variables the CLI needs no `vercel link` and no `.vercel/project.json`.
+#     (Not yet proven on a real account: the first run is the check. A failure stops the job and the previous deploy stays live.)
+#
+# Guards (review S-10, C-5):
+#   - Runs only on refs/heads/main (workflow_dispatch can start on ANY branch and secrets are readable there).
+#   - The ONLY build is "npm run build:strict" (PS_STRICT=1): any TODO(owner), phone, email, localhost URL, secret-shaped value or
+#     missing release variable fails it BEFORE anything is uploaded. No non-strict deploy path exists. Indexing is never forced on
+#     here: PUBLIC_ALLOW_INDEXING comes from the repository variable and the strict gate decides.
+#   - The deploy credential (VERCEL_TOKEN) is read in the LAST step only, never during `npm ci` or the build.
+#   - The Vercel CLI is NOT fetched live. ci/vercel-cli/ is a tiny separate project: package.json with one exact dependency, its own
+#     .npmrc (ignore-scripts=true, min-release-age=7) and a committed package-lock.json with integrity hashes. The install step below
+#     runs `npm ci --ignore-scripts` there and the deploy step calls the local binary, so the whole dependency tree is the locked one and
+#     nothing is downloaded in the step that holds the token (review fix-infra 3). No npx. To raise the version, edit ci/vercel-cli
+#     (docs/m3/review-fix-infra-notes.md). Not yet proven on a real run: if the CLI cannot start under ignore-scripts, the install step
+#     fails BEFORE the token step; record the fix in DECISIONS, do not go back to a live npx.
+#
+# Triggers (D-008):
+#   - workflow_dispatch  how the cron route and "Publish now" ask for a rebuild (token with Actions: write on this one repository, OT-42).
+#   - push to main       a merged change is deployed.
+#   - NO repository_dispatch trigger (needs Contents: write, which could also push code). Never put github.event.client_payload or
+#     workflow inputs into a shell command.
+#   - nightly schedule   00:30 IST = 19:00 UTC, commented out until deploys are live.
+#
+# Pinned third-party actions: full commit SHA, tag in the trailing comment (D-002).
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  # schedule:
+  #   - cron: "0 19 * * *" # 00:30 IST (D-008). Enable once deploys are live.
+
+permissions:
+  contents: read
+
+# One deploy at a time, in order. A running deploy is never cancelled (D-008).
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    # Switch: skipped entirely unless the owner-approved repository variable is "true", and never off main (S-10).
+    if: ${{ vars.DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Kolkata # D-030
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            ci/vercel-cli/package-lock.json
+
+      - name: Install (exact lockfile)
+        run: npm ci
+
+      # The build sees only public build variables (D-027). No Vercel credential is in this step or in `npm ci`, and the Supabase
+      # secret key is never present in a build job (D-005).
+      #
+      # ONE build mode, fail-closed (D-034, review C-5): scripts/build-strict.mjs runs the release check on the variables, the build,
+      # the header step, the placeholder gate, the privacy scan and the release check on the output, with PS_STRICT=1 (also set below,
+      # so the intent is visible here). "npm run build" is the developer build: this workflow never uses it.
+      - name: Build (strict release gate)
+        env:
+          PS_STRICT: "1"
+          NODE_OPTIONS: --max-old-space-size=6144 # D-009
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+          PUBLIC_ALLOW_INDEXING: ${{ vars.PUBLIC_ALLOW_INDEXING }}
+          PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+          PUBLIC_WHATSAPP_NUMBER: ${{ vars.PUBLIC_WHATSAPP_NUMBER }}
+          PUBLIC_CF_ANALYTICS_TOKEN: ${{ vars.PUBLIC_CF_ANALYTICS_TOKEN }}
+          PUBLIC_HSTS_MAX_AGE: ${{ vars.PUBLIC_HSTS_MAX_AGE }}
+        run: npm run build:strict
+
+      # Fail closed: the strict build must have produced the Build Output API folder. Nothing is uploaded without it.
+      - name: Check the build output exists
+        run: |
+          set -eu
+          test -f .vercel/output/config.json || { echo "::error::.vercel/output/config.json is missing: the strict build did not produce a Vercel build output. Nothing was deployed."; exit 1; }
+
+      # The locked Vercel CLI (ci/vercel-cli): exact lockfile, no install scripts, and NO credential in this step. It runs `--version` so a
+      # CLI that cannot start (for example under ignore-scripts) or one of the wrong version fails here, before anything holds the token.
+      - name: Install the locked Vercel CLI (no scripts, no token)
+        working-directory: ci/vercel-cli
+        run: |
+          set -eu
+          npm ci --ignore-scripts
+          test -x node_modules/.bin/vercel || { echo "::error::The locked Vercel CLI was not installed. Nothing was deployed."; exit 1; }
+          pinned="$(node -p "require('./package.json').dependencies.vercel")"
+          node_modules/.bin/vercel --version | grep -Fq "$pinned" || { echo "::error::The Vercel CLI does not report version $pinned. Nothing was deployed."; exit 1; }
+
+      # STILL TODO (M2/M4, D-008): HTTP 200 on 10 key URLs after the deploy, and an alert to the owner when a gate fails.
+
+      # The only step that reads the Vercel credentials. Production = `--prod`. The strict build above cannot be skipped (no `if:` on it),
+      # so this step is only reached with a build that passed every gate.
+      - name: Deploy to Vercel production (prebuilt output)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -eu
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Deploy credentials are missing (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID). Nothing was deployed."
+            exit 1
+          fi
+          ./ci/vercel-cli/node_modules/.bin/vercel deploy --prebuilt --prod --yes

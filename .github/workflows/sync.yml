@@ -1,0 +1,92 @@
+# Sync - YouTube catalogue sync into Supabase (DECISIONS D-008, D-033; docs/m2/sync-notes.md).
+#
+# STATUS: DISABLED until the owner switches it on. The job runs only when the repository VARIABLE SYNC_ENABLED is "true" and only on main
+# (a manual run started on another branch is skipped: review fix-infra 2)
+# (GitHub: Settings > Secrets and variables > Actions > Variables). Switch it on only when the Supabase project, the YouTube API key
+# and the migrations exist. It never deploys: a successful sync marks the site dirty and the parked Vercel Cron route
+# (scripts/sync-worker/vercel-cron.ts, Vercel Pro only) or the owner triggers deploy.yml. This schedule runs on GitHub, so it works with
+# any Vercel plan. Dead-man switch: if no sync succeeds for 8 hours the parked cron route alerts the owner; until that route is wired,
+# GitHub emails the owner when a scheduled run fails, and GitHub pauses scheduled runs after 60 days without repository activity.
+#
+# Modes: scheduled every 6 hours = incremental; the 00:xx UTC run = stats_recent, and on Sunday also stats_all (weekly).
+# Manual run: pick a mode (backfill, incremental, stats_recent, stats_all, purge). The admin "Sync now" dispatches this file
+# (ADMIN_SYNC_WORKFLOW=sync.yml) with mode=incremental.
+#
+# Security notes: `contents: read` only. Actions pinned to full commit SHAs (copied from ci.yml). Secrets are passed as environment
+# variables to the one step that runs the bundled script, never on a command line and never echoed. The script prints a summary only.
+# Repository secrets are readable by every workflow in this repository (docs/SECRETS.md).
+name: Sync
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Sync mode"
+        type: choice
+        default: incremental
+        options: [incremental, stats_recent, stats_all, backfill, purge]
+
+permissions:
+  contents: read
+
+# One sync at a time; a running sync is never cancelled (it could stop half-way through the quota accounting).
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: YouTube sync
+    # Switch AND main-only (review fix-infra 2): workflow_dispatch can start on ANY branch, where edited YAML could read these production
+    # credentials. Scheduled runs always run on the default branch, so they pass this test. tests/infra/workflow-guards.test.ts enforces the pattern.
+    if: ${{ vars.SYNC_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install exactly the lockfile
+        run: npm ci
+
+      - name: Choose the mode
+        id: mode
+        env:
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            mode="$INPUT_MODE"
+          else
+            hour=$(date -u +%H); dow=$(date -u +%u)
+            mode=incremental
+            if [ "$hour" = "00" ]; then mode=stats_recent; fi
+            if [ "$hour" = "00" ] && [ "$dow" = "7" ]; then mode=stats_all; fi
+          fi
+          case "$mode" in incremental|stats_recent|stats_all|backfill|purge) ;; *) echo "Unknown mode"; exit 1 ;; esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Bundle the runner
+        run: npx esbuild scripts/sync-run.ts --bundle --platform=node --format=esm --outfile=tmp/sync-run.mjs
+
+      - name: Run the sync
+        env:
+          SYNC_MODE: ${{ steps.mode.outputs.mode }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node tmp/sync-run.mjs "$SYNC_MODE"

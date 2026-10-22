@@ -1,0 +1,97 @@
+# Private PREVIEW deploy to Vercel - OFF until the owner switches it on (Vercel port 2026-10-22, docs/m3/vercel-deploy-notes.md).
+#
+# Runs only when the repository VARIABLE PREVIEW_ENABLED is "true". It never deploys to production (no `--prod`), never uses the
+# strict build, and never sees a production value:
+#   - the build uses the DEV Supabase PUBLIC values (variables PREVIEW_PUBLIC_*), PUBLIC_ALLOW_INDEXING is forced to "false" and
+#     PUBLIC_SITE_URL is left empty (a preview page is never canonical);
+#   - no secret except the Vercel deploy credentials is read, and those only in the last step;
+#   - Turnstile test keys are allowed only on a Vercel PREVIEW deployment: the owner sets TURNSTILE_ALLOW_TEST_KEYS=true and the dev
+#     secrets ONLY under the "Preview" environment in the Vercel project settings, never under "Production".
+# Triggers: workflow_dispatch, and pull requests whose head branch is in THIS repository. Fork pull requests are skipped by the `if`
+# (and GitHub gives forks no secrets anyway). Never `pull_request_target`.
+#
+# Protection (owner, in Vercel project > Settings > Deployment Protection): keep Vercel Authentication on with "Standard Protection"
+# (all plans), so only signed-in team members open a preview. Password Protection needs Pro (+$20 a month per project) and is not
+# needed. A Vercel preview also carries `X-Robots-Tag: noindex` by itself; this build adds its own noindex on top.
+#
+# Because the pull-request trigger runs the workflow file of the pull request, only the owner may be able to push branches to this
+# private repository. If anyone else ever can, set PREVIEW_ENABLED back to anything but "true".
+name: Preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Build and deploy a preview
+    if: ${{ vars.PREVIEW_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Kolkata # D-030
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node from .nvmrc
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            ci/vercel-cli/package-lock.json
+
+      - name: Install (exact lockfile)
+        run: npm ci
+
+      # NON-strict developer build on purpose: a preview may show owner-input placeholders, which is why it is private and noindex.
+      - name: Build (non-strict, noindex, dev values)
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          PUBLIC_ALLOW_INDEXING: "false"
+          PUBLIC_SUPABASE_URL: ${{ vars.PREVIEW_PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PREVIEW_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PREVIEW_PUBLIC_TURNSTILE_SITE_KEY }}
+        run: npm run build
+
+      - name: Check the build output exists
+        run: |
+          set -eu
+          test -f .vercel/output/config.json || { echo "::error::.vercel/output/config.json is missing. Nothing was deployed."; exit 1; }
+
+      # The locked Vercel CLI (ci/vercel-cli, same lockfile as deploy.yml): exact lockfile, no install scripts, NO credential in this step.
+      # `--version` makes a CLI that cannot start under ignore-scripts, or one of the wrong version, fail here (review fix-infra 3).
+      - name: Install the locked Vercel CLI (no scripts, no token)
+        working-directory: ci/vercel-cli
+        run: |
+          set -eu
+          npm ci --ignore-scripts
+          test -x node_modules/.bin/vercel || { echo "::error::The locked Vercel CLI was not installed. Nothing was deployed."; exit 1; }
+          pinned="$(node -p "require('./package.json').dependencies.vercel")"
+          node_modules/.bin/vercel --version | grep -Fq "$pinned" || { echo "::error::The Vercel CLI does not report version $pinned. Nothing was deployed."; exit 1; }
+
+      # No `--prod`: Vercel makes a preview deployment (protected by Deployment Protection, noindex). The URL is printed in the log.
+      - name: Deploy a Vercel preview (prebuilt output)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -eu
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Deploy credentials are missing. Nothing was deployed."
+            exit 1
+          fi
+          ./ci/vercel-cli/node_modules/.bin/vercel deploy --prebuilt --yes
