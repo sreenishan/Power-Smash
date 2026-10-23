@@ -10,7 +10,7 @@ Area E = all docs plus README, CLAUDE.md, CHANGELOG, `.env.example`. No code was
 - `docs/VERIFIED_FACTS.md` section I (VF-V1..VF-V8), `docs/RUNBOOK.md` (sections 11, 12, 14 deploy/rollback/promote/env change, 15b, 15c, G1 list, key rotation), `docs/OWNER_GUIDE.md` (new "Publishing, going back, and changing a setting (Vercel)"), new `docs/PREVIEW.md`, `README.md`, `CLAUDE.md`, `CHANGELOG.md`, banners in `docs/G0_RESULT.md`, small fixes in `UPTIME_*`, `CONNECT_DAY.md`.
 
 ## Facts the docs rely on and that are still UNVERIFIED (to prove on the first preview)
-1. `vercel deploy --prebuilt` with only the three ids (no `vercel link`) under `ignore-scripts=true` (area C says the same).
+1. `vercel deploy --prebuilt` with only the three ids (no `vercel link`) under `ignore-scripts=true` (area C says the same). **2026-10-23: partly proven.** The locked CLI 64.2.0 installs with `npm ci --ignore-scripts` and runs on Windows 10 (`--version`, login, `whoami`, `project ls`, `project create`); only `deploy --prebuilt` itself is still untried (VF-V10).
 2. Instant Rollback and Promote to Production: buttons, plan limits, wording (the RUNBOOK and OWNER_GUIDE say "unverified" and give the always-works fallback: revert on `main` and redeploy).
 3. Whether a prebuilt deployment honours the project's Settings > Functions region (bom1). `vercel.json` does not exist yet and some code comments say region is set there; OT-02 tells the owner to set it in the dashboard (VF-V6 lists both).
 4. Trailing-slash behaviour when unset (area B also lists it); `/book` and `/api/lead` with and without a slash.

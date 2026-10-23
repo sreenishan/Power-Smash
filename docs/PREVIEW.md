@@ -6,10 +6,10 @@ Facts below come from Vercel's own pages as recorded in `docs/VERIFIED_FACTS.md`
 
 ## Before the first preview (one time)
 
-1. OT-01 done (repository on GitHub) and OT-02 done (Vercel account, project, the three deploy values stored as GitHub secrets, Vercel's own Git deploys disconnected). Hobby (free) is fine for a private preview. The live site needs Pro (OT-02, D-097).
+1. OT-01 done (repository on GitHub) and OT-02 done (Vercel account, project, the three deploy values stored as GitHub secrets; the project is made from the command line with **no repository connected**, so Vercel's own Git deploys cannot publish anything, and the function region is Mumbai). Hobby (free) is fine for a private preview. The live site needs Pro (OT-02, D-097).
 2. OT-03 done (the development Supabase project) and the Turnstile test or dev widget (OT-41), so the preview has made-up data. These are three public values stored as GitHub **variables**: `PREVIEW_PUBLIC_SUPABASE_URL`, `PREVIEW_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PREVIEW_PUBLIC_TURNSTILE_SITE_KEY`. They are not secrets.
 3. In the Vercel project, under the **Preview** scope of Environment Variables, the development server settings are present (the list is in `docs/SECRETS.md`), including `TURNSTILE_ALLOW_TEST_KEYS` = `true` **only under Preview, never under Production**.
-4. In the Vercel project, Settings, **Deployment Protection**: **Vercel Authentication** is on (Standard Protection, or All Deployments). Do not switch it off. Whether a new project starts with it on is **unverified**: look at the screen.
+4. In the Vercel project, Settings, **Deployment Protection**: **Vercel Authentication** is on (Standard Protection, or All Deployments). Do not switch it off. A new project starts with it on (seen on a real Hobby project on 2026-10-23, Standard Protection), but still look at the screen.
 5. In GitHub, set the variable `PREVIEW_ENABLED` to `true` (OT-48). Only you do this, after I tell you.
 
 ## Start a preview (phone is fine)
