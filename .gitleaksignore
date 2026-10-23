@@ -1,0 +1,8 @@
+# gitleaks ignore list: exact findings, one per line (commit:file:rule:line). Read by gitleaks-action from the repository root.
+# Add a line only after reading the flagged text and finding it is NOT a real secret, and say why here. Never ignore a whole rule or folder.
+
+# 2026-10-23, first full-history scan (manual CI run). Both are fictional text, reviewed by hand:
+# docs/m1/fix-infra-notes.md line 55 quotes the made-up example `postgresql://user:secret@host/db` in a sentence about a test fix.
+cea714592d5cdeea713a9895ec247524321f1863:docs/m1/fix-infra-notes.md:database-url-with-password:55
+# tests/leads/handler.test.ts line 548 lists strings that logs must never contain (invented names and numbers, FAKE.* test constants, placeholders such as XXXX.DUMMY).
+92bc756403b236166b9ec64e1d5304fea4c6adc4:tests/leads/handler.test.ts:generic-api-key:548
