@@ -2,7 +2,9 @@
 # Add a line only after reading the flagged text and finding it is NOT a real secret, and say why here. Never ignore a whole rule or folder.
 
 # 2026-10-23, first full-history scan (manual CI run). Both are fictional text, reviewed by hand:
-# docs/m1/fix-infra-notes.md line 55 quotes the made-up example `postgresql://user:secret@host/db` in a sentence about a test fix.
+# docs/m1/fix-infra-notes.md line 55 quotes a made-up example database address (a user, the word secret, a host, a database name) in a sentence about a test fix.
 cea714592d5cdeea713a9895ec247524321f1863:docs/m1/fix-infra-notes.md:database-url-with-password:55
 # tests/leads/handler.test.ts line 548 lists strings that logs must never contain (invented names and numbers, FAKE.* test constants, placeholders such as XXXX.DUMMY).
 92bc756403b236166b9ec64e1d5304fea4c6adc4:tests/leads/handler.test.ts:generic-api-key:548
+# The first version of this file (commit 2171521) quoted that same example in its own comment on line 5. The comment is reworded now, but that commit stays in history.
+21715215deefbe519045b67d5dea107c3923c11e:.gitleaksignore:database-url-with-password:5
