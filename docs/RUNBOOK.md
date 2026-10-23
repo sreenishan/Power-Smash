@@ -314,7 +314,7 @@ Lawyer and CA
 - [ ] E-commerce rules checklist (OT-34); CA confirms Mark paid meanings (D-021)
 
 Accounts and infrastructure
-- [ ] Vercel account and project, Pro plan active (owner purchase), region `bom1`, Deployment Protection on for previews, Git deploys disconnected, deploy credentials stored (OT-02, D-097); the first prebuilt deploy has run on the `.vercel.app` address
+- [ ] Vercel account and project, Pro plan active (owner purchase), region `bom1`, Deployment Protection set to **All Deployments** while the site is private (the production `.vercel.app` address is public under Standard Protection, VF-V11), no repository connected to Vercel, deploy credentials stored (OT-02, D-097); the first prebuilt deploy has run. **At G1 the owner switches Vercel Authentication to Standard Protection (or off for Production) so the public can open the live site, and the guard step in `.github/workflows/preview.yml` that demands `all` is relaxed in the same change; forgetting this leaves the live site behind a Vercel login**
 - [ ] Production Supabase project, migrations applied, REST anon harness green (OT-27, OT-03)
 - [ ] Telegram bot (OT-08); production Turnstile widget and keys (OT-41); `TURNSTILE_ALLOW_TEST_KEYS` unset on production and `/api/health` has no `testMode`
 - [ ] `age` public key set and first `backup.yml` run green (OT-31, OT-43)

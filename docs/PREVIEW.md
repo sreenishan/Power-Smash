@@ -9,7 +9,7 @@ Facts below come from Vercel's own pages as recorded in `docs/VERIFIED_FACTS.md`
 1. OT-01 done (repository on GitHub) and OT-02 done (Vercel account, project, the three deploy values stored as GitHub secrets; the project is made from the command line with **no repository connected**, so Vercel's own Git deploys cannot publish anything, and the function region is Mumbai). Hobby (free) is fine for a private preview. The live site needs Pro (OT-02, D-097).
 2. OT-03 done (the development Supabase project) and the Turnstile test or dev widget (OT-41), so the preview has made-up data. These are three public values stored as GitHub **variables**: `PREVIEW_PUBLIC_SUPABASE_URL`, `PREVIEW_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PREVIEW_PUBLIC_TURNSTILE_SITE_KEY`. They are not secrets.
 3. In the Vercel project, under the **Preview** scope of Environment Variables, the development server settings are present (the list is in `docs/SECRETS.md`), including `TURNSTILE_ALLOW_TEST_KEYS` = `true` **only under Preview, never under Production**.
-4. In the Vercel project, Settings, **Deployment Protection**: **Vercel Authentication** is on (Standard Protection, or All Deployments). Do not switch it off. A new project starts with it on (seen on a real Hobby project on 2026-10-23, Standard Protection), but still look at the screen.
+4. In the Vercel project, Settings, **Deployment Protection**: **Vercel Authentication** is on and set to **All Deployments** (not Standard Protection). Standard Protection leaves the production address public, and the first deployment of a new project becomes the production deployment even without `--prod` (this happened on 2026-10-23, VF-V11). The Preview job now checks this and stops if it is not so. Do not switch it off. A new project starts with it on (seen on a real Hobby project on 2026-10-23, Standard Protection), but still look at the screen.
 5. In GitHub, set the variable `PREVIEW_ENABLED` to `true` (OT-48). Only you do this, after I tell you.
 
 ## Start a preview (phone is fine)
@@ -46,6 +46,6 @@ Facts below come from Vercel's own pages as recorded in `docs/VERIFIED_FACTS.md`
 | The Preview job is skipped (grey) | `PREVIEW_ENABLED` is not `true` | Set it (OT-48) |
 | Red cross at "Deploy a Vercel preview": "Deploy credentials are missing" | One of the three GitHub secrets (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`) is not stored | Re-check OT-02 step 7 |
 | Red cross at the Vercel CLI step with another message | The CLI could not run with only the ids (**unverified**) or the token expired | Tell me the one-line message; the fix is mine or a new token (OT-02) |
-| The address opens without a Vercel login | Protection is off | Switch Vercel Authentication on and tell me; treat the preview as public until then |
+| The address opens without a Vercel login | Protection is off, or set to Standard Protection (which leaves the production address public) | Switch Vercel Authentication on and choose **All Deployments**, and tell me; treat the preview as public until then |
 | "Deployment Protection" screen asks you to request access | You are logged in with another account | Log in with the owner account |
 | Forms say "temporarily unavailable" | Preview-scope settings (dev Supabase, Turnstile test settings) are missing | Check step 3 of "Before the first preview" |

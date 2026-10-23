@@ -175,6 +175,17 @@ describe('preview.yml', () => {
     expect(code).toContain('vars.PREVIEW_PUBLIC_SUPABASE_URL');
     expect(code).not.toMatch(/vars\.PUBLIC_(SUPABASE|SITE|WHATSAPP|TURNSTILE)/);
   });
+  it('asks for a preview target explicitly and refuses to upload unless Vercel Authentication covers ALL deployments (VF-V11)', () => {
+    // 2026-10-23: the first deployment of the project became PRODUCTION although no --prod was given, and Standard Protection left the
+    // production address public. The deploy step must name the target and check the project's protection level first (fail closed).
+    expect(code).toContain('vercel deploy --prebuilt --yes --target=preview');
+    expect(code).toContain('/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_ORG_ID}');
+    expect(code).toContain('ssoProtection');
+    expect(code).toContain('"$level" != "all"');
+    expect(code).toContain('Nothing was deployed');
+    expect(code.indexOf('"$level" != "all"')).toBeLessThan(code.indexOf('vercel deploy --prebuilt'));
+    expect(code).toContain('console.log("unreadable")'); // an answer that cannot be read is not "all", so the job stops
+  });
   it('holds no production secret: only the three Vercel credentials, and only in the deploy step', () => {
     const refs = code.match(/secrets\.[A-Z_]+/g) ?? [];
     expect([...new Set(refs)].sort()).toEqual(['secrets.VERCEL_ORG_ID', 'secrets.VERCEL_PROJECT_ID', 'secrets.VERCEL_TOKEN']);
