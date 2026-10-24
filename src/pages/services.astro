@@ -8,6 +8,8 @@ import Section from '../components/ui/Section.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import Button from '../components/ui/Button.astro';
 import PackageCard from '../components/ui/PackageCard.astro';
+import JumpNav from '../components/ui/JumpNav.astro';
+import { cardGridClass } from '../components/ui/card-grid';
 import PriceTag from '../components/ui/PriceTag.astro';
 import FaqList from '../components/ui/FaqList.astro';
 import CtaBlock from '../components/ui/CtaBlock.astro';
@@ -34,6 +36,12 @@ const promotion = productsInGroup('promotion');
 const shown = [...organizers, ...players, ...promotion];
 const approvalNeeded = needsInclusionApproval(shown);
 const testimonials = showableTestimonials();
+// Jump links use the section titles the page already shows.
+const jumpItems = [
+  { label: 'For organizers', href: '#organizers' },
+  { label: 'For players and parents', href: '#players' },
+  { label: 'Promotion', href: '#promotion' },
+];
 ---
 <BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
   <PageHero
@@ -44,12 +52,13 @@ const testimonials = showableTestimonials();
   >
     <Button href={ROUTES.book} variant="volt" size="lg">Book coverage</Button>
     <WhatsAppButton text={whatsappTextForPath('/services')} label="WhatsApp us" variant="quiet" size="lg" source="services-hero" />
+    <JumpNav slot="jump" items={jumpItems} label="Services sections" />
   </PageHero>
 
   <Section id="organizers" labelledBy="organizers-title">
     <SectionHeading id="organizers-title" title="For organizers" lead="Coverage packages for tournament organizers and associations." />
     {approvalNeeded && <p class="mt-4"><Todo what="owner approval of the suggested package inclusions (OT-20)" /></p>}
-    <ul class="mt-8 grid gap-6 lg:grid-cols-3">
+    <ul class={`mt-8 ${cardGridClass(organizers.length)}`}>
       {organizers.map((product) => {
         const target = enquiryTarget(product);
         return (
@@ -61,11 +70,11 @@ const testimonials = showableTestimonials();
     </ul>
     {addons.length > 0 && (
       <div class="mt-10">
-        <h3 class="text-h4">Add-ons</h3>
-        <ul class="mt-4 grid gap-4 md:grid-cols-3">
+        <h3>Add-ons</h3>
+        <ul class="mt-4 grid gap-6 md:grid-cols-3">
           {addons.map((addon) => (
             <li class="ps-card p-4">
-              <p class="font-bold text-fg">{addon.name}</p>
+              <h4>{addon.name}</h4>
               <PriceTag product={addon} class="mt-2" />
             </li>
           ))}
@@ -81,7 +90,7 @@ const testimonials = showableTestimonials();
         <li class="ps-card flex gap-4 p-5">
           <span class="ps-score text-ps-volt ps-num" style="font-size:2.5rem;line-height:1" aria-hidden="true">{index + 1}</span>
           <div>
-            <h3 class="text-h4">{step.title}</h3>
+            <h3 class="text-h3">{step.title}</h3>
             <p class="mt-1 text-fg-muted">{step.text}</p>
           </div>
         </li>
@@ -94,7 +103,7 @@ const testimonials = showableTestimonials();
 
   <Section id="players" labelledBy="players-title">
     <SectionHeading id="players-title" title="For players and parents" lead="Ask for your match video or a highlight reel." />
-    <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <ul class={`mt-8 ${cardGridClass(players.length)}`}>
       {players.map((product) => {
         const target = enquiryTarget(product);
         return (
@@ -108,12 +117,12 @@ const testimonials = showableTestimonials();
 
   <Section id="promotion" tone="surface" labelledBy="promotion-title">
     <SectionHeading id="promotion-title" title="Promotion" lead="Get your tournament in front of the community." />
-    <ul class="mt-8 grid gap-6 md:grid-cols-2">
+    <ul class={`mt-8 ${cardGridClass(promotion.length)}`}>
       {promotion.map((product) => {
         const target = enquiryTarget(product);
         return (
           <li>
-            <PackageCard product={product} href={target.href} ctaLabel={target.label} source="services-promotion" />
+            <PackageCard product={product} href={target.href} ctaLabel={target.label} source="services-promotion" wide={promotion.length === 1} />
           </li>
         );
       })}

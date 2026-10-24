@@ -54,7 +54,7 @@ export function useAsync<T>(load: () => Promise<StoreResult<T>>, deps: unknown[]
 
 // ----------------------------------------------------------------------------- primitives
 
-export function Button(props: { children: ReactNode; onClick?: () => void; variant?: 'primary' | 'quiet' | 'danger'; busy?: boolean; disabled?: boolean; type?: 'button' | 'submit'; small?: boolean }) {
+export function Button(props: { children: ReactNode; onClick?: () => void; variant?: 'primary' | 'quiet' | 'danger'; busy?: boolean; disabled?: boolean; type?: 'button' | 'submit'; small?: boolean; className?: string }) {
   const v = props.variant ?? 'quiet';
   return (
     <button
@@ -67,6 +67,7 @@ export function Button(props: { children: ReactNode; onClick?: () => void; varia
         v === 'primary' && 'bg-ps-court text-ps-white hover:bg-ps-court-deep',
         v === 'quiet' && 'border-2 border-line-strong bg-surface text-fg hover:bg-ps-court-tint',
         v === 'danger' && 'bg-ps-live text-ps-white hover:opacity-90',
+        props.className,
       )}
     >
       {props.busy ? 'Working...' : props.children}

@@ -1,6 +1,7 @@
 ---
-// The top band of an inner page: breadcrumbs, the ONE h1, a lead line and (default slot) the action buttons.
-// tone "dark" = ink broadcast band (volt buttons are allowed there), "light" = white band with a bottom edge.
+// The top band of an inner page: breadcrumbs, the ONE h1, a lead line, (default slot) the action buttons and (slot "jump") a
+// row of in-page links for long pages. tone "dark" = ink broadcast band (volt buttons are allowed there), "light" = white band
+// with a bottom edge.
 import Breadcrumbs from './Breadcrumbs.astro';
 
 interface Crumb {
@@ -14,17 +15,25 @@ interface Props {
   /** Breadcrumb items after Home. Omit on the Home page. */
   crumbs?: readonly Crumb[];
   tone?: 'dark' | 'light';
+  /** The title is a raw YouTube title (D-016): keep its own casing and show it one step smaller than a normal h1. */
+  rawTitle?: boolean;
 }
-const { title, lead, eyebrow, crumbs, tone = 'light' } = Astro.props;
+const { title, lead, eyebrow, crumbs, tone = 'light', rawTitle = false } = Astro.props;
 const hasActions = Astro.slots.has('default');
+const hasJump = Astro.slots.has('jump');
 ---
 <section class:list={['ps-hero', tone === 'dark' ? 'ps-surface-dark' : 'ps-hero-light border-b border-line']}>
   <div class="ps-container">
     {crumbs && <Breadcrumbs items={crumbs} class="mb-5" />}
     {eyebrow && <p class="ps-eyebrow mb-3">{eyebrow}</p>}
-    <h1 class="ps-rise max-w-4xl">{title}</h1>
+    <h1 class:list={['ps-rise max-w-4xl', rawTitle && 'normal-case text-h2']}>{title}</h1>
     <span aria-hidden="true" class="ps-rule ps-rise ps-rise-2"></span>
     {lead && <p class="ps-rise ps-rise-2 mt-5 max-w-2xl text-lead text-fg-muted">{lead}</p>}
-    {hasActions && <div class="ps-rise ps-rise-2 mt-8 flex flex-wrap gap-3"><slot /></div>}
+    {hasActions && <div class="ps-actions ps-rise ps-rise-2 mt-8"><slot /></div>}
+    {hasJump && (
+      <div class:list={['ps-rise ps-rise-2', hasActions ? 'mt-8 border-t border-line pt-6' : 'mt-8']}>
+        <slot name="jump" />
+      </div>
+    )}
   </div>
 </section>

@@ -13,5 +13,5 @@ const hasActions = Astro.slots.has('actions');
 <div class:list={['ps-pattern rounded-lg border-2 border-dashed border-line-strong bg-surface p-6 text-center sm:p-10', className]}>
   <Tag class="text-h3">{title}</Tag>
   <div class="mx-auto mt-2 max-w-prose text-fg-muted"><slot /></div>
-  {hasActions && <div class="mt-5 flex flex-wrap justify-center gap-3"><slot name="actions" /></div>}
+  {hasActions && <div class="ps-actions mt-5 justify-center"><slot name="actions" /></div>}
 </div>

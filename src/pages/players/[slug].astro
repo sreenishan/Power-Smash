@@ -10,6 +10,7 @@ import PageHero from '../../components/ui/PageHero.astro';
 import Section from '../../components/ui/Section.astro';
 import SectionHeading from '../../components/ui/SectionHeading.astro';
 import Button from '../../components/ui/Button.astro';
+import StatCounter from '../../components/ui/StatCounter.astro';
 import MatchCard from '../../components/archive/MatchCard.astro';
 import ShareBar from '../../components/archive/ShareBar.astro';
 import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
@@ -34,17 +35,11 @@ const slug = Astro.params.slug as string;
 const full = kind === 'full' && p !== null;
 const pageUrl = absoluteUrl(playerPath(slug), origin);
 const topTournaments = full ? p.tournaments.slice(0, 3).map((t) => t.name) : [];
+// A name that opens another player's profile: link colour and an underline, so it does not read as plain bold text.
+const PLAYER_LINK = 'inline-flex min-h-tap items-center font-semibold text-link underline decoration-[0.08em] underline-offset-[0.2em] hover:text-ps-court-deep';
 const description = full
   ? `${p.matchCount} match ${p.matchCount === 1 ? 'video' : 'videos'} of ${p.name}${topTournaments.length ? ` from ${topTournaments.join(', ')}` : ''}.`
   : 'A player page on Power Smash.';
-const stats: [string, string][] = full
-  ? [
-      ['Matches on record', String(p.matchCount)],
-      ['Tournaments', String(p.tournamentCount)],
-      ['First seen', formatDate(p.firstDate)],
-      ['Latest match', formatDate(p.latestDate)],
-    ]
-  : [];
 ---
 <BaseLayout
   title={full ? titleWithBrand(`${p.name} - Badminton Match Videos`) : 'Player'}
@@ -55,16 +50,19 @@ const stats: [string, string][] = full
   ogType={full ? 'article' : 'website'}
 >
   <ArchiveSeedNotice source={source} />
-  <PageHero title={full ? p.name : 'Player page'} crumbs={[{ name: 'Players', href: ARCHIVE_ROUTES.players }, { name: full ? p.name : 'Player' }]}>
-    {full && <Button href={enquiryHref({ slug: 'highlight-reel', group: 'players' })} variant="primary" size="lg">Get my highlight reel</Button>}
+  <PageHero tone="dark" title={full ? p.name : 'Player page'} crumbs={[{ name: 'Players', href: ARCHIVE_ROUTES.players }, { name: full ? p.name : 'Player' }]}>
+    {full && <Button href={enquiryHref({ slug: 'highlight-reel', group: 'players' })} variant="volt" size="lg">Get my highlight reel</Button>}
   </PageHero>
 
   {!full && (
     <Section>
       <p class="max-w-2xl text-body">
-        This player's age has not been confirmed, so this page shows no name, details or match list. If this is you or your child and you want a change or a removal,
+        This player's age has not been confirmed, so this page shows no name, details or match list. If this is you or your child and you want a change or a removal,{' '}
         <a href={ROUTES.contentRemoval}>send us a request</a>.
       </p>
+      <div class="ps-actions mt-6">
+        <Button href={ROUTES.contentRemoval} variant="primary">Send us a request</Button>
+      </div>
     </Section>
   )}
 
@@ -72,19 +70,27 @@ const stats: [string, string][] = full
     <>
       <Section labelledBy="profile-title">
         <h2 id="profile-title" class="sr-only">Profile</h2>
-        <ul class="flex flex-wrap gap-2 text-caption font-bold">
-          {p.district && <li class="rounded-pill bg-ps-court-tint px-3 py-1 text-ps-court">{p.district}</li>}
-          {p.academy && <li class="rounded-pill bg-ps-court-tint px-3 py-1 text-ps-court">{p.academy}</li>}
-          {p.categories.map((c) => <li class="rounded-pill bg-ps-ink px-3 py-1 text-ps-volt">{categoryLabel(c)}</li>)}
+        <ul class="flex flex-wrap gap-2">
+          {p.district && <li class="ps-chip ps-chip-court">{p.district}</li>}
+          {p.academy && <li class="ps-chip ps-chip-court">{p.academy}</li>}
+          {p.categories.map((c) => <li class="ps-chip ps-chip-ink">{categoryLabel(c)}</li>)}
         </ul>
-        <dl class="mt-6 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
-          {stats.map(([k, v]) => (
-            <div class="rounded-md border-2 border-line bg-surface p-3">
-              <dt class="text-small font-bold text-fg-muted">{k}</dt>
-              <dd class="mt-1 text-h4 ps-num">{v}</dd>
+        <div class="ps-surface-dark mt-6 grid max-w-4xl gap-5 rounded-lg p-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] sm:items-center sm:p-6">
+          <div class="grid grid-cols-2 gap-4">
+            <StatCounter value={String(p.matchCount)} label="Matches on record" />
+            <StatCounter value={String(p.tournamentCount)} label="Tournaments" />
+          </div>
+          <dl class="flex flex-col gap-3 border-t border-line pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+            <div>
+              <dt class="text-small font-bold uppercase tracking-wider text-fg-muted">First seen</dt>
+              <dd class="mt-0.5 text-lead font-semibold text-fg ps-num">{formatDate(p.firstDate)}</dd>
             </div>
-          ))}
-        </dl>
+            <div>
+              <dt class="text-small font-bold uppercase tracking-wider text-fg-muted">Latest match</dt>
+              <dd class="mt-0.5 text-lead font-semibold text-fg ps-num">{formatDate(p.latestDate)}</dd>
+            </div>
+          </dl>
+        </div>
         <p class="mt-3 text-small text-fg-muted">Counts are read from video titles by Power Smash.</p>
         <div class="mt-6"><ShareBar text={`${p.name} - badminton match videos on Power Smash ${pageUrl}`} source="player-page" /></div>
       </Section>
@@ -104,7 +110,7 @@ const stats: [string, string][] = full
               <div>
                 <h3 class="text-h4">Partners</h3>
                 <ul class="mt-3 flex flex-col gap-1">
-                  {p.partners.map((o) => <li><a href={playerPath(o.slug)} class="inline-flex min-h-tap items-center font-semibold">{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
+                  {p.partners.map((o) => <li><a href={playerPath(o.slug)} class={PLAYER_LINK}>{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
                 </ul>
               </div>
             )}
@@ -112,7 +118,7 @@ const stats: [string, string][] = full
               <div>
                 <h3 class="text-h4">Opponents</h3>
                 <ul class="mt-3 flex flex-col gap-1">
-                  {p.opponents.map((o) => <li><a href={playerPath(o.slug)} class="inline-flex min-h-tap items-center font-semibold">{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
+                  {p.opponents.map((o) => <li><a href={playerPath(o.slug)} class={PLAYER_LINK}>{o.name}</a> <span class="text-small text-fg-muted">({o.count})</span></li>)}
                 </ul>
               </div>
             )}

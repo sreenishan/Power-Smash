@@ -1,0 +1,18 @@
+---
+// Jump links to the sections of a long page (Services, Pricing). Put it in the "jump" slot of PageHero. Labels are the section
+// titles the page already shows; nothing new is written here. Each href is an #anchor on the same page.
+interface Props {
+  items: readonly { label: string; href: string }[];
+  /** Accessible name of the landmark (not shown). */
+  label?: string;
+  class?: string;
+}
+const { items, label = 'On this page', class: className } = Astro.props;
+---
+<nav aria-label={label} class={className}>
+  <ul class="ps-jump">
+    {items.map((item) => (
+      <li><a class="ps-jump-link" href={item.href}>{item.label}</a></li>
+    ))}
+  </ul>
+</nav>

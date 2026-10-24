@@ -20,7 +20,7 @@ const display = priceDisplay(product);
   {display.kind === 'amount' && (
     <p class="flex flex-wrap items-baseline gap-x-2 text-fg">
       {display.prefix && <span class="text-small font-semibold text-fg-muted">{display.prefix}</span>}
-      <span class="font-display text-h3 font-extrabold ps-num">{display.amountText}</span>
+      <span class="font-display text-h3 font-bold ps-num">{display.amountText}</span>
       {product.period && <span class="text-small text-fg-muted">{PERIOD_LABEL[product.period]}</span>}
       {display.gstText && <span class="text-small text-fg-muted">{display.gstText}</span>}
     </p>

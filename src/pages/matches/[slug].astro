@@ -15,7 +15,8 @@ import VideoFacade from '../../components/archive/VideoFacade.astro';
 import ShareBar from '../../components/archive/ShareBar.astro';
 import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
 import { enquiryHref } from '../../content/products';
-import { watchUrl } from '../../content/live';
+import { features } from '../../content/legal/status';
+import { isVideoId, watchUrl } from '../../content/live';
 import { formatDate } from '../../lib/dates';
 import { ageGroupLabel, categoryLabel, roundLabel } from '../../lib/archive/labels';
 import { matchDescription, videoObjectJsonLd } from '../../lib/archive/jsonld';
@@ -52,6 +53,9 @@ if (!minimal && m.views !== null && m.views > 0) rows.push(['Views on YouTube', 
 const hasSides = m.kind === 'full' && (m.sideA.length > 0 || m.sideB.length > 0);
 const shareText = minimal ? '' : `Watch: ${m.rawTitle} ${pageUrl}`;
 const watch = watchUrl(m.videoId);
+// With the embed switched off the video panel already holds the "Watch on YouTube" button, so the caption link under it is shown only
+// when the panel holds the click-to-load player instead.
+const embedOn = features.youtubeEmbeds === true && isVideoId(m.videoId);
 ---
 <BaseLayout
   title={title}
@@ -62,7 +66,10 @@ const watch = watchUrl(m.videoId);
   ogType={minimal ? 'website' : 'article'}
 >
   <ArchiveSeedNotice source={source} />
+  {/* The h1 is the raw YouTube title (D-016): shown in its own casing (no CSS uppercase) and one step smaller than a normal h1, so it reads as on YouTube. */}
   <PageHero
+    tone="dark"
+    rawTitle
     title={m.rawTitle}
     crumbs={[{ name: 'Matches', href: ARCHIVE_ROUTES.matches }, { name: 'This match' }]}
   />
@@ -72,7 +79,7 @@ const watch = watchUrl(m.videoId);
     <div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <div>
         <VideoFacade videoId={m.videoId} title={m.rawTitle} />
-        {watch && (
+        {watch && embedOn && (
           <p class="mt-3 text-small">
             <a href={watch} rel="noopener" target="_blank" class="font-semibold">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
           </p>

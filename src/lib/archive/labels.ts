@@ -36,6 +36,20 @@ export function roundLabel(code: string | null | undefined): string | null {
   return code ? (ROUND_LABELS[code] ?? code) : null;
 }
 
+/**
+ * The two labels a match CARD shows, so the same words are never printed twice. `chip` goes on the card's header strip (the
+ * category, or the round when the match has no category); `meta` is the small line under the title and holds only what the chip
+ * does not (the round, when the chip is the category). Shared by MatchCard.astro and matches-client.ts, which must stay in step.
+ */
+export function cardLabels(
+  category: string | null | undefined,
+  round: string | null | undefined,
+): { chip: string | null; meta: string | null } {
+  const cat = categoryLabel(category);
+  const rnd = roundLabel(round);
+  return cat ? { chip: cat, meta: rnd } : { chip: rnd, meta: null };
+}
+
 export function ageGroupLabel(code: string | null | undefined): string | null {
   if (!code) return null;
   return AGE_WORDS[code] ?? code.replace(/_/g, ' ');

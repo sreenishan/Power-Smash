@@ -15,7 +15,7 @@ export const fieldWrapClass = 'flex flex-col gap-1.5';
 export const stackClass = 'flex flex-col gap-6';
 
 export const buttonBase =
-  'inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-md px-6 py-2 font-[family-name:var(--ps-font-display)] text-[1.125rem] font-bold uppercase tracking-wider shadow-card ps-transition active:translate-y-px aria-disabled:cursor-wait aria-disabled:opacity-70 disabled:cursor-wait disabled:opacity-70';
+  'inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-md px-6 py-2 font-[family-name:var(--ps-font-display)] text-[1.125rem] font-bold uppercase tracking-wider shadow-card ps-transition active:translate-y-px aria-disabled:cursor-wait aria-disabled:opacity-70 disabled:cursor-wait';
 export const buttonPrimary = `${buttonBase} bg-ps-court text-ps-white hover:bg-ps-court-deep hover:shadow-raised`;
 export const buttonQuiet = `${buttonBase} border-2 border-line-strong bg-surface text-fg hover:bg-ps-court-tint`;
 

@@ -3,7 +3,7 @@
 // The static page already holds the newest cards and a plain pager, so the page works without this script.
 // The card markup must stay in step with src/components/archive/MatchCard.astro.
 import { formatDate } from '../dates';
-import { categoryLabel, roundLabel } from './labels';
+import { cardLabels } from './labels';
 import { ytThumb } from './youtube';
 import { filterMatches, type MatchFilters, type MatchIndex, type MatchItem, type MatchSort } from './search';
 
@@ -19,11 +19,17 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 export function renderCard(item: MatchItem, thumbs: boolean): HTMLElement {
   const card = el('article', 'group relative flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card ps-transition hover:-translate-y-0.5 hover:shadow-raised');
   card.setAttribute('data-match-card', '');
-  const block = el(
-    'div',
-    "relative aspect-video w-full overflow-hidden bg-ps-ink bg-[url('/brand/court-lines.svg')] bg-[length:70%] bg-[position:right_-10%_bottom_-20%] bg-no-repeat",
-  );
+  // Thumbnails on: the picture with the VS tag and the category laid over its lower edge. Thumbnails off: a slim header strip with the
+  // same two tags, so an empty picture block does not take half the card.
+  const { chip, meta } = cardLabels(item.c, item.r);
+  const vs = el('span', 'ml-3 -skew-x-12 bg-ps-volt px-3 py-1 font-[family-name:var(--ps-font-display)] text-lg font-extrabold uppercase leading-none text-ps-ink');
+  vs.setAttribute('aria-hidden', 'true');
+  vs.append(el('span', 'inline-block skew-x-12', 'VS'));
   if (thumbs) {
+    const block = el(
+      'div',
+      "relative aspect-video w-full overflow-hidden bg-ps-ink bg-[url('/brand/court-lines.svg')] bg-[length:70%] bg-[position:right_-10%_bottom_-20%] bg-no-repeat",
+    );
     const img = el('img', 'absolute inset-0 h-full w-full object-cover');
     img.src = ytThumb(item.v);
     img.alt = '';
@@ -31,16 +37,20 @@ export function renderCard(item: MatchItem, thumbs: boolean): HTMLElement {
     img.height = 180;
     img.loading = 'lazy';
     block.append(img);
+    const lower = el('div', 'absolute inset-x-0 bottom-0 flex items-stretch bg-gradient-to-t from-ps-ink/90 to-transparent pt-8');
+    lower.append(vs);
+    if (chip) lower.append(el('span', 'flex items-center px-3 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider text-ps-white', chip));
+    block.append(lower);
+    card.append(block);
+  } else {
+    const strip = el(
+      'div',
+      "flex min-h-14 items-center bg-ps-ink bg-[image:linear-gradient(90deg,var(--ps-ink)_52%,rgb(11_20_22/0.8)_100%),url('/brand/court-lines.svg')] bg-[length:auto,auto_170%] bg-[position:0_0,right_-1rem_center] bg-no-repeat",
+    );
+    strip.append(vs);
+    if (chip) strip.append(el('span', 'px-3 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider text-ps-white', chip));
+    card.append(strip);
   }
-  const lower = el('div', 'absolute inset-x-0 bottom-0 flex items-stretch bg-gradient-to-t from-ps-ink/90 to-transparent pt-8');
-  lower.setAttribute('aria-hidden', 'true');
-  const vs = el('span', 'ml-3 -skew-x-12 bg-ps-volt px-3 py-1 font-[family-name:var(--ps-font-display)] text-lg font-extrabold uppercase leading-none text-ps-ink');
-  vs.append(el('span', 'inline-block skew-x-12', 'VS'));
-  lower.append(vs);
-  const cat = categoryLabel(item.c);
-  if (cat) lower.append(el('span', 'flex items-center px-3 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider text-ps-white', cat));
-  block.append(lower);
-  card.append(block);
   const body = el('div', 'flex flex-1 flex-col p-4 sm:p-5');
   body.append(el('p', 'text-small font-bold uppercase tracking-wider text-fg-muted ps-num', formatDate(item.d)));
   const h = el('h3', 'mt-1 text-h4');
@@ -49,8 +59,7 @@ export function renderCard(item: MatchItem, thumbs: boolean): HTMLElement {
   h.append(a);
   body.append(h);
   if (item.n) body.append(el('p', 'mt-2 text-fg-muted', item.n));
-  const details = [categoryLabel(item.c), roundLabel(item.r)].filter(Boolean).join(' | ');
-  if (details) body.append(el('p', 'mt-1 text-small text-fg-muted', details));
+  if (meta) body.append(el('p', 'mt-1 text-small text-fg-muted', meta));
   card.append(body);
   return card;
 }
@@ -72,6 +81,10 @@ export function installMatchFilters(doc: Document): void {
   const pager = doc.querySelector<HTMLElement>('[data-match-pager]');
   const staticCards = doc.querySelectorAll('[data-match-card]').length;
   if (!form || !grid || !count || !more) return;
+  // The year, tournament, category ... selects sit in a panel that is closed on a phone (so the first results are not a screen away)
+  // and open from the width where the filters take two short rows.
+  const panel = form.querySelector<HTMLDetailsElement>('details[data-filter-panel]');
+  if (panel && doc.defaultView?.matchMedia('(min-width: 64rem)').matches) panel.open = true;
   const indexUrl = form.getAttribute('data-index-url') ?? '';
   const thumbs = grid.getAttribute('data-thumbs') === '1';
   form.hidden = false;

@@ -1,8 +1,10 @@
 ---
 // Click-to-load YouTube player for a match page (D-016, spec 7.3): on the privacy-enhanced domain, the iframe is created only when the
 // visitor presses the button, and the page says so. Nothing is requested from YouTube before that. Without JavaScript, and while the legal
-// switch for embeds (features.youtubeEmbeds) is off, the visitor gets a plain "Watch on YouTube" link instead. The click handler is
+// switch for embeds (features.youtubeEmbeds) is off, the visitor gets a "Watch on YouTube" link instead, drawn as the one volt button on
+// a dark panel (so the panel reads as a deliberate player card, not a broken player). The click handler is
 // src/lib/live-facade.ts (shared with /live): include `installLiveFacade(document)` in the page script.
+import Play from '@lucide/astro/icons/play';
 import { features } from '../../content/legal/status';
 import { embedUrl, isVideoId, watchUrl } from '../../content/live';
 
@@ -29,9 +31,9 @@ const watch = valid ? watchUrl(videoId) : null;
   </div>
 ) : (
   watch && (
-    <div class="ps-live-box">
+    <div class="ps-live-box ps-live-box-link">
       <div class="ps-live-facade">
-        <a href={watch} rel="noopener" target="_blank">Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
+        <a href={watch} rel="noopener" target="_blank" class="ps-btn ps-btn-volt ps-btn-lg"><Play size={20} fill="currentColor" aria-hidden="true" />Watch on YouTube<span class="sr-only"> (opens in a new tab)</span></a>
       </div>
     </div>
   )
@@ -58,9 +60,16 @@ const watch = valid ? watchUrl(videoId) : null;
     padding: 1rem;
     text-align: center;
   }
-  .ps-live-facade a {
+  .ps-live-facade a:not(.ps-btn) {
     color: var(--ps-volt);
     font-weight: 700;
+  }
+  /* Link-only panel: the court lines at a low level behind the button, so the empty player reads as a card, not a gap. */
+  .ps-live-box-link {
+    background-image: linear-gradient(rgb(11 20 22 / 0.88), rgb(11 20 22 / 0.88)), url('/brand/court-lines.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: auto, min(88%, 34rem) auto;
   }
   .ps-live-button {
     min-height: 3rem;

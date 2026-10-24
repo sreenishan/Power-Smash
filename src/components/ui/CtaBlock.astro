@@ -26,13 +26,13 @@ const {
 } = Astro.props;
 ---
 <section aria-labelledby={id} class="ps-surface-court ps-pattern py-section">
-  <div class="ps-container flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+  <div class="ps-container flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
     <div class="max-w-2xl">
       <h2 id={id} class="text-h2">{title}</h2>
       <span aria-hidden="true" class="ps-rule"></span>
       {text && <p class="mt-4 text-lead text-fg">{text}</p>}
     </div>
-    <div class="flex flex-wrap gap-3">
+    <div class="ps-actions lg:shrink-0 lg:flex-nowrap">
       <Button href={primaryHref} variant="volt" size="lg">{primaryLabel}</Button>
       {whatsappText && <WhatsAppButton text={whatsappText} label={whatsappLabel} variant="quiet" size="lg" source={source} />}
     </div>

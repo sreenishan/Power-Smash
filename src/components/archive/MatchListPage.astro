@@ -8,6 +8,7 @@ import PageHero from '../ui/PageHero.astro';
 import Section from '../ui/Section.astro';
 import Button from '../ui/Button.astro';
 import EmptyState from '../ui/EmptyState.astro';
+import ChevronDown from '@lucide/astro/icons/chevron-down';
 import MatchCard from './MatchCard.astro';
 import ArchiveSeedNotice from './ArchiveSeedNotice.astro';
 import { features } from '../../content/legal/status';
@@ -41,8 +42,8 @@ const pageNumbers = Array.from({ length: pages }, (_, i) => i + 1);
 ---
 <BaseLayout title={titleWithBrand(title)} description={description} canonicalPath={matchListPath(page)}>
   <ArchiveSeedNotice source={source} />
-  <PageHero title="Match videos" lead="Tamil Nadu badminton matches from the Power Smash channel." crumbs={[{ name: 'Matches' }]}>
-    <Button href={ROUTES.book} variant="secondary" size="lg">Book coverage</Button>
+  <PageHero tone="dark" title="Match videos" lead="Tamil Nadu badminton matches from the Power Smash channel." crumbs={[{ name: 'Matches' }]}>
+    <Button href={ROUTES.book} variant="volt" size="lg">Book coverage</Button>
   </PageHero>
 
   {total === 0 ? (
@@ -64,25 +65,33 @@ const pageNumbers = Array.from({ length: pages }, (_, i) => i + 1);
             <label for="f-q" class="block text-small font-bold uppercase tracking-wider">Search titles</label>
             <input id="f-q" name="q" type="search" autocomplete="off" class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court" />
           </div>
-          {selects.map((s) => (
-            <div>
-              <label for={`f-${s.name}`} class="block text-small font-bold uppercase tracking-wider">{s.label}</label>
-              <select id={`f-${s.name}`} name={s.name} class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
-                <option value="">All</option>
-                {s.options.map((o) => <option value={o.value}>{o.label}</option>)}
-              </select>
+          <details data-filter-panel class="group col-span-2 lg:col-span-4">
+            <summary class="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 rounded-md border-2 border-line-strong px-4 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider ps-transition hover:bg-ps-court-tint group-open:border-ps-court [&::-webkit-details-marker]:hidden">
+              More filters
+              <ChevronDown size={20} aria-hidden="true" class="shrink-0 ps-transition group-open:rotate-180" />
+            </summary>
+            <div class="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {selects.map((s) => (
+                <div>
+                  <label for={`f-${s.name}`} class="block text-small font-bold uppercase tracking-wider">{s.label}</label>
+                  <select id={`f-${s.name}`} name={s.name} class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
+                    <option value="">All</option>
+                    {s.options.map((o) => <option value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              ))}
+              <div>
+                <label for="f-sort" class="block text-small font-bold uppercase tracking-wider">Sort by</label>
+                <select id="f-sort" name="sort" class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
+                  <option value="newest">Newest first</option>
+                  <option value="views">Most viewed on YouTube</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button type="reset" class="min-h-[3rem] rounded-md border-2 border-line-strong px-5 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider ps-transition hover:bg-ps-court-tint">Clear filters</button>
+              </div>
             </div>
-          ))}
-          <div>
-            <label for="f-sort" class="block text-small font-bold uppercase tracking-wider">Sort by</label>
-            <select id="f-sort" name="sort" class="mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court">
-              <option value="newest">Newest first</option>
-              <option value="views">Most viewed on YouTube</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button type="reset" class="min-h-[3rem] rounded-md border-2 border-line-strong px-5 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider ps-transition hover:bg-ps-court-tint">Clear filters</button>
-          </div>
+          </details>
         </form>
       )}
 

@@ -29,7 +29,7 @@ const letters = [...groups.keys()].sort((a, b) => (a === '#' ? 1 : b === '#' ? -
   canonicalPath={ARCHIVE_ROUTES.players}
 >
   <ArchiveSeedNotice source={archive.source} />
-  <PageHero title="Players" lead="Players with match videos on the Power Smash channel." crumbs={[{ name: 'Players' }]} />
+  <PageHero tone="dark" title="Players" lead="Players with match videos on the Power Smash channel." crumbs={[{ name: 'Players' }]} />
 
   {archive.players.length === 0 ? (
     <Section>

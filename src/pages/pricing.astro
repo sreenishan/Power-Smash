@@ -7,6 +7,8 @@ import PageHero from '../components/ui/PageHero.astro';
 import Section from '../components/ui/Section.astro';
 import SectionHeading from '../components/ui/SectionHeading.astro';
 import PackageCard from '../components/ui/PackageCard.astro';
+import JumpNav from '../components/ui/JumpNav.astro';
+import { cardGridClass } from '../components/ui/card-grid';
 import PriceTag from '../components/ui/PriceTag.astro';
 import CtaBlock from '../components/ui/CtaBlock.astro';
 import Todo from '../components/site/Todo.astro';
@@ -24,6 +26,11 @@ const addons = productsInGroup('addons');
 const everything = [...groups.flatMap((g) => g.items), ...addons, ...sponsorPackages];
 const approvalNeeded = needsInclusionApproval(everything);
 const deliveryMissing = everything.some((p) => p.deliveryDays === null);
+// Jump links use the section titles the page already shows (each group id is also the id of its section).
+const jumpItems = [
+  ...groups.map((g) => ({ label: g.title, href: `#${g.id}` })),
+  { label: 'Sponsorship', href: '#sponsorship' },
+];
 ---
 <BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
   <PageHero
@@ -31,7 +38,9 @@ const deliveryMissing = everything.some((p) => p.deliveryDays === null);
     title="Pricing"
     lead="Every Power Smash product in one place. Message us if you are not sure which one fits."
     crumbs={[{ name: 'Pricing' }]}
-  />
+  >
+    <JumpNav slot="jump" items={jumpItems} label="Pricing sections" />
+  </PageHero>
 
   <Section tone="surface" labelledBy="notes-title" compact>
     <h2 id="notes-title" class="text-h3">Before you read the prices</h2>
@@ -56,25 +65,25 @@ const deliveryMissing = everything.some((p) => p.deliveryDays === null);
   </Section>
 
   {groups.map((group) => (
-    <Section tone={group.id === 'players' ? 'surface' : 'default'} labelledBy={`${group.id}-price-title`}>
+    <Section id={group.id} tone={group.id === 'players' ? 'surface' : 'default'} labelledBy={`${group.id}-price-title`}>
       <SectionHeading id={`${group.id}-price-title`} title={group.title} lead={group.intro} />
-      <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <ul class={`mt-8 ${cardGridClass(group.items.length)}`}>
         {group.items.map((product) => {
           const target = enquiryTarget(product);
           return (
             <li>
-              <PackageCard product={product} href={target.href} ctaLabel={target.label} showDelivery source="pricing" />
+              <PackageCard product={product} href={target.href} ctaLabel={target.label} showDelivery source="pricing" wide={group.items.length === 1} />
             </li>
           );
         })}
       </ul>
       {group.id === 'organizers' && addons.length > 0 && (
         <div class="mt-10">
-          <h3 class="text-h4">Add-ons</h3>
-          <ul class="mt-4 grid gap-4 md:grid-cols-3">
+          <h3>Add-ons</h3>
+          <ul class="mt-4 grid gap-6 md:grid-cols-3">
             {addons.map((addon) => (
               <li class="ps-card p-4">
-                <p class="font-bold text-fg">{addon.name}</p>
+                <h4>{addon.name}</h4>
                 <p class="mt-1 text-small text-fg-muted">{addon.summary}</p>
                 <PriceTag product={addon} class="mt-2" />
               </li>
@@ -85,9 +94,9 @@ const deliveryMissing = everything.some((p) => p.deliveryDays === null);
     </Section>
   ))}
 
-  <Section tone="dark" labelledBy="sponsorship-price-title">
+  <Section id="sponsorship" tone="dark" labelledBy="sponsorship-price-title">
     <SectionHeading id="sponsorship-price-title" title="Sponsorship" lead="For brands that want to reach the Power Smash audience." />
-    <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <ul class={`mt-8 ${cardGridClass(sponsorPackages.length)}`}>
       {sponsorPackages.map((product) => {
         const target = enquiryTarget(product);
         return (
