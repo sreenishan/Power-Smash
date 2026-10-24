@@ -27,6 +27,7 @@
     "test:red": "vitest run --config vitest.red.config.ts",
     "e2e": "playwright test",
     "pg:local": "node scripts/pg-local.mjs",
+    "sql:bundle": "node scripts/supabase-bundle.mjs",
     "vercel:install": "npm ci --ignore-scripts --prefix ci/vercel-cli",
     "vercel": "node scripts/vercel.mjs"
   },

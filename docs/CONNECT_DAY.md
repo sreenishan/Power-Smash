@@ -30,6 +30,8 @@ Owner checks in the Supabase dashboard (Project Settings): region Mumbai; Data A
 Rollback: a wrong project is deleted by the owner in the dashboard (nothing of value in it yet).
 
 ## Part C: Apply migrations to DEV only
+**Route A (used on 2026-10-24, needs no CLI, no download and no database password): `npm run sql:bundle`** writes two plain files to git-ignored `tmp/supabase-dev/`: `01-migrations.sql` (all migrations, run ONCE: one paste is one implicit transaction, so it is all or nothing) and `02-checks.sql` (all checks; the editor shows only the last row, and any failed check stops the run with an error). The owner opens each file in Notepad, copies it all, pastes it into the dashboard SQL editor of the DEV project and presses Run. The bundle script turns the shared `pg_temp.expect_fail` helper into CREATE OR REPLACE (five check files define it; the first real run failed on the plain CREATE, seen on 2026-10-24). Route B below (the CLI) is the alternative and needs the owner's yes first.
+
 Owner sets the variables **names only** in their own shell; Claude never sees values:
 - Owner runs, at their PC: `npx supabase login` (browser sign-in; the token stays on the PC), then `npx supabase link --project-ref <DEV ref>` (the CLI asks for the **database password**, which stays with the owner), then asks me to wait.
 - **Before pushing, confirm the linked ref is DEV** (`npx supabase projects list` shows the linked one; the owner reads it out). Wrong project here is the single worst mistake.
