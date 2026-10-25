@@ -497,6 +497,8 @@ You may send only some of these: the page shows only the ones you supply, with n
 
 **What and why.** Razorpay and the e-commerce rules need your legal name and address on the site. A home address becomes public; an office or registered address is better.
 
+**Status 2026-10-25 (supplied in chat, applied in `src/content/site.ts`).** Legal name **Power Smash** (may change after the CA decides the entity, OT-05); phone **+91 73733 51087** (the business number from spec 13.2); public email **powersmash1102@gmail.com** (the channel's business Gmail, as the interim address; D-022 replaces it with the domain address once the domain is verified, OT-07). **Still missing:** the postal address (only "Tamil Nadu" was given, which is a state, not an address: the footer and the legal pages need at least area, city, district and PIN), the grievance officer's name, email and phone (steps 4 and 5), and whether the same number is the WhatsApp number for the buttons (`PUBLIC_WHATSAPP_NUMBER`).
+
 **Steps.**
 1. Confirm the legal name matches the entity from OT-05.
 2. Choose the address you are happy to publish.

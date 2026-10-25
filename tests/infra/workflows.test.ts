@@ -173,6 +173,7 @@ describe('preview.yml', () => {
     expect(code).not.toContain('PS_STRICT');
     expect(code).toContain('PUBLIC_ALLOW_INDEXING: "false"');
     expect(code).toContain('vars.PREVIEW_PUBLIC_SUPABASE_URL');
+    expect(code).toContain('PUBLIC_WHATSAPP_NUMBER: ${{ vars.PREVIEW_PUBLIC_WHATSAPP_NUMBER }}'); // the WhatsApp buttons on the preview
     expect(code).not.toMatch(/vars\.PUBLIC_(SUPABASE|SITE|WHATSAPP|TURNSTILE)/);
   });
   it('asks for a preview target explicitly and refuses to upload unless Vercel Authentication covers ALL deployments (VF-V11)', () => {

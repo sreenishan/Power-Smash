@@ -66,6 +66,9 @@ jobs:
           PUBLIC_SUPABASE_URL: ${{ vars.PREVIEW_PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PREVIEW_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PREVIEW_PUBLIC_TURNSTILE_SITE_KEY }}
+          # The business WhatsApp number (public by design, spec 13.2; owner confirmed 2026-10-25) so the owner can test every
+          # WhatsApp button on the private preview. Unset = the buttons are hidden.
+          PUBLIC_WHATSAPP_NUMBER: ${{ vars.PREVIEW_PUBLIC_WHATSAPP_NUMBER }}
         run: npm run build
 
       - name: Check the build output exists

@@ -39,12 +39,17 @@ describe('owner-supplied content starts empty (never fabricated)', () => {
     expect(() => assertValidTournaments()).not.toThrow();
   });
 
-  it('keeps every owner-supplied site value null or empty until supplied', () => {
+  it('carries exactly the contact details the owner supplied in chat on 2026-10-25 (OT-19), nothing more', () => {
+    // These three are public by design (spec 13.2 publishes them). A different value here means someone changed them without
+    // the owner: update this test only together with a new owner input.
+    expect(site.legalName).toBe('Power Smash');
+    expect(site.phone).toBe('+91 73733 51087');
+    expect(site.publicEmail).toBe('powersmash1102@gmail.com');
+  });
+
+  it('keeps every owner-supplied site value the owner has NOT given yet null or empty (never fabricated)', () => {
     expect(site.tagline).toBeNull();
-    expect(site.legalName).toBeNull();
-    expect(site.postalAddress).toBeNull();
-    expect(site.phone).toBeNull();
-    expect(site.publicEmail).toBeNull();
+    expect(site.postalAddress).toBeNull(); // "Tamil Nadu" alone is not a postal address: stays hidden until a full one is supplied
     expect(site.grievanceOfficerName).toBeNull();
     expect(site.grievanceEmail).toBeNull();
     expect(site.whatsappChannelUrl).toBeNull();
@@ -81,10 +86,10 @@ describe('owner-supplied content starts empty (never fabricated)', () => {
     });
   });
 
-  it('never carries the owner\'s personal email', () => {
+  it('carries no email address other than the business address (never the owner\'s personal Gmail)', () => {
     const text = JSON.stringify(site);
-    expect(text).not.toMatch(/gmail/i);
-    expect(text).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/); // no email address of any kind
+    const emails = [...new Set(text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? [])];
+    expect(emails).toEqual(['powersmash1102@gmail.com']);
   });
 });
 

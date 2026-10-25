@@ -17,11 +17,17 @@ export const site = {
   tagline: null as string | null,
 
   // --- Legal entity and contact (OT-19). Needed on /contact and the legal pages; G1 requires them. ---
-  legalName: null as string | null,
+  /** Owner input 2026-10-25 (OT-19). May change after the CA decides the entity (OT-05). */
+  legalName: 'Power Smash' as string | null,
+  /** Still missing: the owner gave only "Tamil Nadu", which is not a postal address. Stays hidden until a full address is supplied. */
   postalAddress: null as string | null,
-  phone: null as string | null,
-  /** Public domain email once the domain is verified (D-022), e.g. hello@... Never the personal Gmail. */
-  publicEmail: null as string | null,
+  /** Owner input 2026-10-25 (OT-19): the business number, public by design (spec 13.2). */
+  phone: '+91 73733 51087' as string | null,
+  /**
+   * Owner input 2026-10-25 (OT-19): the business Gmail of the channel (the address the spec publishes, 13.2), as the interim
+   * public address. D-022 replaces it with the domain address (hello@...) once the domain is verified. Never the personal Gmail.
+   */
+  publicEmail: 'powersmash1102@gmail.com' as string | null,
   grievanceOfficerName: null as string | null,
   grievanceOfficerPhone: null as string | null, // OT-19; legal pages fall back to `phone` when null
   grievanceEmail: null as string | null,
