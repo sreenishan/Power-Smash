@@ -26,7 +26,7 @@ Ask, in this order:
 **STOP gate 1:** do not proceed without answers 1 to 3.
 
 ## Part B: Verify the dev project (owner, phone or PC)
-Owner checks in the Supabase dashboard (Project Settings): region Mumbai; Data API settings: automatic exposure of new tables off. Owner confirms in chat ("yes, Mumbai, exposure off"). If exposure is on, the owner switches it off before anything else; migrations add their own GRANTs and RLS.
+Owner checks in the Supabase dashboard (Project Settings): region Mumbai; Data API settings: automatic exposure of new tables off. Owner also checks **Project Settings, Data API, Settings, Exposed schemas**: it must list `public` AND `api` (the public views live in `api`; without it the seven views answer HTTP 406 and the anon harness reports 7 errors). Owner confirms in chat ("yes, Mumbai, exposure off, api exposed"). If exposure is on, the owner switches it off before anything else; migrations add their own GRANTs and RLS.
 Rollback: a wrong project is deleted by the owner in the dashboard (nothing of value in it yet).
 
 ## Part C: Apply migrations to DEV only

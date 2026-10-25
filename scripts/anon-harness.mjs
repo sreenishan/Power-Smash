@@ -96,21 +96,35 @@ export async function runHarness(opts) {
     }
     try {
       const res = await doFetch(`${base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-      return { status: res.status };
+      // The error code of PostgREST/Postgres (for example 42501 permission denied, 55000 view not writable); never the message.
+      let code = null;
+      if (res.status >= 400) {
+        try {
+          const j = await res.json();
+          code = typeof j?.code === 'string' ? j.code : null;
+        } catch {
+          code = null;
+        }
+      }
+      return { status: res.status, code };
     } catch {
-      return { status: 0 };
+      return { status: 0, code: null };
     }
   };
 
-  const record = (target, op, status, expectedDenied) => {
-    const denied = isDenied(status);
-    const unreachable = status === 0 || status >= 500;
+  // Postgres error 55000 on a WRITE: the `api` view joins or masks several tables, so it is "not automatically updatable" and the database
+  // refuses every insert, update and delete before any grant is even looked at. That is a denial by construction (the SQL check
+  // supabase/checks/0006_assertions.sql still proves anon holds no write grant on these views). Any other 5xx stays an error.
+  const record = (target, op, status, expectedDenied, code = null) => {
+    const notWritable = expectedDenied && op !== 'select' && status === 500 && code === '55000';
+    const denied = isDenied(status) || notWritable;
+    const unreachable = !notWritable && (status === 0 || status >= 500);
     const ok = unreachable ? false : expectedDenied ? denied : true;
     const entry = { target, op, status, expected: expectedDenied ? 'denied' : 'allowed', ok };
     results.push(entry);
     if (unreachable) errors.push(entry);
     else if (!ok) leaks.push(entry);
-    log(`${ok ? 'PASS' : unreachable ? 'ERROR' : 'LEAK '} ${op.padEnd(6)} ${target} -> HTTP ${status} (expected ${entry.expected})`);
+    log(`${ok ? 'PASS' : unreachable ? 'ERROR' : 'LEAK '} ${op.padEnd(6)} ${target} -> HTTP ${status} (expected ${entry.expected})${notWritable ? ' view cannot be written at all (not automatically updatable)' : ''}`);
   };
 
   for (const t of manifest) {
@@ -127,9 +141,12 @@ export async function runHarness(opts) {
       results.push(entry);
       errors.push(entry);
     }
-    record(t.name, 'insert', (await call('POST', rel, { body: pkBody, schema: t.schema, extraHeaders: rollback })).status, true);
-    record(t.name, 'update', (await call('PATCH', `${rel}?${pkFilter}`, { body: pkBody, schema: t.schema, extraHeaders: rollback })).status, true);
-    record(t.name, 'delete', (await call('DELETE', `${rel}?${pkFilter}`, { schema: t.schema, extraHeaders: rollback })).status, true);
+    const ins = await call('POST', rel, { body: pkBody, schema: t.schema, extraHeaders: rollback });
+    record(t.name, 'insert', ins.status, true, ins.code);
+    const upd = await call('PATCH', `${rel}?${pkFilter}`, { body: pkBody, schema: t.schema, extraHeaders: rollback });
+    record(t.name, 'update', upd.status, true, upd.code);
+    const del = await call('DELETE', `${rel}?${pkFilter}`, { schema: t.schema, extraHeaders: rollback });
+    record(t.name, 'delete', del.status, true, del.code);
   }
 
   // Discovery: what does the API list for this role? (PostgREST's OpenAPI root. Best effort: some projects hide it.)
@@ -199,6 +216,15 @@ export async function main(env = process.env, out = console) {
   out.log(`Checked ${MANIFEST.length} tables/views x 4 operations. Leaks: ${report.leaks.length}. Errors: ${report.errors.length}. Discovery: ${report.discovery}. Sign-ups: ${report.signups}.`);
   if (report.exposed.length > 0) out.log(`Exposed to the publishable key: ${report.exposed.join(', ')}`);
   if (report.discovery !== 'ok') out.log('Note: the API did not list its objects for this key; only the manifest was checked.');
+  // Plain-language hints for the two setup gaps the first live run found (2026-10-24).
+  const notExposed = report.errors.filter((e) => e.op === 'select' && e.status === 406);
+  if (notExposed.length > 0) {
+    out.log(
+      `HINT: ${notExposed.length} public api view(s) answered HTTP 406, so the api schema is not in the project's Exposed schemas. ` +
+        'In the Supabase dashboard open Project Settings, Data API, Settings, Exposed schemas, add api next to public, save, and run this again.',
+    );
+  }
+  if (report.signups === 'ENABLED') out.log('HINT: new sign-ups are still switched on. In the Supabase dashboard open Authentication, then Sign In / Providers (older screens: Settings), and switch off Allow new users to sign up, then run this again.');
   out.log(report.exitCode === 0 ? 'RESULT: 0 leaks' : 'RESULT: FAIL');
   return report.exitCode;
 }

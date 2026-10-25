@@ -53,7 +53,7 @@ There is exactly one `owner` row (a unique index). Editors stay disabled at laun
 ## One-time prerequisites (the owner does these, OT-03)
 
 1. Create the dev project `powersmash-dev` in the Mumbai region (`ap-south-1`). Do not reuse production.
-2. In **Project Settings, API**: keep `public` in "Exposed schemas" (the Worker reaches the private tables in `public` with the secret key; the anon role has no grant on them). If the lead later moves to an `api`-only exposure (D-005), add `Content-Profile`/`Accept-Profile` headers to `src/lib/supabase/rest.ts`.
+2. In **Project Settings, Data API, Settings, Exposed schemas**: keep `public` (the server functions reach the private tables in `public` with the secret key; the anon role has no grant on them) **and add `api`** (the public archive build reads the seven `api.public_*` views with the publishable key and the `Accept-Profile: api` header; without `api` here every view answers HTTP 406, found on the first live run, 2026-10-24). If the lead later moves to an `api`-only exposure (D-005), add `Content-Profile`/`Accept-Profile` headers to `src/lib/supabase/rest.ts`.
 3. Note the project URL (not secret) and create a **secret** key for the Worker. The owner enters the secret on the Cloudflare Worker secret screen as `SUPABASE_SECRET_KEY`; Claude never sees it (`docs/SECRETS.md`).
 
 ## How the lead applies the migration to the DEV project

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { isDenied, main, MANIFEST, runHarness } from '../../scripts/anon-harness.mjs';
 
 // The harness logic with a mocked fetch. The live run against the dev project waits for OT-03.
@@ -129,6 +129,67 @@ describe('anon harness', () => {
     const r = await runHarness({ url: URL, key: KEY, fetch });
     expect(r.discovery).toBe('unavailable');
     expect(r.exitCode).toBe(0);
+  });
+});
+
+describe('harness hints (first live run, 2026-10-24)', () => {
+  it('says in plain words that the api schema is not exposed when the public views answer 406, and that sign-ups must be switched off', async () => {
+    const views = MANIFEST.filter((m) => m.expectSelect).map((m) => m.name);
+    const api = fakeApi({ open: Object.fromEntries(views.map((v) => [v, { select: 406 }])), signupDisabled: false });
+    vi.stubGlobal('fetch', api.fetch);
+    try {
+      const lines = [];
+      const code = await main({ PUBLIC_SUPABASE_URL: URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY: KEY }, { log: (l) => lines.push(l), error: (l) => lines.push(l) });
+      const text = lines.join('\n');
+      expect(code).toBe(1);
+      expect(text).toMatch(/HINT: \d+ public api view\(s\) answered HTTP 406.*Exposed schemas.*add api next to public/);
+      expect(text).toMatch(/HINT: new sign-ups are still switched on.*Allow new users to sign up/);
+      expect(text).not.toContain(KEY);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('harness: public views that cannot be written at all (first live run, 2026-10-24)', () => {
+  const manifest = [{ name: 'public_players', pk: 'id', pkSample: '00000000-0000-0000-0000-000000000000', schema: 'api', expectSelect: true }];
+  /** The normal fake API, except that every WRITE to public_players answers with the given status and JSON body. */
+  const withWriteAnswer = (status, body) => {
+    const base = fakeApi({ open: { public_players: { select: 200 } } });
+    return async (url, init = {}) => {
+      const method = init.method ?? 'GET';
+      if (new globalThis.URL(url).pathname.endsWith('/public_players') && method !== 'GET') return new Response(JSON.stringify(body), { status });
+      return base.fetch(url, init);
+    };
+  };
+
+  it('counts Postgres 55000 (view not automatically updatable) on a write as denied by construction, not as an error', async () => {
+    const r = await runHarness({ url: URL, key: KEY, fetch: withWriteAnswer(500, { code: '55000', message: 'cannot insert into view' }), manifest });
+    expect(r.exitCode).toBe(0);
+    expect(r.errors).toEqual([]);
+    expect(r.leaks).toEqual([]);
+    expect(r.results.filter((x) => x.target === 'public_players' && x.op !== 'select').every((x) => x.ok)).toBe(true);
+  });
+
+  it('still reports any other server error as an error, and never accepts 55000 as an answer to a SELECT that should work', async () => {
+    const other = await runHarness({ url: URL, key: KEY, fetch: withWriteAnswer(500, { code: 'XX000', message: 'boom' }), manifest });
+    expect(other.exitCode).toBe(1);
+    expect(other.errors.length).toBe(3);
+    const noCode = await runHarness({ url: URL, key: KEY, fetch: withWriteAnswer(500, {}), manifest });
+    expect(noCode.errors.length).toBe(3);
+    const base = fakeApi({ open: { public_players: { select: 200 } } });
+    const brokenSelect = async (url, init = {}) =>
+      (init.method ?? 'GET') === 'GET' && new globalThis.URL(url).pathname.endsWith('/public_players')
+        ? new Response(JSON.stringify({ code: '55000' }), { status: 500 })
+        : base.fetch(url, init);
+    const sel = await runHarness({ url: URL, key: KEY, fetch: brokenSelect, manifest });
+    expect(sel.exitCode).toBe(1);
+  });
+
+  it('a write that succeeds on such a view is still a leak', async () => {
+    const r = await runHarness({ url: URL, key: KEY, fetch: withWriteAnswer(201, {}), manifest });
+    expect(r.leaks.length).toBeGreaterThan(0);
+    expect(r.exitCode).toBe(1);
   });
 });
 
