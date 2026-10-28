@@ -131,7 +131,7 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
 
   return (
     <AdminContext.Provider value={ctx}>
-      <div className="mx-auto flex min-h-screen max-w-2xl flex-col pb-28">
+      <div className={cx('mx-auto flex min-h-screen max-w-2xl flex-col', notice ? 'pb-20' : 'pb-28')}>
         {mode === 'preview' ? (
           <p role="status" className="bg-ps-live-tint p-3 text-center text-small font-semibold text-ps-ink">
             Preview with made-up data. Nothing here is real and nothing is saved or sent.
@@ -147,9 +147,12 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
           </Suspense>
         </main>
 
+        {/* Sticky, not fixed: it shows where it always did (80 px up, above the tabs) but takes its own room after the screen, so the last row
+            can always be scrolled clear of it, however long the message. pb-20 while it shows matches bottom-20; w-full keeps the old width.
+            min-w-0 lets a long one-word name wrap instead of pushing Close off the screen (the page would scroll sideways). */}
         {notice ? (
-          <div role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('fixed inset-x-0 bottom-20 z-20 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-lg border-2 p-3 shadow-overlay', notice.tone === 'error' ? 'border-ps-live bg-ps-live-tint text-ps-ink' : 'border-ps-court bg-surface text-fg')}>
-            <span>{notice.text}</span>
+          <div role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('sticky bottom-20 z-20 mx-auto mt-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-lg border-2 p-3 shadow-overlay', notice.tone === 'error' ? 'border-ps-live bg-ps-live-tint text-ps-ink' : 'border-ps-court bg-surface text-fg')}>
+            <span className="min-w-0">{notice.text}</span>
             <span className="flex gap-2">
               {notice.undo ? <Button small onClick={() => void undo()}>Undo</Button> : null}
               <Button small onClick={() => setNotice(null)}>Close</Button>

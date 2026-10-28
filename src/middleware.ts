@@ -27,11 +27,17 @@ const canonicalHost = ((): string | null => {
 const allowIndexing = clean(import.meta.env.PUBLIC_ALLOW_INDEXING) === 'true';
 const hstsMaxAge = parseMaxAge(import.meta.env.PUBLIC_HSTS_MAX_AGE);
 const noindexHostSuffixes = parseHostSuffixes(import.meta.env.PUBLIC_NOINDEX_HOST_SUFFIXES);
-const pageCsp = buildPageCsp({
+const builtCsp = buildPageCsp({
   supabaseOrigin: clean(import.meta.env.PUBLIC_SUPABASE_URL) || null,
   analytics: clean(import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN) !== '',
   turnstile: true,
 });
+// `astro dev` renders every page through this middleware, and the dev server uses inline <style> blocks (Vite CSS) and inline
+// scripts (the astro-island loader) that the build hashes in finalize-headers; the hash-less policy blocks them (unstyled pages,
+// islands never hydrate). Dev server only: `import.meta.env.DEV` is false in every build.
+const pageCsp = import.meta.env.DEV
+  ? builtCsp.replace("style-src 'self'", "style-src 'self' 'unsafe-inline'").replace("script-src 'self'", "script-src 'self' 'unsafe-inline'")
+  : builtCsp;
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const response = await next();
