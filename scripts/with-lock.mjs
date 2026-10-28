@@ -3,9 +3,12 @@
 // Example: node scripts/with-lock.mjs build -- npm run build
 // The lock is a directory created atomically under tmp/locks/ (git-ignored). A lock older than 30 minutes is
 // treated as stale. Waits up to 40 minutes, polling every 3 seconds. Exit code = the command's exit code.
+// Arguments are passed on exactly as given, spaces and quotes included (scripts/lib/shell-command.mjs); one that cmd.exe cannot pass
+// safely stops the run with exit code 2 before the lock is taken.
 import { mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
+import { commandLine } from './lib/shell-command.mjs';
 
 const argv = process.argv.slice(2);
 const sep = argv.indexOf('--');
@@ -15,6 +18,13 @@ if (sep < 1 || sep === argv.length - 1) {
 }
 const name = argv[0].replace(/[^a-z0-9_-]/gi, '');
 const cmd = argv.slice(sep + 1);
+let line;
+try {
+  line = commandLine(cmd);
+} catch (e) {
+  console.error(`with-lock: ${e.message}`);
+  process.exit(2);
+}
 const dir = join('tmp', 'locks', `${name}.lock`);
 const STALE_MS = 30 * 60 * 1000;
 const WAIT_MS = 40 * 60 * 1000;
@@ -65,7 +75,7 @@ process.on('SIGTERM', () => {
   release();
   process.exit(143);
 });
-const child = spawn(cmd[0], cmd.slice(1), { stdio: 'inherit', shell: true });
+const child = spawn(line, { stdio: 'inherit', shell: true });
 child.on('exit', (code, signal) => {
   release();
   process.exit(code ?? (signal ? 1 : 0));
