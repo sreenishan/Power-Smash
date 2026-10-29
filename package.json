@@ -52,7 +52,7 @@
     "@astrojs/check": "0.9.12",
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.1",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "@types/qrcode": "1.5.6",
     "esbuild": "0.28.2",
     "jiti": "2.7.0",
