@@ -5,6 +5,9 @@
 // are not part of the record at all (D-029, D-035 row 4: they come through a click-to-reveal endpoint later).
 // Everything the page shows is computed by tournamentPageModel() in src/content/tournaments.ts, a pure function that
 // tests/site/tournament-page.test.ts runs with fictional records (review C-22), so the template only lays the values out.
+// Spec 7.7 extras: a map search link for the venue text, and for a tournament still to come: add-to-calendar (/tournaments/<slug>.ics,
+// linked only when that file is built), Share on WhatsApp (waShareLink, public fields only) and Get alerts (only once the
+// alerts sign-up can send something: tournamentAlertsHref() is null until then, so the button never does nothing).
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHero from '../../components/ui/PageHero.astro';
@@ -12,10 +15,19 @@ import Section from '../../components/ui/Section.astro';
 import SectionHeading from '../../components/ui/SectionHeading.astro';
 import Button from '../../components/ui/Button.astro';
 import CtaBlock from '../../components/ui/CtaBlock.astro';
+import ShareBar from '../../components/archive/ShareBar.astro';
+import CalendarPlus from '@lucide/astro/icons/calendar-plus';
+import BellRing from '@lucide/astro/icons/bell-ring';
+import MapPin from '@lucide/astro/icons/map-pin';
 import { whatsappTextForPath } from '../../components/site/whatsappText';
 import {
   assertValidTournaments,
+  hasCalendarFile,
+  tournamentMapUrl,
+  tournamentAlertsHref,
   tournamentPageModel,
+  tournamentPhase,
+  tournamentShareText,
   tournaments,
   type TournamentRecord,
 } from '../../content/tournaments';
@@ -32,10 +44,15 @@ interface Props {
   tournament: TournamentRecord;
 }
 const { tournament: t } = Astro.props;
-const { upcoming, when, place, description, statusLabel, contact, jsonLd } = tournamentPageModel(t, {
-  today: todayIst(),
+const today = todayIst();
+const { upcoming, when, place, description, url, statusLabel, contact, jsonLd } = tournamentPageModel(t, {
+  today,
   origin: Astro.site ?? Astro.url,
 });
+const phase = tournamentPhase(t, today);
+const mapUrl = tournamentMapUrl(t);
+const calendarHref = hasCalendarFile(t, today) ? `/tournaments/${t.slug}.ics` : null;
+const alertsHref = tournamentAlertsHref();
 ---
 <BaseLayout title={titleWithBrand(t.name)} description={description} jsonLd={jsonLd}>
   <PageHero
@@ -49,18 +66,46 @@ const { upcoming, when, place, description, statusLabel, contact, jsonLd } = tou
     <SectionHeading id="details-title" title="Details" />
     <ul class="mt-4 flex flex-wrap gap-2 text-caption font-bold">
       {statusLabel && <li class="ps-chip ps-chip-live">{statusLabel}</li>}
-      <li class="ps-chip ps-chip-court">{upcoming ? 'Upcoming' : 'Past'}</li>
+      <li class={phase === 'ongoing' ? 'ps-chip ps-chip-live' : 'ps-chip ps-chip-court'}>{phase === 'ongoing' ? 'Happening now' : upcoming ? 'Upcoming' : 'Past'}</li>
       {t.coveredByPowerSmash && <li class="ps-chip ps-chip-ink">Covered by Power Smash</li>}
     </ul>
     <dl class="mt-6 grid max-w-3xl gap-x-6 gap-y-4 sm:grid-cols-[10rem_1fr]">
       <dt class="font-bold text-fg">Dates</dt>
       <dd class="ps-num">{when}</dd>
-      {place && (<><dt class="font-bold text-fg">Venue</dt><dd>{place}</dd></>)}
+      {place && (
+        <>
+          <dt class="font-bold text-fg">Venue</dt>
+          <dd>
+            {place}
+            {mapUrl && (
+              <a href={mapUrl} target="_blank" rel="noopener noreferrer" class="ml-2 inline-flex items-center gap-1 font-bold">
+                <MapPin size={16} aria-hidden="true" />Open in Maps<span class="sr-only"> (opens a new tab)</span>
+              </a>
+            )}
+          </dd>
+        </>
+      )}
       {t.level && (<><dt class="font-bold text-fg">Level</dt><dd>{t.level}</dd></>)}
       {t.categories.length > 0 && (<><dt class="font-bold text-fg">Categories</dt><dd>{t.categories.join(', ')}</dd></>)}
       {t.organizerName && (<><dt class="font-bold text-fg">Organizer</dt><dd>{t.organizerName}</dd></>)}
     </dl>
     {t.description && <p class="mt-6 max-w-3xl whitespace-pre-line">{t.description}</p>}
+
+    {upcoming && (
+      <div class="mt-8 flex flex-wrap gap-3">
+        {calendarHref && (
+          <Button href={calendarHref} variant="quiet" download={`${t.slug}.ics`}>
+            <CalendarPlus size={20} aria-hidden="true" />Add to calendar
+          </Button>
+        )}
+        <ShareBar text={tournamentShareText(t, url)} source="tournament-share" />
+        {alertsHref && (
+          <Button href={alertsHref} variant="quiet">
+            <BellRing size={20} aria-hidden="true" />Get alerts
+          </Button>
+        )}
+      </div>
+    )}
 
     {contact && (
       <div class="ps-card mt-8 max-w-3xl p-5 sm:p-6">

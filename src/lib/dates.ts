@@ -77,3 +77,16 @@ export function daysBetween(fromIso: string, toIso: string): number {
 export function isUpcoming(startIso: string, endIso: string | null | undefined, today: string): boolean {
   return (endIso ?? startIso) >= today;
 }
+
+/** True while a tournament is running: its first day has come and its last day (inclusive) has not passed in IST. */
+export function isOngoing(startIso: string, endIso: string | null | undefined, today: string): boolean {
+  return startIso <= today && (endIso ?? startIso) >= today;
+}
+
+/** The IST calendar date `days` after `isoDate` (negative goes back), YYYY-MM-DD. Calendar dates have no time zone, so UTC arithmetic is exact. */
+export function addDays(isoDate: string, days: number): string {
+  if (!isIsoDate(isoDate)) throw new RangeError(`Not an ISO calendar date: ${String(isoDate)}`);
+  if (!Number.isInteger(days)) throw new RangeError('addDays expects a whole number of days');
+  const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}

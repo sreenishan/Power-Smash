@@ -1,6 +1,8 @@
 ---
-// Tournaments (spec 7.6, M1 version): a simple list of OWNER-ENTERED tournaments from src/content/tournaments.ts, split into
-// Upcoming and Past by the IST calendar date at build time (D-030; the nightly deploy refreshes it). No filters yet.
+// Tournaments (spec 7.6) from the OWNER-ENTERED list in src/content/tournaments.ts, split by the IST calendar date at build time
+// (D-030; the nightly deploy refreshes it): Happening now, Featured (pinned with a ribbon, the owner's free choice), Upcoming by month,
+// then Past. Filters for district, level, month and category are built from the listed tournaments only; the form stays hidden until
+// src/lib/tournament-filters-client.ts runs, so without JavaScript every tournament is simply listed and no control is dead.
 // With nothing listed it shows an EmptyState with the two organizer calls to action.
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHero from '../../components/ui/PageHero.astro';
@@ -11,24 +13,37 @@ import EmptyState from '../../components/ui/EmptyState.astro';
 import CtaBlock from '../../components/ui/CtaBlock.astro';
 import TournamentCard from '../../components/site/TournamentCard.astro';
 import { whatsappTextForPath } from '../../components/site/whatsappText';
-import { assertValidTournaments, splitTournaments, tournaments } from '../../content/tournaments';
-import { formatMonthYear, todayIst } from '../../lib/dates';
+import {
+  assertValidTournaments,
+  splitTournaments,
+  tournamentFilterKeys,
+  tournamentFilterOptions,
+  tournaments,
+  upcomingSections,
+  type TournamentRecord,
+} from '../../content/tournaments';
+import { todayIst } from '../../lib/dates';
 import { PAGE_META, titleWithBrand } from '../../lib/seo';
 import { ROUTES } from '../../lib/urls';
 
 assertValidTournaments();
 const meta = PAGE_META.tournaments;
-const { upcoming, past } = splitTournaments(tournaments, todayIst());
-
-// Upcoming tournaments grouped by month (soonest first).
-const months: { label: string; items: typeof upcoming }[] = [];
-for (const t of upcoming) {
-  const label = formatMonthYear(t.startDate);
-  const last = months[months.length - 1];
-  if (last && last.label === label) last.items.push(t);
-  else months.push({ label, items: [t] });
-}
+const today = todayIst();
+const { upcoming, past } = splitTournaments(tournaments, today);
+const { now, featured, months } = upcomingSections(tournaments, today);
 const isEmpty = upcoming.length === 0 && past.length === 0;
+const options = tournamentFilterOptions(tournaments);
+const filterFields = [
+  { name: 'district', label: 'District', all: 'All districts', choices: options.district.map((v) => ({ value: v, label: v })) },
+  { name: 'level', label: 'Level', all: 'All levels', choices: options.level.map((v) => ({ value: v, label: v })) },
+  { name: 'month', label: 'Month', all: 'All months', choices: options.month },
+  { name: 'category', label: 'Category', all: 'All categories', choices: options.category.map((v) => ({ value: v, label: v })) },
+].filter((f) => f.choices.length > 1);
+// filters only help once there is something to narrow down
+const showFilters = tournaments.length > 1 && filterFields.length > 0;
+const keysOf = (t: TournamentRecord) => JSON.stringify(tournamentFilterKeys(t));
+const selectClass = 'mt-1 min-h-[3rem] w-full rounded-md border-2 border-line-strong bg-page px-3 text-body ps-transition hover:border-ps-ink focus-visible:border-ps-court';
+const buttonClass = 'min-h-[3rem] rounded-md border-2 border-line-strong px-5 font-[family-name:var(--ps-font-display)] text-lg font-bold uppercase tracking-wider ps-transition hover:bg-ps-court-tint';
 ---
 <BaseLayout title={titleWithBrand(meta.title)} description={meta.description}>
   <PageHero
@@ -53,27 +68,79 @@ const isEmpty = upcoming.length === 0 && past.length === 0;
     </Section>
   )}
 
-  {upcoming.length > 0 && (
+  {showFilters && (
+    <Section labelledBy="filter-title">
+      <h2 id="filter-title" class="sr-only">Filter tournaments</h2>
+      <form data-tournament-filters hidden aria-labelledby="filter-title" class="grid grid-cols-2 gap-3 rounded-lg border border-line border-t-4 border-t-ps-court bg-surface p-4 shadow-card sm:p-5 lg:grid-cols-5">
+        {filterFields.map((f) => (
+          <div>
+            <label for={`tf-${f.name}`} class="block text-small font-bold uppercase tracking-wider">{f.label}</label>
+            <select id={`tf-${f.name}`} name={f.name} class={selectClass}>
+              <option value="">{f.all}</option>
+              {f.choices.map((c) => <option value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+        ))}
+        <div class="col-span-2 flex items-end lg:col-span-1">
+          <button type="button" data-tournament-clear class={buttonClass}>Clear filters</button>
+        </div>
+      </form>
+      <p data-tournament-count aria-live="polite" class="mt-4 text-small font-semibold uppercase tracking-wider text-fg-muted ps-num"></p>
+      <div data-tournament-empty hidden class="mt-6">
+        <EmptyState title="No tournaments match these filters">
+          <p>Try another district, level, month or category.</p>
+          <Fragment slot="actions">
+            <button type="button" data-tournament-clear class={buttonClass}>Clear filters</button>
+          </Fragment>
+        </EmptyState>
+      </div>
+    </Section>
+  )}
+
+  {now.length > 0 && (
+    <div data-tournament-group>
+    <Section labelledBy="now-title">
+      <SectionHeading id="now-title" title="Happening now" />
+      <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {now.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} phase="ongoing" /></li>)}
+      </ul>
+    </Section>
+    </div>
+  )}
+
+  {upcoming.length > now.length && (
+    <div data-tournament-group>
     <Section labelledBy="upcoming-title">
       <SectionHeading id="upcoming-title" title="Upcoming" />
+      {featured.length > 0 && (
+        <div class="mt-8" data-tournament-group>
+          <h3 class="text-h4">Featured</h3>
+          <ul class="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featured.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} featured /></li>)}
+          </ul>
+        </div>
+      )}
       {months.map((month) => (
-        <div class="mt-8">
+        <div class="mt-8" data-tournament-group>
           <h3 class="text-h4">{month.label}</h3>
           <ul class="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {month.items.map((t) => <li><TournamentCard tournament={t} headingLevel={3} /></li>)}
+            {month.items.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} /></li>)}
           </ul>
         </div>
       ))}
     </Section>
+    </div>
   )}
 
   {past.length > 0 && (
+    <div data-tournament-group>
     <Section tone="surface" labelledBy="past-title">
       <SectionHeading id="past-title" title="Past" />
       <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {past.map((t) => <li><TournamentCard tournament={t} headingLevel={3} /></li>)}
+        {past.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} /></li>)}
       </ul>
     </Section>
+    </div>
   )}
 
   {!isEmpty && (
@@ -88,3 +155,9 @@ const isEmpty = upcoming.length === 0 && past.length === 0;
   />
   )}
 </BaseLayout>
+
+<script>
+  // runs on every build of the page; it returns at once when there is no filter form (one tournament or none)
+  import { initTournamentFilters } from '../../lib/tournament-filters-client';
+  initTournamentFilters();
+</script>
