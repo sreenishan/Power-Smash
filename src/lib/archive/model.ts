@@ -351,7 +351,9 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
       };
       for (const m of mine) {
         if (m.tournament) {
-          const key = m.tournament.name;
+          // one row per tournament EDITION: names repeat across editions ("District Open" every year), so key by the tournament id,
+          // or the row's link would point at one edition only (review of D-098)
+          const key = rawById.get(m.id)?.tournamentId ?? `name:${m.tournament.name}`;
           const cur = tourCount.get(key);
           if (cur) cur.count += 1;
           else tourCount.set(key, { name: m.tournament.name, slug: m.tournament.slug, count: 1 });
