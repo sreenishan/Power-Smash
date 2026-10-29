@@ -220,7 +220,7 @@ describe('supabase store: owner tasks', () => {
     expect(w.map((c) => c.method)).toEqual(['POST', 'PATCH']);
     expect(w[1]!.body).toEqual({ status: 'active' });
   });
-  it('price save validates integer paise and calls the proposed RPC admin_save_product; nothing is defaulted', async () => {
+  it('price save validates integer paise and calls the RPC admin_save_product (migration 0011); nothing is defaulted', async () => {
     const s = sb(fake({}).f);
     const items = await s.listProducts();
     expect(items.ok && items.data.every((i) => i.record.pricePaise === null)).toBe(true);
@@ -236,11 +236,43 @@ describe('supabase store: owner tasks', () => {
     expect((await sb(bad.f).saveProduct(ACTOR, { slug: first.slug, name: first.record.name, summary: '', priceType: 'fixed', visible: true, sort: 0 })).ok).toBe(false);
     expect(bad.calls).toHaveLength(0);
   });
-  it('the missing products RPC fails closed', async () => {
-    const { f } = fake({}, (c) => c.url.includes('/rpc/admin_save_product'));
-    const first = (await sb(fake({}).f).listProducts());
+  it('a database refusal comes back as a plain code with no SQL text; an unexplained failure stays BACKEND_ERROR (migration 0011)', async () => {
+    const first = await sb(fake({}).f).listProducts();
     const p = first.ok ? first.data[0]! : (undefined as never);
-    expect(await sb(f).saveProduct(ACTOR, { slug: p.slug, name: p.record.name, summary: p.record.summary, priceType: 'fixed', priceRupees: '100', visible: false, sort: 0 })).toEqual({ ok: false, code: 'BACKEND_ERROR' });
+    const input = { slug: p.slug, name: p.record.name, summary: p.record.summary, priceType: 'fixed', priceRupees: '100', visible: false, sort: 0 };
+    const base = fake({}).f;
+    const refusing = (async (url: string, init: RequestInit) =>
+      url.includes('/rpc/admin_save_product')
+        ? new Response(JSON.stringify({ code: '22023', message: 'INVALID: the price must be a whole number of paise above zero, or empty' }), { status: 400 })
+        : base(url, init)) as unknown as typeof fetch;
+    expect(await sb(refusing).saveProduct(ACTOR, input)).toEqual({ ok: false, code: 'INVALID' });
+    const forbidding = (async (url: string, init: RequestInit) =>
+      url.includes('/rpc/') ? new Response(JSON.stringify({ code: '42501', message: 'FORBIDDEN: the actor is not the owner' }), { status: 403 }) : base(url, init)) as unknown as typeof fetch;
+    expect(await sb(forbidding).saveProduct(ACTOR, input)).toEqual({ ok: false, code: 'FORBIDDEN' });
+    const { f } = fake({}, (c) => c.url.includes('/rpc/admin_save_product'));
+    expect(await sb(f).saveProduct(ACTOR, input)).toEqual({ ok: false, code: 'BACKEND_ERROR' });
+  });
+  it('the list lays a stored price over the content baseline; saving compares against the STORED row', async () => {
+    const first = await sb(fake({}).f).listProducts();
+    const p = first.ok ? first.data[0]! : (undefined as never);
+    const row = {
+      slug: p.slug, name: p.record.name, summary: p.record.summary, price_type: 'fixed', price_paise: 250000, gst_inclusive: null, delivery_days: null,
+      visible: false, sort: 0, inclusions: p.record.inclusions, inclusions_approved: false, quote_wording_approved: false,
+    };
+    const stored = fake({ products: [row] });
+    const list = await sb(stored.f).listProducts();
+    expect(list.ok && list.data.find((i) => i.slug === p.slug)?.record.pricePaise).toBe(250000);
+    expect(list.ok && list.data.filter((i) => i.slug !== p.slug).every((i) => i.record.pricePaise === null)).toBe(true);
+    // the same price again: nothing to change, and no write at all
+    const same = fake({ products: [row] });
+    const r1 = await sb(same.f).saveProduct(ACTOR, { slug: p.slug, name: p.record.name, summary: p.record.summary, priceType: 'fixed', priceRupees: '2,500', visible: false, sort: 0, inclusions: p.record.inclusions });
+    expect(r1.ok).toBe(false);
+    expect(same.calls.filter((c) => c.url.includes('/rpc/'))).toHaveLength(0);
+    // a real change is a price change from the STORED 2,500 (not from the content file's empty price)
+    const change = fake({ products: [row] });
+    const r2 = await sb(change.f).saveProduct(ACTOR, { slug: p.slug, name: p.record.name, summary: p.record.summary, priceType: 'fixed', priceRupees: '3,000', visible: false, sort: 0, inclusions: p.record.inclusions });
+    expect(r2.ok && r2.data.record.pricePaise).toBe(300000);
+    expect(change.calls.find((c) => c.url.includes('/rpc/'))!.body).toMatchObject({ p_reason: 'price change' });
   });
   it('poster targets: the channel plus public tournaments with a safe slug', async () => {
     const { f } = fake({ tournaments: [{ slug: 'demo-open-cup', name: 'Demo Open Cup' }, { slug: '../bad', name: 'Bad' }] });

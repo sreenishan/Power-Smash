@@ -46,9 +46,10 @@ describe('RLS / grants matrix (pure policy table)', () => {
   it('private tables are never reachable by anon', () => {
     for (const t of tables) if (RLS_MATRIX[t].private) for (const op of DB_OPS) expect(isAllowedOp(t, 'anon', op), `${t} ${op}`).toBe(false);
   });
-  it('the public views are exactly the api views the archive types list', async () => {
+  it('the public views are exactly the api views the archive types list, plus the products view (0011, D-099)', async () => {
     const { API_VIEWS } = await import('../../src/lib/archive/types');
-    expect(tables.filter((t) => t.startsWith('api.')).sort()).toEqual(API_VIEWS.map((v) => `api.${v}`).sort());
+    const { PRODUCT_VIEW } = await import('../../src/lib/products/db');
+    expect(tables.filter((t) => t.startsWith('api.')).sort()).toEqual([...API_VIEWS, PRODUCT_VIEW].map((v) => `api.${v}`).sort());
   });
   it('audit_log is append-only for everyone: no update, no delete, no direct insert, even for the owner', () => {
     for (const role of DB_ROLES) for (const op of ['insert', 'update', 'delete'] as const) expect(isAllowedOp('audit_log', role, op, { editorsEnabled: true }), `${role} ${op}`).toBe(false);

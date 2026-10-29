@@ -37,6 +37,8 @@ export const MANIFEST = [
   { name: 'placement_stats_daily', pk: 'placement_id', pkSample: NIL_UUID },
   { name: 'placement_page_stats_daily', pk: 'placement_id', pkSample: NIL_UUID },
   { name: 'placement_impression_seen', pk: 'placement_id', pkSample: NIL_UUID },
+  // 0011_products.sql (D-099): the owner's prices, denied; the public view is below
+  { name: 'products', pk: 'slug', pkSample: '__no_such_product__' },
   // 0004_archive_core.sql, 0005_archive_safety.sql (M2): private archive tables, all denied
   { name: 'videos', pk: 'youtube_id', pkSample: '__no_such_video__' },
   { name: 'video_title_history', pk: 'id', pkSample: '0' },
@@ -63,6 +65,7 @@ export const MANIFEST = [
   { name: 'public_match_participants', pk: 'match_id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
   { name: 'public_players', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
   { name: 'public_tournaments', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  { name: 'public_products', pk: 'slug', pkSample: '__no_such_product__', schema: 'api', expectSelect: true },
   { name: 'public_slug_redirects', pk: 'from_path', pkSample: '/__no_such_path__/', schema: 'api', expectSelect: true },
   { name: 'public_archive_modes', pk: 'key', pkSample: '__no_such_key__', schema: 'api', expectSelect: true },
   // Later milestones add their tables here, for example:

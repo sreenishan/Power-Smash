@@ -53,9 +53,9 @@ begin
       if c.column_name = any (forbidden) then raise exception 'ASSERT FAIL: api.% exposes the private column %', v, c.column_name; end if;
     end loop;
   end loop;
-  -- nothing else lives in schema api
-  if exists (select 1 from pg_class cl join pg_namespace n on n.oid = cl.relnamespace where n.nspname = 'api' and cl.relkind in ('r', 'v', 'm', 'f', 'p') and cl.relname <> all (views)) then
-    raise exception 'ASSERT FAIL: schema api holds an object that is not one of the seven public views';
+  -- nothing else lives in schema api, except the views later migrations add by name (0011 public_products, checked in 0011_assertions.sql)
+  if exists (select 1 from pg_class cl join pg_namespace n on n.oid = cl.relnamespace where n.nspname = 'api' and cl.relkind in ('r', 'v', 'm', 'f', 'p') and cl.relname <> all (views || array['public_products'])) then
+    raise exception 'ASSERT FAIL: schema api holds an object that is not one of the seven archive views or a named later view';
   end if;
   if exists (select 1 from pg_proc pr join pg_namespace n on n.oid = pr.pronamespace where n.nspname = 'api') then
     raise exception 'ASSERT FAIL: schema api must hold no function';
