@@ -1415,6 +1415,16 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - `/tournaments/` gains a "From our videos" section (archive tournaments with their number of match videos, spec 7.6), with the sample-data notice, outside the owner filters.
 - **Consequences.** Everything stays unpublished: `features.archivePages` is still false and the strict build keeps refusing the fictional seed (ArchiveSeedNotice). Owner-entered and archive tournaments stay separate records; joining them, and whether minimal matches should count towards the threshold, are owner questions 17 and 18 below. Tests: `tests/archive/tournament-pages.test.ts`; the existing tournament guard now reads the moved owner page and the route file.
 
+## D-099 Products table and the owner's price saves (amends D-091)
+
+- **Context.** D-091 put a Prices screen in the admin, but the database had no products table and no `admin_save_product`, so every save failed closed with a generic error. The proposal named a "0009" migration; 0009 and 0010 were used since (archive purge, retention).
+- **Decision.**
+  - Migration `0011_products.sql`: `public.products` (one row per product the owner has edited, keyed by the slug in `src/content/products.ts`; NO seed rows), `api.public_products` (visible products only, 8 explicit columns, no inclusions) and `public.admin_save_product(p_actor, p_slug, p_record, p_reason)`.
+  - Money rules in the database as well as in the app (D-020, D-021): integer paise; `price_paise`, `gst_inclusive` and `delivery_days` have no default; a visible fixed or starting-from product needs a price; a visible quote product without a price needs the approved "On quote" wording. The RPC refuses unknown or missing fields and any value of the wrong type (never coerced), is owner-only (`app.require_owner`), audits prices, visibility and the names of the changed fields only (no free text), and marks the site dirty. House rules: RLS on with no policies, everything revoked, the service role reads only.
+  - The admin store lays the stored rows over the content baseline and compares a save against the STORED row (a second identical save is "nothing to change"; the audit shows the real old price). It checks the input before any network call. Database refusals that start with `INVALID:` or `FORBIDDEN:` come back as those plain codes instead of a generic error.
+  - The public pages still read `src/content/products.ts`. Reading `api.public_products` in the build is a later slice, and switching a real build to database prices changes what visitors see, so it needs the owner's yes. Inclusions stay in the content file (their availableFrom markers are not stored).
+- **Consequences.** Saving a price works once the migration is applied to the owner's Supabase project. No price is set by Claude (OT-20). Tests: `tests/supabase/products-view.test.ts`, `supabase/checks/0011_assertions.sql` (run on the local PostgreSQL), the updated admin store tests.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

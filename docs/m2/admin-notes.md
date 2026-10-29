@@ -80,8 +80,8 @@ New areas (each a lazy chunk; the bottom bar has Home, Enquiries, Videos, Player
 
 Database mapping (what exists in the migrations and what does not):
 - Leads, sponsors, placements: `service_role` has select/insert/update (0001, 0007) but there is NO admin RPC. The store writes with the service key and writes the `audit_log` row FIRST (fail closed: no change without its audit row; tested). Audit rows hold field names only, never notes or contact data; a status move also adds a `lead_events` row (`status_changed`, from/to only).
-- Prices: there is no products table or RPC. `listProducts` returns the content baseline (no prices); `saveProduct` validates and calls the PROPOSED RPC `admin_save_product(p_actor text, p_slug text, p_record jsonb, p_reason text)`, which fails closed (generic backend error) until a 0009 migration provides it and a table the build reads.
-- REQUEST (SCHEMA/lead): 0009 with `product_overrides` (or similar) plus `admin_save_product`, and, ideally, audited RPCs for lead update and placement create/status so the Worker needs no direct table writes.
+- Prices: since 2026-10-29 (D-099, migration 0011, not 0009) `public.products` and `admin_save_product(p_actor text, p_slug text, p_record jsonb, p_reason text)` exist. `listProducts` lays the stored rows over the content baseline; `saveProduct` checks the input, compares against the stored row and calls the RPC. The public pages still read the content file until the owner switches the database source on.
+- REQUEST (SCHEMA/lead): the products part is done (0011, D-099). Still open: audited RPCs for lead update and placement create/status so the server needs no direct table writes.
 - Placement images are uploaded in Supabase Storage for now; the form takes the file name. Sponsors are created in Supabase for now (the Sponsors screen only lists them).
 - The field lock now calls `admin_set_match_lock` (0008), mapped to the SQL field names.
 

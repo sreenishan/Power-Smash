@@ -111,6 +111,8 @@ export const RLS_MATRIX = {
   'api.public_tournaments': { private: false, grants: PUBLIC_VIEW },
   'api.public_slug_redirects': { private: false, grants: PUBLIC_VIEW },
   'api.public_archive_modes': { private: false, grants: PUBLIC_VIEW },
+  // 0011_products.sql (D-099): visible products only, explicit columns
+  'api.public_products': { private: false, grants: PUBLIC_VIEW },
   // archive base tables: owner reads, writes only via RPC
   'videos': { private: true, grants: OWNER_READ_RPC_WRITE },
   'video_title_history': { private: true, grants: OWNER_READ },
@@ -135,6 +137,8 @@ export const RLS_MATRIX = {
   'profile_requests': { private: true, grants: OWNER_READ_RPC_WRITE },
   'sponsors': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placements': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0011_products.sql (D-099): the owner's prices; writes only through admin_save_product
+  'products': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placement_stats_daily': { private: true, grants: OWNER_READ },
   'placement_page_stats_daily': { private: true, grants: OWNER_READ },
   // Worker-only plumbing: no admin access at all

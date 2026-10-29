@@ -14,7 +14,7 @@ import { toInboxLead, INBOX_COLUMNS, type InboxLead } from '../inbox/lead';
 import { isLeadStatus, type LeadStatus } from '../inbox/status';
 import { PLACEMENT_COLUMNS, placementFromRow } from '../placements/store';
 import { istDateOf, type Placement } from '../placements/schedule';
-import type { ProductRecord } from '../pricing-admin/product-edit';
+import { validateProductEdit, type ProductRecord } from '../pricing-admin/product-edit';
 import { isAcceptableSupabaseUrl } from '../supabase/rest';
 import type { PaymentRecord } from '../pricing-admin/mark-paid';
 import { applyLeadUpdate, checkStatusChange, prepareMarkPaid, prepareNewPlacement, prepareProductSave } from './ops';
@@ -62,7 +62,8 @@ class BackendError extends Error {
   }
 }
 
-const KNOWN: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP'];
+// Codes the database raises at the start of an error message ('INVALID: ...', 'FORBIDDEN: ...' come last so a specific code wins).
+const KNOWN: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP', 'INVALID', 'FORBIDDEN'];
 
 const enc = encodeURIComponent;
 const MATCH_COLUMN: Record<ParsedField, string | null> = { tournament: 'tournament_id', category: 'category', age_group: 'age_group', round: 'round', participants: 'participants' };
@@ -163,13 +164,30 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
   const sponsorOf = (r: SponsorRow): SponsorDto => ({ id: r.id, name: r.name, website: r.website, active: r.active });
   const loadPlacementList = async (): Promise<Placement[]> =>
     (await select<Record<string, unknown>>('placements', `select=${PLACEMENT_COLUMNS}&order=start_date.desc&limit=1000`)).map(placementFromRow).filter((p): p is Placement => p !== null);
-  // The public product list has no database table yet (no default price exists anywhere): the baseline is the content file with no prices.
+  // A product the owner has not edited yet is the content file's baseline: no price (none exists anywhere by default), hidden.
   const baseline = (slug: string): ProductItem | undefined => {
     const p = contentProducts.find((x) => x.slug === slug);
     return p
       ? { slug: p.slug, group: p.group, record: { name: p.name, summary: p.summary, priceType: p.priceType, pricePaise: p.pricePaise, gstInclusive: p.gstInclusive, deliveryDays: p.deliveryDays, visible: false, sort: 0, inclusions: p.inclusions.map((i) => i.text), inclusionsApproved: p.inclusionsApproved, quoteWordingApproved: p.quoteWordingApproved } satisfies ProductRecord }
       : undefined;
   };
+
+  type ProductRow = {
+    slug: string; name: string; summary: string; price_type: ProductRecord['priceType']; price_paise: number | null; gst_inclusive: boolean | null;
+    delivery_days: number | null; visible: boolean; sort: number; inclusions: string[]; inclusions_approved: boolean; quote_wording_approved: boolean;
+  };
+  const PRODUCT_COLUMNS = 'slug,name,summary,price_type,price_paise,gst_inclusive,delivery_days,visible,sort,inclusions,inclusions_approved,quote_wording_approved';
+  const storedOver = (item: ProductItem, row: ProductRow | undefined): ProductItem =>
+    row
+      ? {
+          ...item,
+          record: {
+            name: row.name, summary: row.summary, priceType: row.price_type, pricePaise: row.price_paise, gstInclusive: row.gst_inclusive,
+            deliveryDays: row.delivery_days, visible: row.visible, sort: row.sort, inclusions: row.inclusions, inclusionsApproved: row.inclusions_approved,
+            quoteWordingApproved: row.quote_wording_approved,
+          },
+        }
+      : item;
 
   async function aliasCounts(ids: string[]): Promise<Map<string, number>> {
     const out = new Map<string, number>();
@@ -422,14 +440,25 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
         return okResult({ id: p.id });
       }),
 
-    // Prices: there is no products table in the migrations yet. The list is the content baseline (no prices); saving calls the PROPOSED RPC
-    // admin_save_product (migration 0009, docs/m2/admin-notes.md) and fails closed (BACKEND_ERROR) until it exists.
-    listProducts: () => guard(async () => okResult(contentProducts.map((p) => baseline(p.slug)!))),
+    // Prices (migration 0011, D-099): the owner's saved rows in public.products laid over the content baseline by slug. A stored row whose
+    // slug is not in src/content/products.ts is ignored. Saving goes through admin_save_product (owner only, audited).
+    listProducts: () =>
+      guard(async () => {
+        const stored = new Map((await select<ProductRow>('products', `select=${PRODUCT_COLUMNS}&limit=1000`)).map((r) => [r.slug, r]));
+        return okResult(contentProducts.map((p) => storedOver(baseline(p.slug)!, stored.get(p.slug))));
+      }),
 
     saveProduct: (actor, input: ProductSaveInput) =>
       guard(async () => {
-        const item = baseline(input.slug);
-        if (!item) return failResult('NOT_FOUND');
+        const base = baseline(input.slug);
+        if (!base) return failResult('NOT_FOUND');
+        // check the input first: a refused form makes no network call at all (the "anything changed?" test needs the stored row below)
+        const { slug: _slug, ...edit } = input;
+        const pre = validateProductEdit(edit);
+        if (!pre.ok) return failResult('INVALID', pre.errors as Record<string, string>);
+        // compare against what is STORED, so a second identical save is "nothing to change" and the audit shows the real old price
+        const [row] = await select<ProductRow>('products', `select=${PRODUCT_COLUMNS}&slug=eq.${encodeURIComponent(input.slug)}&limit=1`);
+        const item = storedOver(base, row);
         const r = prepareProductSave(item.record, input);
         if (!r.ok) return failResult('INVALID', r.errors);
         await rpc('admin_save_product', { p_actor: actor.userId, p_slug: input.slug, p_record: r.value, p_reason: r.price ? 'price change' : 'product edit' });
