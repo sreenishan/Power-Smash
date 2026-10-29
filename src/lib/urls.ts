@@ -92,6 +92,8 @@ export const ARCHIVE_ROUTES = {
 export const matchPath = (slug: string): string => `/matches/${slug}/`;
 /** /players/<slug>/ */
 export const playerPath = (slug: string): string => `/players/${slug}/`;
+/** A tournament page (owner-entered or archive): the one canonical slash form (R-LINKS). */
+export const tournamentPath = (slug: string): string => `/tournaments/${slug}/`;
 /** /matches/ for page 1, /matches/page/N/ after that. */
 export const matchListPath = (page: number): string => (page <= 1 ? ARCHIVE_ROUTES.matches : `/matches/page/${Math.floor(page)}/`);
 

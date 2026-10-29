@@ -3,7 +3,9 @@
 // (D-030; the nightly deploy refreshes it): Happening now, Featured (pinned with a ribbon, the owner's free choice), Upcoming by month,
 // then Past. Filters for district, level, month and category are built from the listed tournaments only; the form stays hidden until
 // src/lib/tournament-filters-client.ts runs, so without JavaScript every tournament is simply listed and no control is dead.
-// With nothing listed it shows an EmptyState with the two organizer calls to action.
+// "From our videos" (D-098, spec 7.6 video counts) lists the archive tournaments that have a page (read from YouTube titles), each
+// with its number of match videos; it carries the sample-data notice and stays outside the filters (they key off owner records).
+// With nothing listed at all it shows an EmptyState with the two organizer calls to action.
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHero from '../../components/ui/PageHero.astro';
 import Section from '../../components/ui/Section.astro';
@@ -12,6 +14,8 @@ import Button from '../../components/ui/Button.astro';
 import EmptyState from '../../components/ui/EmptyState.astro';
 import CtaBlock from '../../components/ui/CtaBlock.astro';
 import TournamentCard from '../../components/site/TournamentCard.astro';
+import ArchiveTournamentCard from '../../components/archive/ArchiveTournamentCard.astro';
+import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
 import { whatsappTextForPath } from '../../components/site/whatsappText';
 import {
   assertValidTournaments,
@@ -23,6 +27,8 @@ import {
   type TournamentRecord,
 } from '../../content/tournaments';
 import { todayIst } from '../../lib/dates';
+import { loadPublicArchive } from '../../lib/archive/model';
+import { TOURNAMENT_PAGES_BUILT } from '../../lib/archive/provider';
 import { PAGE_META, titleWithBrand } from '../../lib/seo';
 import { ROUTES } from '../../lib/urls';
 
@@ -31,7 +37,9 @@ const meta = PAGE_META.tournaments;
 const today = todayIst();
 const { upcoming, past } = splitTournaments(tournaments, today);
 const { now, featured, months } = upcomingSections(tournaments, today);
-const isEmpty = upcoming.length === 0 && past.length === 0;
+const archive = await loadPublicArchive();
+const fromVideos = TOURNAMENT_PAGES_BUILT ? archive.tournaments : [];
+const isEmpty = upcoming.length === 0 && past.length === 0 && fromVideos.length === 0;
 const options = tournamentFilterOptions(tournaments);
 const filterFields = [
   { name: 'district', label: 'District', all: 'All districts', choices: options.district.map((v) => ({ value: v, label: v })) },
@@ -141,6 +149,16 @@ const buttonClass = 'min-h-[3rem] rounded-md border-2 border-line-strong px-5 fo
       </ul>
     </Section>
     </div>
+  )}
+
+  {fromVideos.length > 0 && (
+    <Section labelledBy="videos-title">
+      <SectionHeading id="videos-title" title="From our videos" lead="Tournaments we have match videos from, with the number of matches on each page." />
+      <ArchiveSeedNotice source={archive.source} />
+      <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {fromVideos.map((t) => <li><ArchiveTournamentCard tournament={t} headingLevel={3} /></li>)}
+      </ul>
+    </Section>
   )}
 
   {!isEmpty && (

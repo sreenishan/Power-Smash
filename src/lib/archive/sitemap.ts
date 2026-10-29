@@ -1,7 +1,7 @@
 // XML sitemaps split by type with lastmod (spec 9.1). Pure builders; the endpoints in src/pages/sitemap-*.xml.ts call them.
 // Only INDEXABLE pages are listed: full and listed matches, adult profiles, public tournaments. A minimal (noindex) match or player,
 // a protected player and a hidden record are never in any sitemap, and a minimal match's opaque slug is not listed either (D-012).
-import { ARCHIVE_ROUTES, M3_ROUTES, ROUTES, absoluteUrl } from '../urls';
+import { ARCHIVE_ROUTES, M3_ROUTES, ROUTES, absoluteUrl, tournamentPath } from '../urls';
 import type { PublicArchive } from './model';
 import { TOURNAMENT_PAGES_BUILT } from './provider';
 
@@ -56,14 +56,16 @@ export function tournamentSitemapUrls(
   origin: string | URL,
   archivePagesBuilt: boolean = TOURNAMENT_PAGES_BUILT,
 ): SitemapUrl[] {
-  const owner = ownerTournaments.map((t) => ({ loc: absoluteUrl(`/tournaments/${t.slug}/`, origin), lastmod: t.endDate ?? t.startDate }));
-  const arch = archivePagesBuilt ? archive.tournaments.map((t) => ({ loc: absoluteUrl(`/tournaments/${t.slug}/`, origin), lastmod: t.lastmod })) : [];
+  const owner = ownerTournaments.map((t) => ({ loc: absoluteUrl(tournamentPath(t.slug), origin), lastmod: t.endDate ?? t.startDate }));
+  const arch = archivePagesBuilt ? archive.tournaments.map((t) => ({ loc: absoluteUrl(tournamentPath(t.slug), origin), lastmod: t.lastmod })) : [];
+  // The archive model gives archive tournaments addresses the owner list does not use (model.ts tournamentSlugs), so a duplicate
+  // here is a bug: fail the build rather than silently dropping one of two pages.
   const seen = new Set<string>();
-  return [...owner, ...arch].filter((u) => {
-    if (seen.has(u.loc)) return false;
+  for (const u of [...owner, ...arch]) {
+    if (seen.has(u.loc)) throw new Error(`sitemap-tournaments: duplicate address ${u.loc}`);
     seen.add(u.loc);
-    return true;
-  });
+  }
+  return [...owner, ...arch];
 }
 
 /** The fixed pages. No lastmod: nothing real to say about them. */

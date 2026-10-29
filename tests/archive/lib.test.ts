@@ -93,9 +93,11 @@ describe('search index and filters (D-010)', () => {
   it('never finds a protected player', () => {
     for (const q of ['ilan', 'tara', 'mugil', 'oviya', 'trial junior', 'sample ilan v']) expect(searchIndex(index, q)).toEqual([]);
   });
-  it('tournaments have no link until their pages exist', () => {
+  it('tournaments link to their pages only while the pages are built (D-098)', () => {
+    const unbuilt = searchIndex(buildSearchIndex(archive, false), 'district open').find((h) => h.kind === 'tournament');
+    expect(unbuilt?.href).toBeNull();
     const hit = searchIndex(index, 'district open').find((h) => h.kind === 'tournament');
-    expect(hit?.href).toBeNull();
+    expect(hit?.href).toBe('/tournaments/fake-district-open-2025-madurai/');
     const linked = searchIndex(buildSearchIndex(archive, true), 'district open').find((h) => h.kind === 'tournament');
     expect(linked?.href).toMatch(/^\/tournaments\/.+\/$/);
   });

@@ -6,7 +6,7 @@
 //
 // Pure functions, unit-tested in tests/archive/search.test.ts. No dependency: the matcher is a small prefix/substring scorer.
 
-import { ageGroupLabel, categoryLabel, roundLabel } from './labels';
+import { ageGroupLabel, categoryLabel, roundLabel, roundRank } from './labels';
 import type { ArchiveMatch, PublicArchive } from './model';
 import { TOURNAMENT_PAGES_BUILT } from './provider';
 import { slugify } from './slugs';
@@ -189,11 +189,6 @@ export interface FilterOptions {
   districts: FilterOption[];
 }
 
-const ROUND_ORDER = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', '3P', 'group', 'league'];
-const roundRank = (v: string): number => {
-  const i = ROUND_ORDER.indexOf(v);
-  return i < 0 ? 99 : i;
-};
 
 /** The values present in `items`, as option lists for the filter form. */
 export function filterOptions(items: readonly MatchItem[]): FilterOptions {

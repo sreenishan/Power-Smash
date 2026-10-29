@@ -30,6 +30,13 @@ function clip(slug: string, max: number): string {
 /** Slugs that a player or match may never take because another page sits at that address. */
 export const RESERVED_PLAYER_SLUGS: ReadonlySet<string> = new Set(['page', 'index']);
 export const RESERVED_MATCH_SLUGS: ReadonlySet<string> = new Set(['page', 'index', 'gone']);
+/**
+ * The ONE reserved set for /tournaments/<slug>/, shared by the owner-entered list (src/content/tournaments.ts) and the archive model:
+ * /tournaments/submit/ is its own page; 'page' and 'index' are kept free for list paging like /matches/ and /players/.
+ */
+export const RESERVED_TOURNAMENT_SLUGS: ReadonlySet<string> = new Set(['submit', 'page', 'index']);
+/** A tournament slug: lowercase letters, digits and single hyphens (spec 6.3). */
+export const TOURNAMENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function playerSlugBase(displayName: string): string {
   return clip(slugify(displayName), MAX_SLUG_PART) || 'player';

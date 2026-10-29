@@ -1,0 +1,108 @@
+---
+// An ARCHIVE tournament page (M2c-3, spec 7.7 "Past" view, D-098): a tournament read from YouTube titles, at /tournaments/<slug>/ next to
+// the owner-entered ones. It exists only for tournaments in PublicArchive.tournaments (D-013: page_eligible, else 3 or more full matches;
+// public Tamil Nadu events only, D-018). It lists the FULL matches only (groupTournamentMatches drops anything else, D-012): every card
+// shows the raw YouTube title unmodified (D-016) and the parsed details are labelled "by Power Smash". "Most viewed on YouTube" is a
+// plain sort by each video's own count, no totals or scores (D-016, D-077). No sponsor slot yet (features.sponsorBanners is off).
+// The sample-data notice keeps the strict build refusing the fictional seed (D-077), and the global noindex gate applies.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHero from '../ui/PageHero.astro';
+import Section from '../ui/Section.astro';
+import SectionHeading from '../ui/SectionHeading.astro';
+import CtaBlock from '../ui/CtaBlock.astro';
+import MatchCard from './MatchCard.astro';
+import ShareBar from './ShareBar.astro';
+import ArchiveSeedNotice from './ArchiveSeedNotice.astro';
+import { whatsappTextForPath } from '../site/whatsappText';
+import type { ArchiveMatch, ArchiveTournament } from '../../lib/archive/model';
+import { archiveTournamentDescription, archiveTournamentPlace, groupTournamentMatches, mostViewed } from '../../lib/archive/tournament-page';
+import { formatDateRange } from '../../lib/dates';
+import { sportsEventJsonLd } from '../../lib/jsonld';
+import { titleWithBrand } from '../../lib/seo';
+import { ROUTES, absoluteUrl, tournamentPath } from '../../lib/urls';
+
+interface Props {
+  tournament: ArchiveTournament;
+  /** The tournament's matches, resolved from tournament.matchSlugs (full matches only). */
+  matches: ArchiveMatch[];
+  source: 'seed' | 'supabase';
+}
+const { tournament: t, matches, source } = Astro.props;
+const origin = Astro.site ?? Astro.url;
+const pageUrl = absoluteUrl(tournamentPath(t.slug), origin);
+const groups = groupTournamentMatches(matches);
+const top = mostViewed(matches);
+const when = t.startDate ? formatDateRange(t.startDate, t.endDate) : null;
+const place = archiveTournamentPlace(t);
+const description = archiveTournamentDescription(t);
+const jsonLd = t.startDate
+  ? sportsEventJsonLd({ name: t.name, startDate: t.startDate, endDate: t.endDate, url: pageUrl, venue: null, city: t.city, organizerName: null, status: 'scheduled', description })
+  : undefined;
+const videos = `${t.matchCount} match video${t.matchCount === 1 ? '' : 's'}`;
+---
+<BaseLayout title={titleWithBrand(t.name)} description={description} canonicalPath={tournamentPath(t.slug)} jsonLd={jsonLd}>
+  <ArchiveSeedNotice source={source} />
+  <PageHero
+    tone="dark"
+    title={t.name}
+    lead={when ?? undefined}
+    crumbs={[{ name: 'Tournaments', href: ROUTES.tournaments }, { name: t.name }]}
+  />
+
+  <Section labelledBy="details-title">
+    <SectionHeading id="details-title" title="Details" />
+    <dl class="mt-6 grid max-w-3xl gap-x-6 gap-y-4 sm:grid-cols-[10rem_1fr]">
+      {when && (<><dt class="font-bold text-fg">Dates</dt><dd class="ps-num">{when}</dd></>)}
+      {place && (<><dt class="font-bold text-fg">Place</dt><dd>{place}</dd></>)}
+      {t.level && (<><dt class="font-bold text-fg">Level</dt><dd>{t.level}</dd></>)}
+      <dt class="font-bold text-fg">Match videos</dt>
+      <dd class="ps-num">{videos}</dd>
+    </dl>
+    <p class="mt-4 max-w-3xl text-small text-fg-muted">
+      Matches, categories and rounds are read from the video titles by Power Smash. These details can contain mistakes. Each card shows the
+      title exactly as on YouTube.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <ShareBar text={`${t.name} ${pageUrl}`} source="tournament-archive" />
+    </div>
+  </Section>
+
+  {top.length > 0 && (
+    <Section tone="surface" labelledBy="top-title">
+      <SectionHeading id="top-title" title="Most viewed on YouTube" />
+      <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {top.map((m) => <li><MatchCard match={m} /></li>)}
+      </ul>
+    </Section>
+  )}
+
+  {groups.map((g, gi) => (
+    <Section labelledBy={`category-${gi}`}>
+      <h2 id={`category-${gi}`} class="text-h3">{g.label}</h2>
+      {g.rounds.map((r) => (
+        <div class="mt-6">
+          <h3 class="text-h4">{r.label}</h3>
+          <ul class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {r.matches.map((m) => <li><MatchCard match={m} headingLevel={4} /></li>)}
+          </ul>
+        </div>
+      ))}
+    </Section>
+  ))}
+
+  <CtaBlock
+    id="tournament-cta"
+    title="Is this your tournament?"
+    text="Book coverage or have it featured."
+    primaryHref={ROUTES.book}
+    primaryLabel="Book coverage"
+    whatsappText={whatsappTextForPath(Astro.url.pathname)}
+    source="tournament-archive-page"
+  />
+
+  <Section compact>
+    <p class="text-small text-fg-muted">
+      Is this you or your child? <a href={ROUTES.contentRemoval}>Request a change or removal</a>.
+    </p>
+  </Section>
+</BaseLayout>

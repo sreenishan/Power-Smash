@@ -7,7 +7,8 @@
 //  - `grid`: the matches shown in lists, JSON and sitemaps (full and listed only, newest first);
 //  - `players`: adult_confirmed players with at least one full match (a profile needs real content);
 //  - `minimalPlayers`: unknown-age players when the setting asks for a minimal noindex page (name only);
-//  - `tournaments`: public Tamil Nadu tournaments that have at least one public match.
+//  - `tournaments`: public Tamil Nadu tournaments that get a page under D-013 (the source's page_eligible flag, else 3 or more full
+//    matches), each with the slugs of its full matches.
 // Pure and deterministic: `buildPublicArchive(raw)` has no clock and no network (the snapshot time is `raw.generatedAt`).
 
 import { todayIst } from '../dates';
@@ -22,7 +23,8 @@ import {
 } from './provider';
 import { classifyMatch, effectiveAgeStatus, playerPageKind } from './protected';
 import { includesAtBoundary, normaliseQuery } from './search';
-import { assignMatchSlugs, assignPlayerSlugs, slugify } from './slugs';
+import { assignMatchSlugs, assignPlayerSlugs, RESERVED_TOURNAMENT_SLUGS, slugify, TOURNAMENT_SLUG_PATTERN } from './slugs';
+import { ownerTournamentSlugs } from '../../content/tournaments';
 
 export const PAGE_SIZE = 48;
 export const RELATED_LIMIT = 6;
@@ -78,7 +80,11 @@ export interface ArchiveTournament {
   district: string | null;
   level: string | null;
   startDate: string | null;
+  endDate: string | null;
+  /** Visible matches on the page: the FULL matches only (never minimal or hidden ones, so the count reveals nothing protected). */
   matchCount: number;
+  /** Slugs of those full matches, newest first (the page resolves them through the match list). */
+  matchSlugs: string[];
   lastmod: string | null;
 }
 
@@ -131,7 +137,7 @@ export interface PublicArchive {
   /** Stored slugs that were replaced or removed (protected slugs are opaque, hidden items are gone). */
   superseded: SupersededPath[];
   /** Counts for the page-budget guard and the notes. */
-  dropped: { hiddenMatches: number; protectedPlayers: number; thinPlayers: number };
+  dropped: { hiddenMatches: number; protectedPlayers: number; thinPlayers: number; tournamentSlugConflicts: number };
 }
 
 function byNewest(a: ArchiveMatch, b: ArchiveMatch): number {
@@ -149,16 +155,23 @@ function lastmodOf(...instants: (string | null | undefined)[]): string {
   return dateOf(latest ?? new Date(0).toISOString());
 }
 
-function tournamentSlugs(tournaments: readonly RawTournament[]): Map<string, string> {
+/**
+ * Archive tournament slugs. The reserved addresses and every owner-entered tournament's address are taken first, so an archive
+ * tournament never shadows an owner page (the owner page keeps the address). A STORED slug is kept unless it is malformed, reserved or
+ * taken; then the record gets a fresh slug and counts as a conflict (the build warns; nothing is dropped silently).
+ */
+function tournamentSlugs(tournaments: readonly RawTournament[], ownerSlugs: readonly string[]): { slugs: Map<string, string>; conflicts: number } {
   const out = new Map<string, string>();
-  const taken = new Set<string>(['submit', 'page', 'index']);
+  const taken = new Set<string>([...RESERVED_TOURNAMENT_SLUGS, ...ownerSlugs]);
+  let conflicts = 0;
   for (const t of tournaments) {
-    if (t.slug) {
+    if (!t.slug) continue;
+    if (TOURNAMENT_SLUG_PATTERN.test(t.slug) && !taken.has(t.slug)) {
       out.set(t.id, t.slug);
       taken.add(t.slug);
-    }
+    } else conflicts += 1;
   }
-  const fresh = tournaments.filter((t) => !t.slug).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const fresh = tournaments.filter((t) => !out.has(t.id)).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (const t of fresh) {
     // {name}-{year}-{city} (spec 6.3). The name usually holds the year already; add it only when it does not.
     const year = t.editionYear ? String(t.editionYear) : '';
@@ -170,12 +183,14 @@ function tournamentSlugs(tournaments: readonly RawTournament[]): Map<string, str
     taken.add(slug);
     out.set(t.id, slug);
   }
-  return out;
+  return { slugs: out, conflicts };
 }
 
 export interface BuildOptions {
   /** Default: TOURNAMENT_PAGES_BUILT. */
   tournamentPagesBuilt?: boolean;
+  /** Addresses taken by the owner-entered list. Default: ownerTournamentSlugs() (src/content/tournaments.ts). */
+  ownerTournamentSlugs?: readonly string[];
   source?: 'seed' | 'supabase';
 }
 
@@ -194,7 +209,7 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
   });
   const playersById = new Map<string, RawPlayer>(rawPlayers.map((p) => [p.id, p]));
   const tournamentsById = new Map<string, RawTournament>(raw.tournaments.map((t) => [t.id, t]));
-  const tSlug = tournamentSlugs(raw.tournaments);
+  const { slugs: tSlug, conflicts: tournamentSlugConflicts } = tournamentSlugs(raw.tournaments, options.ownerTournamentSlugs ?? ownerTournamentSlugs());
 
   // 1) classify every match; drop hidden ones for good.
   const kept: { match: RawMatch; kind: 'full' | 'listed' | 'minimal' }[] = [];
@@ -204,6 +219,26 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
     if (kind === 'hidden') hiddenMatches += 1;
     else kept.push({ match, kind });
   }
+
+  // 1b) which tournaments get a page (D-013): public (so Tamil Nadu, D-018), at least one full match, and either the source's
+  // page_eligible flag (3 or more matches, or promoted by the owner) or, when the source has no flag, 3 or more FULL matches.
+  // pageEligible === false never qualifies. A match links to its tournament only when the tournament is in this set.
+  const fullCounts = new Map<string, { n: number; last: string[] }>();
+  for (const { match, kind } of kept) {
+    if (kind !== 'full' || !match.tournamentId) continue;
+    const c = fullCounts.get(match.tournamentId) ?? { n: 0, last: [] };
+    c.n += 1;
+    c.last.push(match.publishedAt);
+    fullCounts.set(match.tournamentId, c);
+  }
+  const eligibleIds = new Set(
+    raw.tournaments
+      .filter((t) => {
+        const n = fullCounts.get(t.id)?.n ?? 0;
+        return t.visibility === 'public' && n >= 1 && (t.pageEligible === true || (t.pageEligible === undefined && n >= 3));
+      })
+      .map((t) => t.id),
+  );
 
   // 2) player pages: adult players need at least one full match.
   const fullMatchCount = new Map<string, number>();
@@ -254,7 +289,7 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
         parsedShown && t
           ? {
               name: t.name,
-              slug: kind === 'full' && t.visibility === 'public' && tournamentPagesBuilt ? (tSlug.get(t.id) ?? null) : null,
+              slug: kind === 'full' && tournamentPagesBuilt && eligibleIds.has(t.id) ? (tSlug.get(t.id) ?? null) : null,
               district: kind === 'full' ? (t.district ?? null) : null,
               year: t.editionYear ?? null,
             }
@@ -354,17 +389,17 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
     .map((p) => ({ id: p.id, slug: `player-${slugify(p.id) || 'x'}` }))
     .sort((a, b) => (a.slug < b.slug ? -1 : 1));
 
-  // 7) tournaments: public Tamil Nadu ones with at least one grid match.
-  const counts = new Map<string, { n: number; last: string[] }>();
-  for (const { match, kind } of kept) {
-    if (kind !== 'full' || !match.tournamentId) continue;
-    const c = counts.get(match.tournamentId) ?? { n: 0, last: [] };
-    c.n += 1;
-    c.last.push(match.publishedAt);
-    counts.set(match.tournamentId, c);
+  // 7) tournaments that get a page (eligibleIds, step 1b), each with its full matches, newest first (grid order).
+  const fullSlugsByTournament = new Map<string, string[]>();
+  for (const m of grid) {
+    const tid = rawById.get(m.id)?.tournamentId;
+    if (m.kind !== 'full' || !tid || !eligibleIds.has(tid)) continue;
+    const list = fullSlugsByTournament.get(tid);
+    if (list) list.push(m.slug);
+    else fullSlugsByTournament.set(tid, [m.slug]);
   }
   const tournaments: ArchiveTournament[] = raw.tournaments
-    .filter((t) => t.visibility === 'public' && t.pageEligible !== false && counts.has(t.id))
+    .filter((t) => eligibleIds.has(t.id))
     .map((t) => ({
       id: t.id,
       slug: tSlug.get(t.id) as string,
@@ -374,10 +409,12 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
       district: t.district ?? null,
       level: t.level ?? null,
       startDate: t.startDate ?? null,
-      matchCount: counts.get(t.id)?.n ?? 0,
-      lastmod: lastmodOf(t.updatedAt, ...(counts.get(t.id)?.last ?? [])),
+      endDate: t.endDate ?? null,
+      matchCount: fullSlugsByTournament.get(t.id)?.length ?? 0,
+      matchSlugs: fullSlugsByTournament.get(t.id) ?? [],
+      lastmod: lastmodOf(t.updatedAt, ...(fullCounts.get(t.id)?.last ?? [])),
     }))
-        .sort((a, b) => {
+    .sort((a, b) => {
       const sa = a.startDate ?? '';
       const sb = b.startDate ?? '';
       if (sa !== sb) return sa < sb ? 1 : -1; // newest first; undated last
@@ -409,7 +446,7 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
     minimalPlayers,
     tournaments,
     superseded,
-    dropped: { hiddenMatches, protectedPlayers, thinPlayers },
+    dropped: { hiddenMatches, protectedPlayers, thinPlayers, tournamentSlugConflicts },
   };
 }
 
@@ -436,6 +473,11 @@ export function loadPublicArchive(): Promise<PublicArchive> {
       const { selectArchiveProvider } = await import('./select');
       const provider: ArchiveProvider = selectArchiveProvider();
       const archive = buildPublicArchive(await provider.load(), { source: provider.id });
+      if (archive.dropped.tournamentSlugConflicts > 0) {
+        console.warn(
+          `archive: ${archive.dropped.tournamentSlugConflicts} stored tournament address(es) were reserved, malformed or taken by an owner-entered tournament; those tournaments got a new address.`,
+        );
+      }
       const { assertPageBudget } = await import('./budget');
       assertPageBudget(archive);
       return archive;

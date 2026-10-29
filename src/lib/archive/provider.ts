@@ -110,8 +110,9 @@ export interface ArchiveProvider {
 }
 
 /**
- * The tournament PAGES (/tournaments/<slug>/ for archive tournaments) are built by another milestone item. Until the lead flips this
- * to true, the archive writes tournament names as plain text and puts no tournament URL in the search index or the sitemap, so no
- * link can point at a page that does not exist (tests/build/links.test.ts).
+ * The archive tournament PAGES (/tournaments/<slug>/, M2c-3, D-098) exist: src/pages/tournaments/[slug].astro builds one for every
+ * tournament in PublicArchive.tournaments (D-013 eligible), and only then do match pages, player pages, the search index, the sitemap
+ * and the redirect rules link to them. Tests pass false to check the "no link to a page that does not exist" path
+ * (tests/build/links.test.ts checks the built output).
  */
-export const TOURNAMENT_PAGES_BUILT = false;
+export const TOURNAMENT_PAGES_BUILT = true;
