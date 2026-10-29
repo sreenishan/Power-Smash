@@ -19,7 +19,8 @@ const raw = (over: Partial<RawArchive>): RawArchive => ({ players: [], tournamen
 describe('B2-7 tournament order', () => {
   it('is newest first, undated last, ties by slug, whatever order the rows arrive in', () => {
     const dates = ['2025-01-01', '2026-01-01', '2024-01-01', '2026-06-01', null];
-    const ts: RawTournament[] = dates.map((d, i) => ({ id: `t${i}`, slug: `cup-${i}`, name: `Cup ${i}`, startDate: d, visibility: 'public' }));
+    // pageEligible: true = the source's D-013 flag (3 or more matches, or promoted), so one match each is enough to test the ORDER
+    const ts: RawTournament[] = dates.map((d, i) => ({ id: `t${i}`, slug: `cup-${i}`, name: `Cup ${i}`, startDate: d, visibility: 'public', pageEligible: true }));
     const players = [P('a', 'Demo A'), P('b', 'Demo B')];
     const matches = ts.map((t, i) => M(String(i + 1), ['a'], ['b'], { tournamentId: t.id }));
     const build = (list: RawTournament[]) => buildPublicArchive(raw({ players, tournaments: list, matches })).tournaments.map((t) => t.startDate);

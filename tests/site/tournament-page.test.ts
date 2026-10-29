@@ -182,19 +182,30 @@ describe('tournamentPageModel: text', () => {
 });
 
 describe('the page and the cards use the model (so the tests above cover what is rendered)', () => {
-  // The header comment talks about phone numbers; only the code counts.
-  const page = readFileSync(join(ROOT, 'src/pages/tournaments/[slug].astro'), 'utf8')
-    .split(/\r?\n/)
-    .filter((line) => !line.trimStart().startsWith('//'))
-    .join('\n');
+  // The header comments talk about phone numbers; only the code counts.
+  const code = (file: string) =>
+    readFileSync(join(ROOT, file), 'utf8')
+      .split(/\r?\n/)
+      .filter((line) => !line.trimStart().startsWith('//'))
+      .join('\n');
+  // The owner page markup moved, unchanged, from [slug].astro to OwnerTournamentPage.astro when the route started serving archive
+  // tournaments too (D-098); the same checks now run on the file that holds it, and the route file itself is checked as well.
+  const page = code('src/components/site/OwnerTournamentPage.astro');
+  const route = code('src/pages/tournaments/[slug].astro');
   const card = readFileSync(join(ROOT, 'src/components/site/TournamentCard.astro'), 'utf8');
 
-  it('[slug].astro takes every value from tournamentPageModel and writes no contact detail itself', () => {
+  it('the owner page takes every value from tournamentPageModel and writes no contact detail itself', () => {
     expect(page).toContain('tournamentPageModel(t, {');
     expect(page).toContain('todayIst()');
     expect(page).not.toMatch(/sportsEventJsonLd|new URL\(|publicContact\(/);
     expect(page).not.toMatch(/phone|email|mailto|tel:/i);
     expect(page).toContain('contact && (');
+  });
+
+  it('[slug].astro only dispatches: it renders the owner page for owner records and writes no contact detail itself', () => {
+    expect(route).toContain('<OwnerTournamentPage tournament={props.tournament} />');
+    expect(route).toContain('tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT)');
+    expect(route).not.toMatch(/phone|email|mailto|tel:|publicContact\(|showContact/i);
   });
 
   it('TournamentCard links to the slash form through path()', () => {

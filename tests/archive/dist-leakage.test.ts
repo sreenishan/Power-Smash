@@ -66,6 +66,10 @@ describe.skipIf(!present && !required)('built output leaks no protected player',
     const playersXml = read(join(DIST, 'sitemap-players.xml'));
     expect((matchesXml.match(/<loc>/g) ?? []).length).toBe(archive.grid.length);
     expect((playersXml.match(/<loc>/g) ?? []).length).toBe(archive.players.length);
+    // archive tournament pages (D-098); the owner-entered list is empty, so these are all the tournament locs
+    const tournamentsXml = read(join(DIST, 'sitemap-tournaments.xml'));
+    expect((tournamentsXml.match(/<loc>/g) ?? []).length).toBe(archive.tournaments.length);
+    for (const t of archive.tournaments) expect(tournamentsXml).toContain(`/tournaments/${t.slug}/`);
     for (const m of archive.matches.filter((x) => x.kind === 'minimal')) expect(matchesXml).not.toContain(m.slug);
     expect(matchesXml).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
   });

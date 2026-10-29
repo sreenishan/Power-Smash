@@ -11,7 +11,9 @@
 //  - a rule target is always a page that exists in THIS build (or the gone page): a protected player is only ever the opaque slug;
 //  - chains are flattened, loops and self-redirects dropped, a target that is not a live page becomes the gone page.
 import type { PublicArchive } from './model';
-import type { RawArchive } from './provider';
+import { type RawArchive, TOURNAMENT_PAGES_BUILT } from './provider';
+import { ownerTournamentSlugs } from '../../content/tournaments';
+import { tournamentPath } from '../urls';
 
 export const GONE_PATH = '/matches/gone/';
 export const REDIRECTS_MAX_LINES = 1800; // D-009 release line; Vercel's cap is 2,048 routes per deployment, shared with the header rules
@@ -36,12 +38,17 @@ export interface RedirectsResult {
 const SAFE_PATH = /^\/[a-z0-9][a-z0-9/_-]*\/$/;
 
 /** Every page path of this build that a redirect may point at. */
-export function livePaths(archive: Pick<PublicArchive, 'matches' | 'players' | 'minimalPlayers' | 'tournaments'>, tournamentPagesBuilt = false): Set<string> {
+export function livePaths(
+  archive: Pick<PublicArchive, 'matches' | 'players' | 'minimalPlayers' | 'tournaments'>,
+  tournamentPagesBuilt = TOURNAMENT_PAGES_BUILT,
+  ownerSlugs: readonly string[] = ownerTournamentSlugs(),
+): Set<string> {
   const live = new Set<string>([GONE_PATH, '/', '/matches/', '/players/', '/tournaments/']);
   for (const m of archive.matches) live.add(`/matches/${m.slug}/`);
   for (const p of archive.players) live.add(`/players/${p.slug}/`);
   for (const p of archive.minimalPlayers) live.add(`/players/${p.slug}/`);
-  if (tournamentPagesBuilt) for (const t of archive.tournaments) live.add(`/tournaments/${t.slug}/`);
+  if (tournamentPagesBuilt) for (const t of archive.tournaments) live.add(tournamentPath(t.slug));
+  for (const slug of ownerSlugs) live.add(tournamentPath(slug));
   return live;
 }
 
@@ -50,7 +57,7 @@ export function buildRedirects(
   raw: Pick<RawArchive, 'redirects' | 'gonePaths'>,
   options: { tournamentPagesBuilt?: boolean } = {},
 ): RedirectsResult {
-  const live = livePaths(archive, options.tournamentPagesBuilt ?? false);
+  const live = livePaths(archive, options.tournamentPagesBuilt ?? TOURNAMENT_PAGES_BUILT);
   const skipped: string[] = [];
   // 1) the raw edges: provider 301 rows, superseded stored slugs, private gone paths.
   const edges = new Map<string, string | null>();

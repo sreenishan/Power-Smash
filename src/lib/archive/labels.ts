@@ -26,6 +26,23 @@ export const ROUND_LABELS: Readonly<Record<string, string>> = {
   group: 'Group stage',
 };
 
+/** Rounds from the last to the first (Final first): the order of the round filter and of a tournament page's round groups. */
+export const ROUND_ORDER: readonly string[] = ['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', '3P', 'group', 'league'];
+
+/** Sort key for a round code: known rounds in ROUND_ORDER, then unknown codes, then no round. */
+export function roundRank(code: string | null | undefined): number {
+  if (!code) return 100;
+  const i = ROUND_ORDER.indexOf(code);
+  return i < 0 ? 99 : i;
+}
+
+/** Sort key for a category code: the order of CATEGORY_LABELS, then unknown codes, then no category. */
+export function categoryRank(code: string | null | undefined): number {
+  if (!code) return 100;
+  const i = Object.keys(CATEGORY_LABELS).indexOf(code);
+  return i < 0 ? 99 : i;
+}
+
 const AGE_WORDS: Readonly<Record<string, string>> = { open: 'Open', senior: 'Senior', veterans: 'Veterans', masters: 'Masters' };
 
 export function categoryLabel(code: string | null | undefined): string | null {

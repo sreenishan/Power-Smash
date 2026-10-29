@@ -20,7 +20,7 @@ import { categoryLabel } from '../../lib/archive/labels';
 import { profilePageJsonLd } from '../../lib/archive/jsonld';
 import { loadPublicArchive } from '../../lib/archive/model';
 import { titleWithBrand } from '../../lib/seo';
-import { ARCHIVE_ROUTES, ROUTES, absoluteUrl, playerPath } from '../../lib/urls';
+import { ARCHIVE_ROUTES, ROUTES, absoluteUrl, playerPath, tournamentPath } from '../../lib/urls';
 
 export async function getStaticPaths() {
   const archive = await loadPublicArchive();
@@ -130,7 +130,7 @@ const description = full
         <Section tone="surface" labelledBy="tournaments-title">
           <SectionHeading id="tournaments-title" title="Tournaments" />
           <ul class="mt-6 flex flex-col gap-2">
-            {p.tournaments.map((t) => <li>{t.name} <span class="text-small text-fg-muted">({t.count} {t.count === 1 ? 'match' : 'matches'})</span></li>)}
+            {p.tournaments.map((t) => <li>{t.slug ? <a href={tournamentPath(t.slug)} class="font-semibold">{t.name}</a> : t.name} <span class="text-small text-fg-muted">({t.count} {t.count === 1 ? 'match' : 'matches'})</span></li>)}
           </ul>
         </Section>
       )}

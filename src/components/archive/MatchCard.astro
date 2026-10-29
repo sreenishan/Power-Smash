@@ -14,10 +14,11 @@ import { matchPath } from '../../lib/urls';
 
 interface Props {
   match: ArchiveMatch;
-  headingLevel?: 2 | 3;
+  /** 4 on a tournament page, where the cards sit under a category (h2) and a round (h3). */
+  headingLevel?: 2 | 3 | 4;
 }
 const { match: m, headingLevel = 3 } = Astro.props;
-const Tag = headingLevel === 2 ? 'h2' : 'h3';
+const Tag = headingLevel === 2 ? 'h2' : headingLevel === 4 ? 'h4' : 'h3';
 const showThumb = features.youtubeEmbeds === true;
 // The header holds the category (or the round when there is no category); the small line under the title holds only the rest.
 const { chip, meta } = cardLabels(m.category, m.round);

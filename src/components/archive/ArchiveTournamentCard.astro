@@ -1,0 +1,26 @@
+---
+// An archive tournament (read from YouTube titles, D-098) in the "From our videos" list on /tournaments/: dates or year, place and the
+// number of match videos on its page (full matches only, so the count reveals nothing protected, D-012). Same overlay-link pattern as
+// TournamentCard; the link goes through tournamentPath() (R-LINKS).
+import { formatDateRange } from '../../lib/dates';
+import type { ArchiveTournament } from '../../lib/archive/model';
+import { tournamentPath } from '../../lib/urls';
+import { archiveTournamentPlace } from '../../lib/archive/tournament-page';
+
+interface Props {
+  tournament: ArchiveTournament;
+  headingLevel?: 2 | 3;
+}
+const { tournament: t, headingLevel = 3 } = Astro.props;
+const Tag = headingLevel === 2 ? 'h2' : 'h3';
+const when = t.startDate ? formatDateRange(t.startDate, t.endDate) : t.year ? String(t.year) : null;
+const place = archiveTournamentPlace(t);
+---
+<article class="ps-card ps-card-hover ps-card-accent relative flex h-full flex-col p-5 pt-6">
+  {when && <p class="ps-eyebrow ps-num">{when}</p>}
+  <Tag class="mt-2 text-h4"><a href={tournamentPath(t.slug)} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a></Tag>
+  {place && <p class="mt-2 text-fg-muted">{place}</p>}
+  <ul class="mt-auto flex flex-wrap gap-2 pt-4">
+    <li class="ps-chip ps-chip-court ps-num">{t.matchCount} match video{t.matchCount === 1 ? '' : 's'}</li>
+  </ul>
+</article>

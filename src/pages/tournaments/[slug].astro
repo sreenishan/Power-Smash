@@ -1,132 +1,45 @@
 ---
-// Tournament page (spec 7.7, M1 version) from the owner-entered list in src/content/tournaments.ts.
-// getStaticPaths returns ZERO pages while the list is empty. SportsEvent structured data only for upcoming tournaments.
-// The organizer contact block is shown ONLY when the record says showContact is true; organizer phone numbers and emails
-// are not part of the record at all (D-029, D-035 row 4: they come through a click-to-reveal endpoint later).
-// Everything the page shows is computed by tournamentPageModel() in src/content/tournaments.ts, a pure function that
-// tests/site/tournament-page.test.ts runs with fictional records (review C-22), so the template only lays the values out.
-// Spec 7.7 extras: a map search link for the venue text, and for a tournament still to come: add-to-calendar (/tournaments/<slug>.ics,
-// linked only when that file is built), Share on WhatsApp (waShareLink, public fields only) and Get alerts (only once the
-// alerts sign-up can send something: tournamentAlertsHref() is null until then, so the button never does nothing).
+// /tournaments/<slug>/ for BOTH kinds of tournament (D-098):
+//   owner    the owner-entered list (src/content/tournaments.ts), rendered by OwnerTournamentPage.astro (spec 7.7 upcoming view);
+//   archive  tournaments read from YouTube titles (PublicArchive.tournaments, D-013 eligible, Tamil Nadu only), rendered by
+//            ArchiveTournamentPage.astro (spec 7.7 past view), only while TOURNAMENT_PAGES_BUILT.
+// tournamentRoutes() joins the two lists and stops the build on any address clash; the archive model already keeps archive slugs
+// clear of owner slugs and reserved words, so a clash would be a bug, never a silent replacement. ZERO owner pages while that list
+// is empty. This file holds no page content itself.
 import type { GetStaticPaths } from 'astro';
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import PageHero from '../../components/ui/PageHero.astro';
-import Section from '../../components/ui/Section.astro';
-import SectionHeading from '../../components/ui/SectionHeading.astro';
-import Button from '../../components/ui/Button.astro';
-import CtaBlock from '../../components/ui/CtaBlock.astro';
-import ShareBar from '../../components/archive/ShareBar.astro';
-import CalendarPlus from '@lucide/astro/icons/calendar-plus';
-import BellRing from '@lucide/astro/icons/bell-ring';
-import MapPin from '@lucide/astro/icons/map-pin';
-import { whatsappTextForPath } from '../../components/site/whatsappText';
-import {
-  assertValidTournaments,
-  hasCalendarFile,
-  tournamentMapUrl,
-  tournamentAlertsHref,
-  tournamentPageModel,
-  tournamentPhase,
-  tournamentShareText,
-  tournaments,
-  type TournamentRecord,
-} from '../../content/tournaments';
-import { todayIst } from '../../lib/dates';
-import { titleWithBrand } from '../../lib/seo';
-import { ROUTES } from '../../lib/urls';
+import OwnerTournamentPage from '../../components/site/OwnerTournamentPage.astro';
+import ArchiveTournamentPage from '../../components/archive/ArchiveTournamentPage.astro';
+import { assertValidTournaments, tournaments, type TournamentRecord } from '../../content/tournaments';
+import { loadPublicArchive, type ArchiveMatch, type ArchiveTournament } from '../../lib/archive/model';
+import { TOURNAMENT_PAGES_BUILT } from '../../lib/archive/provider';
+import { tournamentRoutes } from '../../lib/archive/tournament-page';
 
-export const getStaticPaths = (() => {
+export const getStaticPaths = (async () => {
   assertValidTournaments();
-  return tournaments.map((tournament) => ({ params: { slug: tournament.slug }, props: { tournament } }));
+  const archive = await loadPublicArchive();
+  const bySlug = new Map(archive.matches.map((m) => [m.slug, m]));
+  return tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT).map((route) => {
+    if (route.kind === 'owner') {
+      return { params: { slug: route.slug }, props: { kind: 'owner' as const, tournament: tournaments[route.index] as TournamentRecord } };
+    }
+    const t = archive.tournaments[route.index] as ArchiveTournament;
+    return {
+      params: { slug: route.slug },
+      props: {
+        kind: 'archive' as const,
+        archiveTournament: t,
+        matches: t.matchSlugs.flatMap((s) => (bySlug.has(s) ? [bySlug.get(s) as ArchiveMatch] : [])),
+        source: archive.source,
+      },
+    };
+  });
 }) satisfies GetStaticPaths;
 
-interface Props {
-  tournament: TournamentRecord;
-}
-const { tournament: t } = Astro.props;
-const today = todayIst();
-const { upcoming, when, place, description, url, statusLabel, contact, jsonLd } = tournamentPageModel(t, {
-  today,
-  origin: Astro.site ?? Astro.url,
-});
-const phase = tournamentPhase(t, today);
-const mapUrl = tournamentMapUrl(t);
-const calendarHref = hasCalendarFile(t, today) ? `/tournaments/${t.slug}.ics` : null;
-const alertsHref = tournamentAlertsHref();
+type Props =
+  | { kind: 'owner'; tournament: TournamentRecord }
+  | { kind: 'archive'; archiveTournament: ArchiveTournament; matches: ArchiveMatch[]; source: 'seed' | 'supabase' };
+const props = Astro.props as Props;
 ---
-<BaseLayout title={titleWithBrand(t.name)} description={description} jsonLd={jsonLd}>
-  <PageHero
-    tone="dark"
-    title={t.name}
-    lead={when}
-    crumbs={[{ name: 'Tournaments', href: ROUTES.tournaments }, { name: t.name }]}
-  />
-
-  <Section labelledBy="details-title">
-    <SectionHeading id="details-title" title="Details" />
-    <ul class="mt-4 flex flex-wrap gap-2 text-caption font-bold">
-      {statusLabel && <li class="ps-chip ps-chip-live">{statusLabel}</li>}
-      <li class={phase === 'ongoing' ? 'ps-chip ps-chip-live' : 'ps-chip ps-chip-court'}>{phase === 'ongoing' ? 'Happening now' : upcoming ? 'Upcoming' : 'Past'}</li>
-      {t.coveredByPowerSmash && <li class="ps-chip ps-chip-ink">Covered by Power Smash</li>}
-    </ul>
-    <dl class="mt-6 grid max-w-3xl gap-x-6 gap-y-4 sm:grid-cols-[10rem_1fr]">
-      <dt class="font-bold text-fg">Dates</dt>
-      <dd class="ps-num">{when}</dd>
-      {place && (
-        <>
-          <dt class="font-bold text-fg">Venue</dt>
-          <dd>
-            {place}
-            {mapUrl && (
-              <a href={mapUrl} target="_blank" rel="noopener noreferrer" class="ml-2 inline-flex items-center gap-1 font-bold">
-                <MapPin size={16} aria-hidden="true" />Open in Maps<span class="sr-only"> (opens a new tab)</span>
-              </a>
-            )}
-          </dd>
-        </>
-      )}
-      {t.level && (<><dt class="font-bold text-fg">Level</dt><dd>{t.level}</dd></>)}
-      {t.categories.length > 0 && (<><dt class="font-bold text-fg">Categories</dt><dd>{t.categories.join(', ')}</dd></>)}
-      {t.organizerName && (<><dt class="font-bold text-fg">Organizer</dt><dd>{t.organizerName}</dd></>)}
-    </dl>
-    {t.description && <p class="mt-6 max-w-3xl whitespace-pre-line">{t.description}</p>}
-
-    {upcoming && (
-      <div class="mt-8 flex flex-wrap gap-3">
-        {calendarHref && (
-          <Button href={calendarHref} variant="quiet" download={`${t.slug}.ics`}>
-            <CalendarPlus size={20} aria-hidden="true" />Add to calendar
-          </Button>
-        )}
-        <ShareBar text={tournamentShareText(t, url)} source="tournament-share" />
-        {alertsHref && (
-          <Button href={alertsHref} variant="quiet">
-            <BellRing size={20} aria-hidden="true" />Get alerts
-          </Button>
-        )}
-      </div>
-    )}
-
-    {contact && (
-      <div class="ps-card mt-8 max-w-3xl p-5 sm:p-6">
-        <h3 class="text-h4">Registration</h3>
-        {contact.name && <p class="mt-2">Contact person: {contact.name}</p>}
-        {contact.registrationUrl && (
-          <p class="mt-3">
-            <Button href={contact.registrationUrl} variant="primary" external rel="noopener noreferrer nofollow ugc">Open the registration link</Button>
-          </p>
-        )}
-      </div>
-    )}
-  </Section>
-
-  <CtaBlock
-    id="tournament-cta"
-    title="Is this your tournament?"
-    text="Book coverage or have it featured."
-    primaryHref={ROUTES.book}
-    primaryLabel="Book coverage"
-    whatsappText={whatsappTextForPath(Astro.url.pathname)}
-    source="tournament-page"
-  />
-</BaseLayout>
+{props.kind === 'owner'
+  ? <OwnerTournamentPage tournament={props.tournament} />
+  : <ArchiveTournamentPage tournament={props.archiveTournament} matches={props.matches} source={props.source} />}

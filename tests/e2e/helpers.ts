@@ -3,7 +3,7 @@
 import { expect, type Page, type Route } from '@playwright/test';
 
 export const FORM_PAGES = ['/book/', '/partner/', '/contact/', '/tournaments/submit/', '/submit-video/', '/alerts/', '/request/'] as const;
-export const OTHER_PAGES = ['/', '/services/', '/pricing/', '/privacy/'] as const;
+export const OTHER_PAGES = ['/', '/services/', '/pricing/', '/privacy/', '/tournaments/', '/tournaments/fake-district-open-2025-madurai/'] as const;
 
 export const TURNSTILE_URL_PATTERN = /^https:\/\/challenges\.cloudflare\.com\//;
 export const ORIGIN_HOST = 'localhost:4399';

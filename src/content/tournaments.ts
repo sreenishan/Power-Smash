@@ -8,7 +8,8 @@
 
 import { addDays, formatDateRange, formatMonthYear, isIsoDate, isOngoing, isUpcoming } from '../lib/dates';
 import { sportsEventJsonLd } from '../lib/jsonld';
-import { absoluteUrl, M3_ROUTES } from '../lib/urls';
+import { absoluteUrl, M3_ROUTES, tournamentPath } from '../lib/urls';
+import { RESERVED_TOURNAMENT_SLUGS, TOURNAMENT_SLUG_PATTERN } from '../lib/archive/slugs';
 import { features } from './legal/status';
 import type { TournamentFilterKeys } from '../lib/tournament-filters';
 
@@ -52,9 +53,9 @@ export interface TournamentRecord {
 
 export const tournaments: readonly TournamentRecord[] = [];
 
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-/** /tournaments/submit is its own page; no tournament may take that address. */
-const RESERVED_SLUGS = new Set(['submit']);
+const SLUG = TOURNAMENT_SLUG_PATTERN;
+/** /tournaments/submit/ is its own page and 'page'/'index' stay free: the one reserved set, shared with the archive model. */
+const RESERVED_SLUGS = RESERVED_TOURNAMENT_SLUGS;
 
 /** Problems with an owner-edited list, as readable sentences (empty = fine). Pages throw on them at build time. */
 export function tournamentProblems(list: readonly TournamentRecord[]): string[] {
@@ -80,6 +81,11 @@ export function tournamentProblems(list: readonly TournamentRecord[]): string[] 
     }
   }
   return problems;
+}
+
+/** The addresses the owner's list takes: the archive model treats them as taken (an archive tournament never shadows one). */
+export function ownerTournamentSlugs(): string[] {
+  return tournaments.map((t) => t.slug);
 }
 
 export function assertValidTournaments(list: readonly TournamentRecord[] = tournaments): void {
@@ -141,7 +147,7 @@ export function tournamentPageModel(t: TournamentRecord, options: { today: strin
   const upcoming = isUpcoming(t.startDate, t.endDate, options.today);
   const when = formatDateRange(t.startDate, t.endDate);
   const place = tournamentPlace(t);
-  const url = absoluteUrl(`/tournaments/${t.slug}`, options.origin);
+  const url = absoluteUrl(tournamentPath(t.slug), options.origin);
   return {
     upcoming,
     when,

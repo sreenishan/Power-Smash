@@ -1404,6 +1404,17 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
 - **Status.** adopted (owner decision); Pro purchase proposed - needs owner approval.
 - **Sources.** `docs/m3/vercel-facts.md` (research of 2026-10-22), `docs/m3/vercel-port-inventory.md`, D-001, D-008, D-009.
 
+## D-098 Archive tournament pages (M2c-3)
+
+- **Context.** BUILD_PLAN M2c-3 and spec 7.7 ("Past" view): tournaments read from YouTube titles had no page (`TOURNAMENT_PAGES_BUILT = false`), while the owner-entered list already used `/tournaments/<slug>/`. The Fan4ever parity audit (`docs/m4/fan4ever-parity-audit.md`) listed these pages as buildable now. Two weaknesses were found on the way: the model let a public tournament with no source flag qualify with one full match (D-013 says three), and an archive slug could equal an owner-entered slug (only partly reserved words were guarded).
+- **Decision.**
+  - One route, two sources: `src/pages/tournaments/[slug].astro` only dispatches to `OwnerTournamentPage.astro` (the owner markup, moved unchanged) or `ArchiveTournamentPage.astro`. `tournamentRoutes()` joins the two lists and stops the build on any address clash.
+  - Eligibility (D-013, D-018): a tournament gets a page when it is `public` (Tamil Nadu), has at least one full match, and either the source flag `page_eligible` is true (SQL: 3 or more matches, or promoted) or, with no flag, it has 3 or more FULL matches. `page_eligible = false` never qualifies. A match links to its tournament only when that tournament has a page.
+  - The page lists FULL matches only, grouped by category (CATEGORY_LABELS order) then round (Final first, ROUND_ORDER); the visible count is the number of full matches, so it reveals nothing about protected matches (D-012). Raw titles unmodified, parsed details labelled "by Power Smash", "Most viewed on YouTube" is a plain sort by each video's own count with no totals (D-016, D-077). SportsEvent JSON-LD when the start date is known. No sponsor slot yet.
+  - Addresses: one reserved set `RESERVED_TOURNAMENT_SLUGS` (submit, page, index) shared by both lists; owner-entered slugs are taken first, so a fresh archive slug steps aside (`-2`) and a stored archive slug that is reserved, malformed or an owner slug gets a new address and is counted (`dropped.tournamentSlugConflicts`, the build warns). The tournaments sitemap fails on a duplicate instead of dropping one. Redirects may point at archive and owner tournament pages.
+  - `/tournaments/` gains a "From our videos" section (archive tournaments with their number of match videos, spec 7.6), with the sample-data notice, outside the owner filters.
+- **Consequences.** Everything stays unpublished: `features.archivePages` is still false and the strict build keeps refusing the fictional seed (ArchiveSeedNotice). Owner-entered and archive tournaments stay separate records; joining them, and whether minimal matches should count towards the threshold, are owner questions 17 and 18 below. Tests: `tests/archive/tournament-pages.test.ts`; the existing tournament guard now reads the moved owner page and the route file.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.
@@ -1447,6 +1458,8 @@ One list for the M1 and the M2/M3 waves. Every record below has status "proposed
 
 15. **D-097 (Vercel Pro).** Question: "May the live site run on Vercel Pro, USD 20 a month per seat (the Hobby plan is only for personal, non-commercial use, so it cannot carry a site that sells services and sponsor slots)?" Recommended: **Yes, buy Pro yourself shortly before launch** (G1); Claude never buys it. Until then the technical preview may sit on the free Hobby plan, private. Confirm the exact credit and overage on the Vercel pricing page when you buy.
 16. **D-097 (cron plan).** Question: "Should the 6-hourly YouTube sync and the rebuild trigger run on Vercel Cron (needs Pro) or on a free GitHub schedule?" Recommended: **GitHub schedule for the sync (as built, free)**; a Vercel cron route only if you later want the 5-minute new-video check, which needs Pro (`docs/m3/vercel-deploy-notes.md`). Both stay off until the YouTube-API legal switch (D-085).
+17. **D-098 (same event in both lists).** Question: "When your own tournament list and the YouTube archive both hold the same event, should they become one page (your page shows the past matches once the event is over), or stay two entries?" Built default: **two separate entries**; your page keeps the address and the archive one gets a '-2' address.
+18. **D-098 (what counts towards 3 matches).** Question: "Should a tournament need 3 matches that visitors can actually see, or do matches shown only in their minimal form (a player of unknown age) count towards the 3, as the database counts them today?" Built default: **as the database counts them**, so a page may list only 2 matches; it never reveals anything about the hidden one. Requiring 3 visible matches would need the owner's promote flag in the public view.
 
 Lawyer items (not owner decisions): D-076 and D-078 launch values for unknown-age and minor pages; the privacy text for the placement beacon's daily pseudonymous hash (D-089); the alerts-form lead notice (D-093); the exemption list in D-094.
 
