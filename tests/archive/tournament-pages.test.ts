@@ -1,5 +1,7 @@
 // Archive tournament pages (M2c-3, D-098): which tournaments get a page (D-013), what a page lists (FULL matches only, D-012), how archive
 // and owner-entered tournaments share /tournaments/<slug>/ without clashing, and the page helpers. FICTIONAL data only.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildPublicArchive, type ArchiveMatch } from '../../src/lib/archive/model';
 import { DEFAULT_ARCHIVE_SETTINGS, type RawArchive, type RawMatch, type RawPlayer, type RawTournament } from '../../src/lib/archive/provider';
@@ -87,10 +89,34 @@ describe('addresses: archive and owner-entered tournaments never clash (D-098)',
   it('a stored archive slug that is an owner slug, reserved or malformed is replaced and counted', () => {
     const ts = [T('o', { slug: 'owner-cup' }), T('r', { slug: 'submit' }), T('x', { slug: 'Bad Slug!' }), T('k', { slug: 'kept-cup' })];
     const a = build(raw(ts, ts.flatMap((t) => times(3, () => M(t.id)))), ['owner-cup']);
+    // nothing is dropped: all four still have a page, the three conflicting ones under a new, valid, unreserved, unique address
+    expect(a.tournaments.map((t) => t.id).sort()).toEqual(['k', 'o', 'r', 'x']);
     const slugs = new Map(a.tournaments.map((t) => [t.id, t.slug]));
     expect(slugs.get('k')).toBe('kept-cup');
-    for (const id of ['o', 'r', 'x']) expect(['owner-cup', 'submit', 'Bad Slug!']).not.toContain(slugs.get(id));
+    for (const id of ['o', 'r', 'x']) {
+      const s = slugs.get(id);
+      expect(s).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(['owner-cup', 'submit', 'page', 'index', 'Bad Slug!', 'kept-cup']).not.toContain(s);
+    }
+    expect(new Set(slugs.values()).size).toBe(4);
+    expect(() => tournamentRoutes([{ slug: 'owner-cup' }], a.tournaments, true)).not.toThrow();
     expect(a.dropped.tournamentSlugConflicts).toBe(3);
+  });
+
+  it('a player profile lists each tournament EDITION once, even when two editions share a name', () => {
+    const ts = [
+      T('ed2025', { name: 'Fake District Open', editionYear: 2025, city: 'Madurai' }),
+      T('ed2026', { name: 'Fake District Open', editionYear: 2026, city: 'Salem' }),
+    ];
+    const a = build(raw(ts, [...times(3, () => M('ed2025')), ...times(3, () => M('ed2026'))]));
+    const pages = new Map(a.tournaments.map((t) => [t.id, t.slug]));
+    expect(pages.size).toBe(2);
+    const arun = a.players.find((p) => p.name === 'Demo Arun')!;
+    expect(arun.tournamentCount).toBe(2);
+    expect(arun.tournaments.map((t) => [t.slug, t.count]).sort()).toEqual([
+      [pages.get('ed2025'), 3],
+      [pages.get('ed2026'), 3],
+    ].sort());
   });
 
   it('tournamentRoutes joins the lists and stops the build on any clash', () => {
@@ -203,5 +229,25 @@ describe('the fictional seed', () => {
     });
     const bySlug = new Map(a.matches.map((m) => [m.slug, m]));
     for (const t of a.tournaments) for (const s of t.matchSlugs) expect(bySlug.get(s)?.kind).toBe('full');
+  });
+});
+
+describe('ArchiveTournamentPage.astro (source guard, like the owner page)', () => {
+  const src = readFileSync(join(process.cwd(), 'src/components/archive/ArchiveTournamentPage.astro'), 'utf8');
+  const code = src
+    .split(/\r?\n/)
+    .filter((line) => !line.trimStart().startsWith('//'))
+    .join('\n');
+
+  it('lists matches only through groupTournamentMatches and mostViewed (full matches only) and keeps the sample notice', () => {
+    expect(code).toContain('groupTournamentMatches(matches)');
+    expect(code).toContain('mostViewed(matches)');
+    expect(code).toContain('<ArchiveSeedNotice source={source} />');
+    expect(code).toContain('by Power Smash');
+  });
+
+  it('injects no raw HTML and builds no address by hand', () => {
+    expect(code).not.toMatch(/set:html|innerHTML|dangerouslySetInnerHTML/);
+    expect(code).not.toMatch(/['"`]\/tournaments\/\$\{|['"`]\/matches\/\$\{|['"`]\/players\/\$\{/);
   });
 });
