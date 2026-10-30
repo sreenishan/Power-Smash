@@ -44,6 +44,8 @@ export const ADMIN_ACTIONS = {
   'tournaments.approved': ownerRead,
   'tournaments.details': ownerRead,
   'tournaments.update': ownerWrite,
+  'tournaments.previewSubmission': ownerRead,
+  'tournaments.addSubmission': ownerWrite,
   'leads.list': ownerRead,
   'leads.update': ownerWrite,
   'payments.list': ownerRead,
@@ -152,6 +154,8 @@ export const RLS_MATRIX = {
   // 0013_live_pin.sql (D-101): the /live pin and past streams; writes only through admin_save_live
   'live_settings': { private: true, grants: OWNER_READ_RPC_WRITE },
   'live_past_streams': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0015_submitted_tournaments.sql (D-103): which organizer submission became which tournament; ids only, written by admin_add_submitted_tournament
+  'tournament_submissions': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placement_stats_daily': { private: true, grants: OWNER_READ },
   'placement_page_stats_daily': { private: true, grants: OWNER_READ },
   // Worker-only plumbing: no admin access at all

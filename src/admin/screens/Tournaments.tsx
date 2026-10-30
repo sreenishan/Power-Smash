@@ -77,7 +77,12 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
     }
   };
   const TEXT = {
-    promote: t.region === 'tamil_nadu' ? 'It gets a tournament page after the next publish.' : 'It is outside Tamil Nadu: its videos are listed, but it gets no tournament page.',
+    // a tournament page needs match videos (D-013, D-098): a fresh organizer submission has none yet
+    promote: t.region !== 'tamil_nadu'
+      ? 'It is not marked as Tamil Nadu: it gets no tournament page, and it is shown only if places outside Tamil Nadu are switched on.'
+      : t.matchCount === 0
+        ? 'It is approved. It gets a tournament page once it has match videos.'
+        : 'It gets a tournament page after the next publish.',
     reject: 'It is removed from this list and not shown on the site.',
     hide: 'It is hidden from the site. You can approve it later.',
   } as const;

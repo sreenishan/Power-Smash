@@ -71,6 +71,8 @@ export const MANIFEST = [
   // 0013_live_pin.sql (D-101): the /live pin tables are denied; their two api views allow select only
   { name: 'live_settings', pk: 'id', pkSample: '0' },
   { name: 'live_past_streams', pk: 'video_id', pkSample: '__no_such_video__' },
+  // 0015_submitted_tournaments.sql (D-103): the submission link table is denied
+  { name: 'tournament_submissions', pk: 'tournament_id', pkSample: NIL_UUID },
   { name: 'public_live_settings', pk: 'pinned_video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
   { name: 'public_live_past_streams', pk: 'video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
   // Later milestones add their tables here, for example:

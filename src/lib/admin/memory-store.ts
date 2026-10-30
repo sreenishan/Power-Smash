@@ -5,6 +5,7 @@ import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields }
 import { liveChanges, NO_LIVE, validateLiveEdit, type LiveSettings } from '../live/rules';
 import { todayIst } from '../dates';
 import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
+import { submissionPreview, type SubmissionPayload, type SubmissionPreview } from './submission-candidate';
 import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
@@ -94,6 +95,11 @@ export interface MemoryState {
   live?: LiveSettings;
   /** Tournament details by id (D-102). Absent = only the name is known. */
   tournamentDetails?: Record<string, TournamentDetails>;
+  /** The tournament fields of tournament_submission leads, by lead id (the payload /api/lead stores; no contact data). */
+  leadPayloads?: Record<string, SubmissionPayload>;
+  /** Which lead became which tournament (D-103), and the addresses given out. */
+  submissionLinks?: Record<string, string>;
+  tournamentSlugs?: Record<string, string>;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -123,6 +129,7 @@ const SEED_IDS = {
   l2: '60000000-0000-4000-8000-000000000002',
   s1: '70000000-0000-4000-8000-000000000001',
   l3: '60000000-0000-4000-8000-000000000003',
+  l4: '60000000-0000-4000-8000-000000000004',
 } as const;
 export const SEED = SEED_IDS;
 
@@ -192,7 +199,11 @@ export function createSeedState(): MemoryState {
       { id: SEED_IDS.l1, refCode: 'PS-2026-DEMK01', type: 'coverage', status: 'new', name: 'Demo Organizer', organization: 'Demo Badminton Club', phone: '910000000000', email: null, whatsappOk: true, valuePaise: null, sourcePath: '/book/', followUpOn: null, notes: null, lostReason: null, createdAt: '2026-10-20T06:00:00.000Z' },
       { id: SEED_IDS.l2, refCode: 'PS-2026-DEMK02', type: 'sponsorship', status: 'contacted', name: 'Demo Sponsor Person', organization: 'Demo Sports Shop', phone: '910000000000', email: null, whatsappOk: false, valuePaise: null, sourcePath: '/partner/', followUpOn: '2026-10-25', notes: 'Asked for a call on Saturday (demo note).', lostReason: null, createdAt: '2026-10-18T06:00:00.000Z' },
       { id: SEED_IDS.l3, refCode: 'PS-2026-DEMK03', type: 'video_submission', status: 'new', name: 'Demo Sender', organization: null, phone: '910000000000', email: null, whatsappOk: false, valuePaise: null, sourcePath: '/submit-video/', followUpOn: null, notes: null, lostReason: null, createdAt: '2026-10-19T06:00:00.000Z' },
+      { id: SEED_IDS.l4, refCode: 'PS-2026-DEMK04', type: 'tournament_submission', status: 'new', name: 'Demo Club Secretary', organization: 'Demo Shuttle Association', phone: '910000000000', email: null, whatsappOk: true, valuePaise: null, sourcePath: '/tournaments/submit/', followUpOn: null, notes: null, lostReason: null, createdAt: '2026-10-21T06:00:00.000Z' },
     ],
+    leadPayloads: {
+      [SEED_IDS.l4]: { tournamentName: 'Demo Shuttle Open 2026', startDate: '2026-12-05', endDate: '2026-12-06', venue: 'Demo Indoor Hall', city: 'Coimbatore', district: 'Coimbatore' },
+    },
     payments: [],
     submissions: [
       {
@@ -432,6 +443,41 @@ export class MemoryAdminStore implements AdminClient {
   async listProfileRequests(): Promise<StoreResult<ProfileRequest[]>> {
     return okResult(this.state.profileRequests.map((r) => ({ ...r })));
   }
+  private previewOf(leadId: string): StoreResult<SubmissionPreview> {
+    const lead = this.state.leads.find((l) => l.id === leadId);
+    if (!lead) return failResult('NOT_FOUND');
+    if (lead.type !== 'tournament_submission') return failResult('INVALID');
+    const tid = this.state.submissionLinks?.[leadId];
+    const slugs = new Set(Object.values(this.state.tournamentSlugs ?? {}));
+    return okResult(
+      submissionPreview({ id: lead.id, refCode: lead.refCode, payload: this.state.leadPayloads?.[leadId] ?? {} }, {
+        addedAs: tid ? { tournamentId: tid } : null,
+        slugTaken: (s) => slugs.has(s),
+        isDuplicate: (key, year) => this.state.tournaments.some((t) => t.seriesKey === key && t.editionYear === year),
+      }),
+    );
+  }
+
+  async previewSubmission(opts: { leadId: string }): Promise<StoreResult<SubmissionPreview>> {
+    return this.previewOf(opts.leadId);
+  }
+
+  async addSubmission(actor: Actor, input: { leadId: string; reason: string }): Promise<StoreResult<{ tournamentId: string; slug: string }>> {
+    const p = this.previewOf(input.leadId);
+    if (!p.ok) return p;
+    const r = p.data.record;
+    if (!r || p.data.problem) return failResult('INVALID', { form: p.data.problem ?? 'This submission cannot be added.' });
+    const id = this.newId();
+    this.state.tournaments.push({ id, name: r.name, seriesKey: r.seriesKey, editionYear: r.editionYear, matchCount: 0, region: r.region, isPromoted: false, source: 'submitted', visibility: 'hidden', status: 'pending' });
+    (this.state.tournamentDetails ??= {})[id] = { name: r.name, level: null, city: r.city, district: r.district, venue: r.venue, startDate: r.startDate, endDate: r.endDate, categories: [], isFeatured: false, featuredUntil: null, coveredByPowerSmash: false };
+    (this.state.submissionLinks ??= {})[input.leadId] = id;
+    (this.state.tournamentSlugs ??= {})[id] = r.slug;
+    // ids and the address only, like the SQL audit; never contact data
+    this.audit(actor, 'tournament.add_submission', 'tournament', id, `lead ${p.data.refCode}; ${r.slug}`);
+    this.markDirty();
+    return okResult({ tournamentId: id, slug: r.slug });
+  }
+
   async listApprovedTournaments(): Promise<StoreResult<TournamentCandidate[]>> {
     return okResult(this.state.tournaments.filter((t) => t.status === 'published' || t.status === 'completed').map((t) => ({ ...t })));
   }

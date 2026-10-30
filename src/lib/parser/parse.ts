@@ -690,7 +690,7 @@ function analyseMeta(pieces: MetaPiece[]): MetaResult {
   };
 }
 
-function makeSeriesKey(name: string | null): string | null {
+export function makeSeriesKey(name: string | null): string | null {
   if (name === null) return null;
   const words = name
     .normalize('NFKC')
