@@ -44,4 +44,15 @@ describe('supabase SQL bundles', () => {
     expect(b.migrationsSql).not.toMatch(/^\s*(begin|commit|rollback)\s*;/im);
     expect(b.migrationsSql).not.toMatch(/\bconcurrently\b|alter\s+type\s+\S+\s+add\s+value|^\s*vacuum\b/im);
   });
+  it('--from keeps only the later migrations (for a project that has the earlier ones), says so, and still bundles every check', () => {
+    const later = buildBundles(ROOT, { from: '0011' });
+    expect(later.migrationFiles[0]).toBe('0011_products.sql');
+    expect(later.migrationFiles.every((f) => f.slice(0, 4) >= '0011')).toBe(true);
+    expect(later.migrationsSql).not.toContain('0001_lead_funnel.sql =====');
+    expect(later.migrationsSql).toContain('-- ONLY the migrations from 0011 on. The project must already have 0001..0010.');
+    expect(later.checkFiles).toEqual(b.checkFiles);
+    expect(b.migrationsSql).not.toContain('-- ONLY the migrations');
+    expect(() => buildBundles(ROOT, { from: '11' })).toThrow('four-digit');
+    expect(() => buildBundles(ROOT, { from: '9999' })).toThrow('no migration');
+  });
 });
