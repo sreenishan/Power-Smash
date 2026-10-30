@@ -13,6 +13,7 @@ import type { PlayerProfileFields } from './player-profile';
 import type { LiveEditInput, LiveSettings } from '../live/rules';
 import type { TournamentDetails, TournamentDetailField, TournamentEditInput } from './tournament-edit';
 import type { SubmissionPreview } from './submission-candidate';
+import type { FilmingPermission, PermissionInput, PermissionStatus } from './filming-permission';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -144,6 +145,10 @@ export interface TournamentCandidate {
   source: 'parsed' | 'submitted' | 'admin';
   visibility: 'hidden' | 'listed_no_player_pages' | 'public';
   status: 'pending' | 'published' | 'completed' | 'cancelled' | 'rejected';
+  /** Filming permission (D-019, D-105): absent or 'unknown' = not recorded (fail closed). */
+  filmingPermission?: PermissionStatus;
+  /** "Power Smash films this" (D-102): with no granted permission the admin shows the gap. */
+  coveredByPowerSmash?: boolean;
 }
 
 export interface LeadUpdateInput {
@@ -342,6 +347,10 @@ export interface AdminStore {
   previewSubmission(opts: { leadId: string }): Promise<StoreResult<SubmissionPreview>>;
   /** Adds the submission as a pending, hidden "Submitted by organizers" candidate. Computed again here, never taken from the browser. */
   addSubmission(actor: Actor, input: { leadId: string; reason: string }): Promise<StoreResult<{ tournamentId: string; slug: string }>>;
+  /** The filming-permission record (D-019, D-105); no record = unknown. Private: holds the granting person's name. */
+  getFilmingPermission(opts: { tournamentId: string }): Promise<StoreResult<FilmingPermission>>;
+  /** Audits the status and scope only, never the name, role or proof reference. */
+  setFilmingPermission(actor: Actor, input: PermissionInput & { tournamentId: string; reason: string }): Promise<StoreResult<{ tournamentId: string; permission: FilmingPermission; fields: string[] }>>;
   getTournamentDetails(opts: { id: string }): Promise<StoreResult<TournamentDetails>>;
   /** Name, level, place, dates, categories, featured and covered (D-102). Audits the changed fields' names; locks name/level/city/district against the sync. */
   updateTournamentDetails(actor: Actor, input: TournamentUpdateInput): Promise<StoreResult<{ id: string; details: TournamentDetails; fields: TournamentDetailField[] }>>;

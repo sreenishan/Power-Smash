@@ -73,6 +73,8 @@ export const MANIFEST = [
   { name: 'live_past_streams', pk: 'video_id', pkSample: '__no_such_video__' },
   // 0015_submitted_tournaments.sql (D-103): the submission link table is denied
   { name: 'tournament_submissions', pk: 'tournament_id', pkSample: NIL_UUID },
+  // 0016_filming_permission.sql (D-105): who granted filming permission; denied
+  { name: 'tournament_permissions', pk: 'tournament_id', pkSample: NIL_UUID },
   { name: 'public_live_settings', pk: 'pinned_video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
   { name: 'public_live_past_streams', pk: 'video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
   // Later milestones add their tables here, for example:

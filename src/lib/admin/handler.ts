@@ -67,6 +67,24 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   'tournaments.approved': empty,
   'tournaments.previewSubmission': z.object({ leadId: uuid }).strict(),
   'tournaments.addSubmission': z.object({ leadId: uuid, reason }).strict(),
+  'tournaments.permission': z.object({ tournamentId: uuid }).strict(),
+  // generous bounds here; the exact rules (statuses, granted is complete, lengths, a past date) are in validatePermission
+  'tournaments.setPermission': z
+    .object({
+      tournamentId: uuid,
+      status: z.string().max(20),
+      grantedByName: z.string().max(400).nullable(),
+      grantedByRole: z.string().max(400).nullable(),
+      grantedOn: z.string().max(20).nullable(),
+      scopeFilming: z.boolean(),
+      scopeYoutube: z.boolean(),
+      scopeLiveStream: z.boolean(),
+      scopeSponsorOverlays: z.boolean(),
+      exclusivePartner: z.string().max(20),
+      documentRef: z.string().max(1000).nullable(),
+      reason,
+    })
+    .strict(),
   'tournaments.details': z.object({ id: uuid }).strict(),
   // generous bounds here; the exact rules (lengths, levels, categories, real dates, featured until today or later) are in validateTournamentEdit
   'tournaments.update': z
@@ -336,6 +354,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'tournaments.approved': return fromStore(await s.listApprovedTournaments(), cors);
     case 'tournaments.previewSubmission': return fromStore(await s.previewSubmission(input), cors);
     case 'tournaments.addSubmission': return fromStore(await s.addSubmission(actor, input), cors);
+    case 'tournaments.permission': return fromStore(await s.getFilmingPermission(input), cors);
+    case 'tournaments.setPermission': return fromStore(await s.setFilmingPermission(actor, input), cors);
     case 'tournaments.details': return fromStore(await s.getTournamentDetails(input), cors);
     case 'tournaments.update': return fromStore(await s.updateTournamentDetails(actor, input), cors);
     case 'settings.get': return fromStore(await s.getProtectedModes(), cors);

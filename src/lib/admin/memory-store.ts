@@ -6,6 +6,7 @@ import { liveChanges, NO_LIVE, validateLiveEdit, type LiveSettings } from '../li
 import { todayIst } from '../dates';
 import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
 import { submissionPreview, type SubmissionPayload, type SubmissionPreview } from './submission-candidate';
+import { changedPermissionFields, NO_PERMISSION, validatePermission, type FilmingPermission, type PermissionInput } from './filming-permission';
 import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
@@ -100,6 +101,8 @@ export interface MemoryState {
   /** Which lead became which tournament (D-103), and the addresses given out. */
   submissionLinks?: Record<string, string>;
   tournamentSlugs?: Record<string, string>;
+  /** Filming permission by tournament id (D-019, D-105). Absent = unknown. */
+  filmingPermissions?: Record<string, FilmingPermission>;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -478,8 +481,31 @@ export class MemoryAdminStore implements AdminClient {
     return okResult({ tournamentId: id, slug: r.slug });
   }
 
+  /** A list entry with its permission status and covered flag, so the screen can show the gap (D-019). */
+  private withPermission(t: TournamentCandidate): TournamentCandidate {
+    return { ...t, filmingPermission: this.state.filmingPermissions?.[t.id]?.status ?? 'unknown', coveredByPowerSmash: this.state.tournamentDetails?.[t.id]?.coveredByPowerSmash ?? false };
+  }
+
   async listApprovedTournaments(): Promise<StoreResult<TournamentCandidate[]>> {
-    return okResult(this.state.tournaments.filter((t) => t.status === 'published' || t.status === 'completed').map((t) => ({ ...t })));
+    return okResult(this.state.tournaments.filter((t) => t.status === 'published' || t.status === 'completed').map((t) => this.withPermission(t)));
+  }
+
+  async getFilmingPermission(opts: { tournamentId: string }): Promise<StoreResult<FilmingPermission>> {
+    if (!this.state.tournaments.some((t) => t.id === opts.tournamentId)) return failResult('NOT_FOUND');
+    return okResult({ ...(this.state.filmingPermissions?.[opts.tournamentId] ?? NO_PERMISSION) });
+  }
+
+  async setFilmingPermission(actor: Actor, input: PermissionInput & { tournamentId: string; reason: string }) {
+    if (!this.state.tournaments.some((t) => t.id === input.tournamentId)) return failResult('NOT_FOUND');
+    const v = validatePermission(input, todayIst(this.now()));
+    if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+    const before = this.state.filmingPermissions?.[input.tournamentId] ?? NO_PERMISSION;
+    const fields = changedPermissionFields(before, v.value) as string[];
+    if (fields.length === 0) return okResult({ tournamentId: input.tournamentId, permission: v.value, fields });
+    (this.state.filmingPermissions ??= {})[input.tournamentId] = v.value;
+    // the status only, like the SQL audit; never the person's name, role or the proof reference
+    this.audit(actor, 'tournament.set_permission', 'tournament', input.tournamentId, `${before.status} -> ${v.value.status}; ${fields.join(', ')}`);
+    return okResult({ tournamentId: input.tournamentId, permission: v.value, fields });
   }
 
   private tournamentDetailsOf(t: TournamentCandidate): TournamentDetails {
