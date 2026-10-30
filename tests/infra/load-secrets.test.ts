@@ -377,9 +377,10 @@ describe('load-secrets: Vercel values are stored as sensitive', () => {
 
   it('resolveLockedVercel reads the entry file from the installed package.json and returns null for anything missing', () => {
     const dir = tempDir();
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ dependencies: { vercel: '64.5.0' } }));
     expect(resolveLockedVercel(dir)).toBeNull(); // not installed
     mkdirSync(join(dir, 'node_modules', 'vercel', 'dist'), { recursive: true });
-    writeFileSync(join(dir, 'node_modules', 'vercel', 'package.json'), JSON.stringify({ name: 'vercel', bin: { vc: 'dist/vc.js', vercel: 'dist/vc.js' } }));
+    writeFileSync(join(dir, 'node_modules', 'vercel', 'package.json'), JSON.stringify({ name: 'vercel', version: '64.5.0', bin: { vc: 'dist/vc.js', vercel: 'dist/vc.js' } }));
     expect(resolveLockedVercel(dir)).toBeNull(); // package.json but no entry file
     writeFileSync(join(dir, 'node_modules', 'vercel', 'dist', 'vc.js'), '// fake');
     const cli = resolveLockedVercel(dir);
@@ -387,6 +388,23 @@ describe('load-secrets: Vercel values are stored as sensitive', () => {
     expect(cli?.args).toEqual([join(dir, 'node_modules', 'vercel', 'dist', 'vc.js')]);
     writeFileSync(join(dir, 'node_modules', 'vercel', 'package.json'), '{ not json');
     expect(resolveLockedVercel(dir)).toBeNull(); // unreadable package.json fails closed
+  });
+
+  it('an installed copy that is not exactly the pinned version counts as not installed (a stale copy after a bump is never used)', () => {
+    const dir = tempDir();
+    mkdirSync(join(dir, 'node_modules', 'vercel', 'dist'), { recursive: true });
+    writeFileSync(join(dir, 'node_modules', 'vercel', 'dist', 'vc.js'), '// fake');
+    const install = (v: string) => writeFileSync(join(dir, 'node_modules', 'vercel', 'package.json'), JSON.stringify({ name: 'vercel', version: v, bin: { vercel: 'dist/vc.js' } }));
+    const pin = (v: string | null) => writeFileSync(join(dir, 'package.json'), JSON.stringify(v === null ? {} : { dependencies: { vercel: v } }));
+    pin('64.5.0');
+    install('64.2.0');
+    expect(resolveLockedVercel(dir)).toBeNull(); // older copy left from before the bump
+    install('64.6.0');
+    expect(resolveLockedVercel(dir)).toBeNull(); // newer, unreviewed copy
+    install('64.5.0');
+    expect(resolveLockedVercel(dir)).not.toBeNull();
+    pin(null);
+    expect(resolveLockedVercel(dir)).toBeNull(); // no pin to compare with: fail closed
   });
 
   it('still refuses a Cloudflare Turnstile TEST secret before anything is sent', async () => {

@@ -7,6 +7,6 @@
     "node": ">=22.22.0"
   },
   "dependencies": {
-    "vercel": "64.2.0"
+    "vercel": "64.5.0"
   }
 }

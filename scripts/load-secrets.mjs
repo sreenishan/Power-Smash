@@ -33,7 +33,7 @@ import { parseSecretsText, printableName, realGit, secretsFileProblem } from './
 import { VERCEL_MISSING_TEXT, resolveLockedVercel } from './lib/vercel-cli.mjs';
 
 /** The Vercel CLI version this project uses everywhere (deploy.yml and preview.yml pin the same one). */
-export const VERCEL_CLI_VERSION = '64.2.0';
+export const VERCEL_CLI_VERSION = '64.5.0';
 
 /** Where each value goes. `vercel` = Vercel project env (Production), `github-secret`, `github-variable` (public, not secret). */
 const T = { vercel: 'vercel', ghSecret: 'github-secret', ghVar: 'github-variable' };

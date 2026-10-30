@@ -27,6 +27,11 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+      # D-002: @types/node follows the Node major the site runs on (.nvmrc, 24; the Vercel functions are built for the same major).
+      # A newer major would type-check APIs that Node 24 does not have (PR #5 proposed 26). Lift this when .nvmrc moves.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     groups:
       # Order matters: a dependency joins the first group that matches it.
       # Majors are not grouped; each major arrives as its own pull request.
