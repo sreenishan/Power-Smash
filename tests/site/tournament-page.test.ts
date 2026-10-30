@@ -204,7 +204,8 @@ describe('the page and the cards use the model (so the tests above cover what is
 
   it('[slug].astro only dispatches: it renders the owner page for owner records and writes no contact detail itself', () => {
     expect(route).toContain('<OwnerTournamentPage tournament={props.tournament} />');
-    expect(route).toContain('tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT)');
+    // archive routes only when the archive is in this build (the release build leaves it out until its legal switch is on, D-107)
+    expect(route).toContain('tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT && archiveInBuild())');
     expect(route).not.toMatch(/phone|email|mailto|tel:|publicContact\(|showContact/i);
   });
 

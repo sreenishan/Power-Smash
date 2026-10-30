@@ -69,8 +69,8 @@ export function tournamentSitemapUrls(
 }
 
 /** The fixed pages. No lastmod: nothing real to say about them. */
-export function pageSitemapUrls(origin: string | URL): SitemapUrl[] {
-  const paths = [...Object.values(ROUTES), ...Object.values(M3_ROUTES), ...Object.values(ARCHIVE_ROUTES)];
+export function pageSitemapUrls(origin: string | URL, withArchive: boolean = true): SitemapUrl[] {
+  const paths = [...Object.values(ROUTES), ...Object.values(M3_ROUTES), ...(withArchive ? Object.values(ARCHIVE_ROUTES) : [])];
   return [...new Set(paths)].map((p) => ({ loc: absoluteUrl(p, origin) }));
 }
 
@@ -85,12 +85,17 @@ export function sitemapIndexEntries(
   archive: Pick<PublicArchive, 'grid' | 'players' | 'tournaments'>,
   ownerTournaments: readonly OwnerTournamentLike[],
   origin: string | URL,
+  withArchive: boolean = true,
 ): SitemapUrl[] {
   const abs = (p: string) => new URL(p, origin).toString();
   return [
     { loc: abs(SITEMAP_FILES.pages) },
-    { loc: abs(SITEMAP_FILES.matches), lastmod: latest(archive.grid.map((m) => m.lastmod)) },
-    { loc: abs(SITEMAP_FILES.players), lastmod: latest(archive.players.map((p) => p.lastmod)) },
+    ...(withArchive
+      ? [
+          { loc: abs(SITEMAP_FILES.matches), lastmod: latest(archive.grid.map((m) => m.lastmod)) },
+          { loc: abs(SITEMAP_FILES.players), lastmod: latest(archive.players.map((p) => p.lastmod)) },
+        ]
+      : []),
     {
       loc: abs(SITEMAP_FILES.tournaments),
       lastmod: latest(tournamentSitemapUrls(archive, ownerTournaments, origin).flatMap((u) => (u.lastmod ? [u.lastmod] : []))),

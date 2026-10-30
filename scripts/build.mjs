@@ -23,6 +23,9 @@ console.log(NOTICE);
 const built = run([astroBin, 'build', ...process.argv.slice(2)]);
 if (built !== 0) process.exit(built);
 // Archive redirects (301 for renamed or merged pages, and a neutral noindex page for removed or protected ones): review C2-1.
+// D-107: with PS_STRICT=1 and the archive switch off, the archive's fixed files are removed (a no-op in a normal developer build)
+const pruned = run(['scripts/prune-archive.mjs', '--static', STATIC_DIR]);
+if (pruned !== 0) process.exit(pruned);
 const redirected = run(['scripts/write-archive-redirects.mjs', '--out', REDIRECTS_JSON]);
 if (redirected !== 0) process.exit(redirected);
 const finalised = run(['scripts/finalize-headers.ts', '--static', STATIC_DIR, '--config', CONFIG_PATH, '--redirects', REDIRECTS_JSON]);
