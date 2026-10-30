@@ -23,7 +23,7 @@ const matrixViews = Object.keys(RLS_MATRIX).filter((k) => k.startsWith('api.')).
 describe('RLS_MATRIX against the migrations', () => {
   it('finds the schema (so the test cannot pass on an empty parse)', () => {
     expect(tables.length).toBeGreaterThanOrEqual(30);
-    expect(views.length).toBe(10); // 7 archive views + api.public_products (0011) + the two live views (0013)
+    expect(views.length).toBe(16); // 7 archive views + api.public_products (0011) + the two live views (0013) + six competition views (0017)
   });
   it('has a row for every table the migrations create, and no row for a table that does not exist', () => {
     expect(tables.filter((t) => !matrixTables.includes(t)), 'tables missing from RLS_MATRIX').toEqual([]);

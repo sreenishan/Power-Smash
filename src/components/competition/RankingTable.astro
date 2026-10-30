@@ -1,0 +1,90 @@
+---
+// Local ranking table (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// Safe defaults of this wave: rankings are LOCAL and UNOFFICIAL. The label "Local Power Smash ranking, not an official BWF ranking"
+// and the snapshot date are always shown (the date is required; snapshotText() throws without a real YYYY-MM-DD). Until the owner
+// approves publication (`ownerApproved` exactly true), the table carries a visible draft notice. A page must not publish a ranking
+// before that approval; wiring a route is the lead's job and needs the owner's yes.
+// Names through ./helpers.ts: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed).
+import { RANKING_DRAFT_LABEL, RANKING_LABEL, isRankingPublished, rankingRows, snapshotText, type RankingItem } from './helpers';
+
+interface Props {
+  /** Visible heading, for example "Men's singles". */
+  title: string;
+  items: readonly RankingItem[];
+  /** YYYY-MM-DD (India date) the ranking was computed. Required. */
+  snapshotDate: string;
+  ownerApproved?: boolean;
+  headingLevel?: 2 | 3;
+  id?: string;
+}
+const { title, items, snapshotDate, ownerApproved, headingLevel = 2, id = 'ranking' } = Astro.props;
+const Tag = headingLevel === 3 ? 'h3' : 'h2';
+const rows = rankingRows(items);
+const snapshot = snapshotText(snapshotDate);
+const published = isRankingPublished(ownerApproved);
+const headingId = `${id}-heading`;
+const hasPlayed = rows.some((r) => r.played !== '–');
+const hasTie = rows.some((r) => r.tied);
+---
+<section aria-labelledby={headingId} data-ranking data-ranking-published={published ? 'true' : 'false'}>
+  <Tag id={headingId} class="text-h3">{title}</Tag>
+  <p class="mt-2 ps-chip ps-chip-ink" data-ranking-label>{RANKING_LABEL}</p>
+  <p class="mt-2 text-small text-fg-muted ps-num">{snapshot}</p>
+  {!published && (
+    <p class="mt-3 rounded-md border-2 border-ps-live bg-ps-live-tint p-3 text-small font-bold text-ps-ink" role="note" data-ranking-draft>
+      {RANKING_DRAFT_LABEL}
+    </p>
+  )}
+  {rows.length === 0 ? (
+    <p class="mt-3 text-fg-muted">No ranked players yet.</p>
+  ) : (
+    <div class="mt-3 overflow-x-auto" role="region" aria-labelledby={headingId} tabindex="0">
+      <table class="ps-ranking-table ps-num">
+        <caption class="sr-only">{title}: {RANKING_LABEL}. {snapshot}.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Player</th>
+            <th scope="col">Points</th>
+            {hasPlayed && <th scope="col">Played</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              <td>{r.rankText}{r.tied && <span class="sr-only"> (tied)</span>}</td>
+              <th scope="row">{r.name}</th>
+              <td>{r.points}</td>
+              {hasPlayed && <td>{r.played}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {hasTie && <p class="mt-2 text-caption text-fg-muted">"=" marks a shared rank.</p>}
+    </div>
+  )}
+</section>
+
+<style>
+  .ps-ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--ps-surface);
+  }
+  .ps-ranking-table th,
+  .ps-ranking-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: left;
+  }
+  .ps-ranking-table thead th {
+    font-size: var(--ps-text-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  .ps-ranking-table tbody th {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+</style>

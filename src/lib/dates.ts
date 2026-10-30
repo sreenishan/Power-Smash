@@ -90,3 +90,21 @@ export function addDays(isoDate: string, days: number): string {
   const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
+
+const instantFormat = new Intl.DateTimeFormat('en-IN', {
+  timeZone: TIME_ZONE,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+/** "Saturday, 7 November 2026 at 9:30 am (India time)" style, for an instant (ISO string). Throws on an unreadable instant. */
+export function formatInstantIst(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) throw new RangeError('Not an instant');
+  return `${instantFormat.format(d)} (India time)`;
+}

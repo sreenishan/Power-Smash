@@ -1,0 +1,125 @@
+---
+// Order of play (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// - Columns: date, time (India time, Asia/Kolkata, via ./helpers.ts on top of src/lib/dates.ts), court, event, round, players, status.
+// - From 640 px up: one table with a caption and column headers. Under 640 px: the same rows as cards (a list); only one of the two
+//   is displayed at a time (display:none hides the other from screen readers as well).
+// - Players through ./helpers.ts: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed).
+import { scheduleRows, type ScheduleItem } from './helpers';
+
+interface Props {
+  items: readonly ScheduleItem[];
+  /** Caption of the table and the label of the card list, for example "Order of play, Court 1 to 4". */
+  caption: string;
+}
+const { items, caption } = Astro.props;
+const rows = scheduleRows(items);
+---
+<div class="ps-schedule" data-schedule>
+  {rows.length === 0 ? (
+    <p class="text-fg-muted">No matches are scheduled yet.</p>
+  ) : (
+    <>
+      <div class="ps-schedule-wide" role="region" aria-label={caption} tabindex="0">
+        <table class="ps-schedule-table">
+          <caption>{caption} <span class="font-normal text-fg-muted">(times in India time, IST)</span></caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Time</th>
+              <th scope="col">Court</th>
+              <th scope="col">Event</th>
+              <th scope="col">Round</th>
+              <th scope="col">Players</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr data-schedule-row={r.id}>
+                <td class="ps-num">{r.dateText}</td>
+                <td class="ps-num">{r.timeText}</td>
+                <td>{r.courtText}</td>
+                <td>{r.eventText || '–'}</td>
+                <td>{r.roundText || '–'}</td>
+                <td>{r.sideA} <span class="text-fg-muted">versus</span> {r.sideB}</td>
+                <td>{r.statusText || '–'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div class="ps-schedule-narrow">
+        <p class="text-small font-bold">{caption} <span class="font-normal text-fg-muted">(times in India time, IST)</span></p>
+        <ul class="mt-3 grid gap-3" aria-label={caption}>
+          {rows.map((r) => (
+            <li class="ps-card p-4" data-schedule-card={r.id}>
+              <p class="text-small font-bold uppercase tracking-wider text-fg-muted ps-num">{r.dateText} · {r.timeText}</p>
+              <p class="mt-1 font-bold">{r.sideA} <span class="font-normal text-fg-muted">versus</span> {r.sideB}</p>
+              <dl class="ps-schedule-facts mt-2 text-small">
+                <dt>Court</dt><dd>{r.courtText}</dd>
+                {r.eventText && <><dt>Event</dt><dd>{r.eventText}</dd></>}
+                {r.roundText && <><dt>Round</dt><dd>{r.roundText}</dd></>}
+                {r.statusText && <><dt>Status</dt><dd>{r.statusText}</dd></>}
+              </dl>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )}
+</div>
+
+<style>
+  .ps-schedule-wide {
+    display: none;
+    overflow-x: auto;
+    border-radius: var(--ps-radius-md);
+  }
+  @media (min-width: 40rem) {
+    .ps-schedule-wide {
+      display: block;
+    }
+    .ps-schedule-narrow {
+      display: none;
+    }
+  }
+  .ps-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--ps-surface);
+  }
+  .ps-schedule-table caption {
+    padding-bottom: 0.5rem;
+    text-align: left;
+    font-weight: 700;
+  }
+  .ps-schedule-table th,
+  .ps-schedule-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: left;
+    vertical-align: top;
+  }
+  .ps-schedule-table thead th {
+    font-size: var(--ps-text-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+    white-space: nowrap;
+  }
+  .ps-schedule-table td.ps-num {
+    white-space: nowrap;
+  }
+  .ps-schedule-facts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.125rem 0.75rem;
+  }
+  .ps-schedule-facts dt {
+    font-weight: 700;
+    color: var(--ps-fg-muted);
+  }
+  .ps-schedule-facts dd {
+    margin: 0;
+  }
+</style>

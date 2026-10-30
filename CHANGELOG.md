@@ -65,6 +65,24 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
 
 ### Added
 
+*The tournament platform, waves A and 2 (2026-10-30, your brief of 24 modules and decisions D-108 to D-114); nothing is shown on the site or switched on yet*
+
+- **The rules engines behind running a tournament.** One shared, tested code library (`src/lib/competition/`) now does the work an organizer does by hand:
+  - **Scoring:** 21 points, win by 2, capped at 30, best of 3 games, with interval and change-of-ends points. It records rally by rally with undo and checks a finished score is possible (30-28 is valid, 31-29 is not). It refuses a "retirement" where no rally was played: that is a walkover.
+  - **Draws:** knockout with seeds and byes placed in the standard positions, round robin, and groups followed by a knockout. A draw is made from a recorded number, so the same draw can always be made again and checked.
+  - **Brackets:** winners move on only after a confirmed result; a correction undoes what followed it.
+  - **Scheduling:** matches placed on courts and times with a rest gap; clashes (one player on two courts, too little rest) are listed.
+  - **Statistics and a local ranking:** win/loss records, head-to-head and partner history from entered results only. The ranking is labelled "Power Smash local ranking, not an official BWF ranking" and its points table waits for your approval (D-110).
+- **The competition database (migration 0017).** Events inside a tournament, venues and courts, entries, draws, matches, game scores, a rally log, ranking snapshots, organizer assignments, a notification queue and the records an international data source would need. It follows the house rules: private by default, every change through an owner-only, audited function, and the public sees only six read-only views.
+  - **Juniors and unknown-age players are never named in public (D-109).** In draws, entries and scores they show as "Protected player"; junior events never name anyone. In a public ranking they are left out altogether, because a rank next to "Protected player" could still point to a child in a small local field.
+  - **Results are checked by the database too:** an impossible score, a result for a cancelled match, or a change to a published draw or a confirmed result is refused.
+  - **The notification queue cannot hold a phone number or email address:** it holds references and codes only.
+  - **All switches start off.** Rankings, registrations and live scores stay unpublished until you switch them on.
+- **International data (D-112).** An adapter layer for a licensed data source is built and tested with a fake source only. No site is scraped; until a licence and credentials exist, every source reports "awaiting licence". The facts found (who holds BWF data and on what terms, mostly unverified) are in `docs/m5/international-data.md`.
+- **Notification queue (D-114).** Messages are built without contact details, sent at most once per channel (email first, when it is set up), and re-check consent just before sending. Nothing sends while the switch is off, and no paid WhatsApp service is used.
+- **Display pieces for the public pages.** A bracket view, a schedule table (a card list on phones), a scoreboard that says "Live" only while updates are fresh, a ranking table and an entry list. They are not on any page yet; wave 3 puts them on the tournament pages.
+- **Checked locally:** every database check from 0001 to 0017 passes on the local PostgreSQL; type check 0 errors; the unit tests pass (4,361). The dev Supabase project is not migrated to 0017 yet: that needs your paste of the next SQL bundle.
+
 - **Premium visual upgrade (design system).** Broadcast-style dark bands, crisper light sections, scoreboard counters, refined buttons and cards, a header that compacts on scroll (CSS only), a richer footer and court-line motifs. Rules for the page builders: `docs/DESIGN_DIRECTION.md`; recipes in `src/styles/components.css`. No new JavaScript, fonts or images beyond two small court-line SVGs.
 *Milestones M2 and M3 (archive engine, admin, placements, posters), 2026-10-22; nothing public, nothing run against a real service*
 

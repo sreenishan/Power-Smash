@@ -1,0 +1,175 @@
+---
+// Knockout bracket (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// - Rounds run left to right (earliest first, the third-place match after the final), in a horizontally scrollable region. The
+//   region is focusable (keyboard scrolling) and labelled; on phones a visible line says to swipe sideways.
+// - Byes read "advances without a match"; walkover, retired and abandoned are written out; the winner is marked with the word
+//   "Winner" and bold text, never by colour alone.
+// - Names: every line goes through ./helpers.ts, which prints "Protected player" for anyone not explicitly marked
+//   `protected: false` (D-012, fail closed). Nothing else about a protected player (seed is kept, it is not personal) is shown.
+// - Screen readers get one plain sentence per match (bracketMatchSummary); the visual lines are hidden from them to avoid reading twice.
+// - All logic lives in ./helpers.ts (tested in tests/competition-ui/); this file is markup only.
+import {
+  BYE_LABEL,
+  bracketColumns,
+  bracketMatchSummary,
+  displayGames,
+  isByeMatch,
+  isWinner,
+  outcomeNote,
+  seedText,
+  slotText,
+  statusText,
+  type BracketRoundView,
+  type SlotView,
+} from './helpers';
+import type { Side } from '../../lib/competition/types';
+
+interface Props {
+  /** Visible heading of the bracket, for example the event name ("Men's singles"). */
+  title: string;
+  rounds: readonly BracketRoundView[];
+  headingLevel?: 2 | 3;
+  id?: string;
+}
+const { title, rounds, headingLevel = 2, id = 'bracket' } = Astro.props;
+const Tag = headingLevel === 3 ? 'h3' : 'h2';
+const RoundTag = headingLevel === 3 ? 'h4' : 'h3';
+const columns = bracketColumns(rounds);
+const headingId = `${id}-heading`;
+const hintId = `${id}-hint`;
+const seedOf = (s: SlotView): string => (s.kind === 'entry' ? seedText(s.seed) : '');
+---
+<section class="ps-bracket" aria-labelledby={headingId} data-bracket>
+  <Tag id={headingId} class="text-h3">{title}</Tag>
+  {columns.length === 0 ? (
+    <p class="mt-3 text-fg-muted">The draw is not ready yet.</p>
+  ) : (
+    <>
+      <p id={hintId} class="mt-2 text-small text-fg-muted ps-bracket-hint">Scroll or swipe sideways to see every round.</p>
+      <div class="ps-bracket-scroll mt-3" role="region" aria-labelledby={headingId} aria-describedby={hintId} tabindex="0">
+        <ol class="ps-bracket-rounds">
+          {columns.map((col) => (
+            <li class="ps-bracket-round" data-round={col.code}>
+              <RoundTag class="ps-bracket-round-title">{col.label}</RoundTag>
+              <ol class="ps-bracket-matches">
+                {col.matches.map((m) => {
+                  const bye = isByeMatch(m);
+                  const note = outcomeNote(m.status);
+                  const games = displayGames(m.games);
+                  const sides: [Side, SlotView][] = [['A', m.a], ['B', m.b]];
+                  return (
+                    <li class="ps-card ps-bracket-match" data-match-id={m.id}>
+                      <p class="sr-only">{bracketMatchSummary(m)}</p>
+                      <div aria-hidden="true">
+                      {bye ? (
+                        <p class="ps-bracket-line">
+                          <span class="ps-bracket-name">
+                            {seedOf(m.a.kind === 'bye' ? m.b : m.a) && <span class="ps-num text-fg-muted">{seedOf(m.a.kind === 'bye' ? m.b : m.a)} </span>}
+                            {slotText(m.a.kind === 'bye' ? m.b : m.a)}
+                          </span>
+                          <span class="ps-bracket-note">{m.a.kind === 'bye' && m.b.kind === 'bye' ? 'No match' : `${BYE_LABEL}: advances without a match`}</span>
+                        </p>
+                      ) : (
+                        <>
+                          {sides.map(([side, slot]) => {
+                            const win = isWinner(side, m.winner, m.status);
+                            return (
+                              <p class:list={['ps-bracket-line', { 'ps-bracket-winner': win }]}>
+                                <span class="ps-bracket-name">
+                                  {seedOf(slot) && <span class="ps-num text-fg-muted">{seedOf(slot)} </span>}
+                                  {slotText(slot)}
+                                </span>
+                                {games.length > 0 && (
+                                  <span class="ps-bracket-games ps-num">
+                                    {games.map((g) => <span>{side === 'A' ? g.a : g.b}</span>)}
+                                  </span>
+                                )}
+                                {win && <span class="ps-chip ps-chip-court ps-bracket-win-tag"><span aria-hidden="true">✓</span> Winner</span>}
+                              </p>
+                            );
+                          })}
+                          <p class="ps-bracket-note">{note || statusText(m.status ?? 'scheduled')}</p>
+                        </>
+                      )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </>
+  )}
+</section>
+
+<style>
+  .ps-bracket-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 0.75rem;
+    border-radius: var(--ps-radius-md);
+  }
+  .ps-bracket-rounds {
+    display: flex;
+    gap: 1rem;
+    min-width: max-content;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ps-bracket-round {
+    display: flex;
+    flex-direction: column;
+    width: 15rem;
+  }
+  .ps-bracket-round-title {
+    margin-bottom: 0.75rem;
+    font-size: var(--ps-text-small);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  .ps-bracket-matches {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ps-bracket-match {
+    padding: 0.5rem 0.75rem;
+  }
+  .ps-bracket-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    min-height: 1.75rem;
+  }
+  .ps-bracket-name {
+    flex: 1 1 8rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ps-bracket-winner .ps-bracket-name {
+    font-weight: 800;
+  }
+  .ps-bracket-games {
+    display: inline-flex;
+    gap: 0.5rem;
+  }
+  .ps-bracket-note {
+    margin-top: 0.25rem;
+    font-size: var(--ps-text-caption);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+</style>

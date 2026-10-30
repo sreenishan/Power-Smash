@@ -1519,6 +1519,62 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - Owner-entered tournaments (`src/content/tournaments.ts`) are not archive and are always built.
 - **Consequences.** Checked with a release-settings build (`PS_STRICT=1 node scripts/build.mjs`): 25 pages instead of 78, no archive file, 0 archive redirect routes, no archive notice, and the owner-input count fell from 164 markers on 77 pages to 111 on 24 pages (all owner content); the link and hidden-section tests pass on that output. The normal build is unchanged. Tests: `tests/archive/in-build.test.ts`.
 
+## D-108 Organizer and scorer accounts (amends D-006, D-007)
+
+- **Context.** The owner asked to turn Power Smash into a full tournament platform (the 24-module brief) and to start that work now, before G1 (this answers the "starting Phase 2 or 3" ask-first item for this scope). Today only the owner can sign in (D-006 sign-ups disabled, D-007 owner-only accounts).
+- **Decision (owner, 2026-10-30).** Organizers and scorers get accounts, **by the owner's invitation only** (no public sign-up). An organizer manages only the tournaments assigned to them; a scorer enters scores only for matches assigned to them. Players and fans get no accounts for now.
+- **Consequences.** Roles are enforced in the database (RLS and SECURITY DEFINER RPCs checking the assignment), never by hiding buttons; every write is audited. Until each wave is reviewed and the owner switches it on, the roles stay inert and the admin stays owner-only.
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-109 Juniors and unknown-age players are never named in competition data (extends D-012)
+
+- **Context.** Entries, draws, schedules, live scores, results and rankings would otherwise publish children's and unconfirmed players' names.
+- **Decision (owner, 2026-10-30).** Anyone not adult_confirmed is shown publicly as "Protected player" in every competition surface; junior events may run, but names stay visible only to the owner and the assigned organizer.
+- **Consequences.** The public api views null the player for anyone not eligible (fail closed); tests prove it. Parental-consent naming is not built.
+  - Rankings go one step further (lead, 2026-10-30): a protected player is left OUT of a public ranking, not shown as a masked row, because a rank and points beside "Protected player" could still identify a junior in a small local field (D-012 "absent from other pages"). The junior flag is a stored column computed when an event or ranking is saved, so the public views call no function.
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-110 Results, statistics and a local ranking (amends D-016 item 3 for entered results)
+
+- **Context.** D-016 item 3 forbids composite scores and per-player aggregates derived from YouTube API data.
+- **Decision (owner, 2026-10-30).** Power Smash publishes confirmed match results, win/loss records, head-to-head and its own local ranking, computed ONLY from results the owner or an assigned organizer or scorer entered, never from YouTube titles or API data. The ranking is labelled "Power Smash local ranking, not an official BWF ranking", and the owner approves the points table before any snapshot is published.
+- **Consequences.** D-016 stays in force for anything derived from YouTube data. Statistics state their limits (matches excluded and why).
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-111 Registration on the site, free, with manual payment verification (amends D-015, D-020)
+
+- **Context.** D-015 links to the organizer's own registration; D-020 puts checkout in Phase 2.
+- **Decision (owner, 2026-10-30).** Players register on the site for events whose organizer opens registration; there is no payment gateway: any fee is paid outside the site (for example UPI or cash) and the organizer or owner marks it verified. Razorpay checkout waits for the owner's KYC (OT-06) and the CA's advice.
+- **Consequences.** Registration collects personal data: the privacy notice and consent text need the lawyer's review before it is switched on. Server-side checks: duplicate entries, capacity under a row lock, eligibility. No price or fee is ever defaulted (D-021).
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-112 International tournaments: listed with links only (amends D-018)
+
+- **Context.** D-018 hides international events (constraint 0004:149); no licensed data source is confirmed.
+- **Decision (owner, 2026-10-30).** The owner may list major international events with a link to the official BWF or organizer page. No draws, scores or rankings are copied, and nothing is scraped, until a licensed source is confirmed and the lawyer agrees.
+- **Consequences.** The data-provider adapter (wave 2) stays "awaiting a licensed source".
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-113 Near-live public scores, refreshed about every minute (amends D-097/D-008 freshness)
+
+- **Context.** Pages are static and refreshed by rebuilds (D-008).
+- **Decision (owner, 2026-10-30).** During a live match the match page fetches the latest score from a small cached server endpoint about every minute. "Live" shows only while an authorised scorer is actually sending updates.
+- **Consequences.** A non-prerendered read-only endpoint with short caching and no private fields; no realtime subscription for now.
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
+
+## D-114 Notifications: email, the WhatsApp Channel and in-site notices (amends D-026)
+
+- **Context.** D-026 proposed the WhatsApp Channel link plus double-opt-in email.
+- **Decision (owner, 2026-10-30).** Email (Resend, after the domain email is set up, OT-40; double opt-in and unsubscribe), announcements on the owner's WhatsApp Channel, and notices inside the site for signed-in organizers and scorers. No paid per-person WhatsApp messages.
+- **Consequences.** The notification queue (wave 2) never sends twice and never claims a message was sent when a channel is not configured.
+- **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

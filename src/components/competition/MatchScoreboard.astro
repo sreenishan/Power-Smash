@@ -1,0 +1,143 @@
+---
+// One match's scoreboard (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// - Game scores in a real table (caption, row and column headers), side A first.
+// - Status badge is always text. "Live" appears ONLY when the caller passes live=true, the status is `live`, AND lastUpdate is an
+//   instant no older than the freshness window (default 5 minutes, see LIVE_FRESHNESS_MS_DEFAULT in ./helpers.ts). `now` is
+//   injected by the caller (a static page passes its build time, so a built page is never "Live" for long). Otherwise no live
+//   label; a match marked live without a fresh update says the score may be out of date.
+// - Winner marked with the word "Winner", not by colour alone. Names through ./helpers.ts ("Protected player" unless the caller
+//   marks a player `protected: false`, D-012 fail closed).
+import StatusBadge from './StatusBadge.astro';
+import {
+  LIVE_FRESHNESS_MS_DEFAULT,
+  courtText,
+  displayGames,
+  eventLabel,
+  formatDateIst,
+  formatTimeIst,
+  freshnessWindowText,
+  gamesWon,
+  isWinner,
+  outcomeNote,
+  roundLabel,
+  sideName,
+  statusBadge,
+  type PlayerRef,
+} from './helpers';
+import type { GameScore, MatchStatus, Side } from '../../lib/competition/types';
+
+interface Props {
+  a: readonly PlayerRef[];
+  b: readonly PlayerRef[];
+  status: MatchStatus;
+  games?: readonly GameScore[];
+  winner?: Side | null;
+  event?: string | null;
+  round?: string | null;
+  court?: string | number | null;
+  /** The caller's claim that the match is live; shown only with a fresh lastUpdate. */
+  live?: boolean;
+  /** ISO instant (with zone) of the last score update. */
+  lastUpdate?: string | null;
+  /** The clock, injected (never read here). */
+  now: Date;
+  freshnessMs?: number;
+  headingLevel?: 2 | 3 | 4;
+}
+const { a, b, status, games, winner, event, round, court, live, lastUpdate, now, freshnessMs = LIVE_FRESHNESS_MS_DEFAULT, headingLevel = 3 } = Astro.props;
+const Tag = headingLevel === 2 ? 'h2' : headingLevel === 4 ? 'h4' : 'h3';
+const badge = statusBadge({ live, status, lastUpdate, now, freshnessMs });
+const rows = displayGames(games);
+const won = gamesWon(rows);
+const nameA = sideName(a);
+const nameB = sideName(b);
+const winA = isWinner('A', winner, status);
+const winB = isWinner('B', winner, status);
+const note = outcomeNote(status);
+const context = [eventLabel(event), roundLabel(round), court != null && court !== '' ? courtText(court) : ''].filter(Boolean).join(' · ');
+const updatedText = lastUpdate ? [formatDateIst(lastUpdate), formatTimeIst(lastUpdate)].filter(Boolean).join(', ') : '';
+const caption = `Game scores: ${nameA} versus ${nameB}`;
+---
+<article class="ps-card p-4 sm:p-5" data-scoreboard data-live={badge.isLive ? 'true' : 'false'}>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    {context ? <p class="text-small font-bold uppercase tracking-wider text-fg-muted">{context}</p> : <span></span>}
+    <StatusBadge text={badge.text} tone={badge.tone} />
+  </div>
+  <Tag class="mt-2 text-h4">
+    <span class:list={{ 'font-extrabold': winA }}>{nameA}</span>
+    <span class="text-fg-muted"> versus </span>
+    <span class:list={{ 'font-extrabold': winB }}>{nameB}</span>
+  </Tag>
+  {(winA || winB) && (
+    <p class="mt-1 font-bold">
+      <span aria-hidden="true">✓ </span>Winner: {winA ? nameA : nameB}{note && ` (${note.toLowerCase()})`}
+    </p>
+  )}
+  {rows.length > 0 ? (
+    <div class="mt-3 overflow-x-auto" role="region" aria-label={caption} tabindex="0">
+      <table class="ps-scoretable ps-num">
+        <caption class="sr-only">{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Side</th>
+            {rows.map((_, i) => <th scope="col">Game {i + 1}</th>)}
+            <th scope="col">Games won</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class:list={{ 'ps-scoretable-winner': winA }}>
+            <th scope="row">{nameA}{winA && <span class="sr-only"> (winner)</span>}</th>
+            {rows.map((g) => <td>{g.a}</td>)}
+            <td>{won.a}</td>
+          </tr>
+          <tr class:list={{ 'ps-scoretable-winner': winB }}>
+            <th scope="row">{nameB}{winB && <span class="sr-only"> (winner)</span>}</th>
+            {rows.map((g) => <td>{g.b}</td>)}
+            <td>{won.b}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <p class="mt-3 text-fg-muted">{note ? `${note}: no games played.` : 'No score yet.'}</p>
+  )}
+  {badge.isLive && updatedText && (
+    <p class="mt-2 text-caption text-fg-muted">Last updated {updatedText}. Shown as live only while updates are less than {freshnessWindowText(freshnessMs)} old.</p>
+  )}
+  {badge.stale && (
+    <p class="mt-2 text-caption text-fg-muted">This score may be out of date{updatedText ? ` (last update ${updatedText})` : ''}.</p>
+  )}
+</article>
+
+<style>
+  .ps-scoretable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--ps-text-body);
+  }
+  .ps-scoretable th,
+  .ps-scoretable td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: center;
+  }
+  .ps-scoretable thead th {
+    font-size: var(--ps-text-caption);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  .ps-scoretable tbody th {
+    text-align: left;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .ps-scoretable-winner th,
+  .ps-scoretable-winner td {
+    font-weight: 800;
+  }
+  .ps-scoretable-winner th {
+    box-shadow: inset 0.25rem 0 0 var(--ps-link);
+  }
+</style>

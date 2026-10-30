@@ -1,0 +1,40 @@
+---
+// A match status as a text chip (never colour alone). The caller decides the text and tone through statusBadge() in ./helpers.ts,
+// which is the only place that may produce "Live" (live=true, status live, and a fresh last update). Module 15, not wired yet.
+import type { BadgeTone } from './helpers';
+
+interface Props {
+  text: string;
+  tone: BadgeTone;
+}
+const { text, tone } = Astro.props;
+const toneClass = tone === 'live' ? 'ps-chip-live' : tone === 'court' ? 'ps-chip-court' : tone === 'ink' ? 'ps-chip-ink' : 'ps-comp-chip-neutral';
+---
+<span class:list={['ps-chip', toneClass]} data-status-badge={tone}>
+  {tone === 'live' && <span aria-hidden="true" class="ps-comp-live-dot"></span>}
+  {text}
+</span>
+
+<style>
+  .ps-comp-chip-neutral {
+    border: 1px solid var(--ps-line-strong);
+    background: var(--ps-surface);
+    color: var(--ps-fg);
+  }
+  .ps-comp-live-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: currentColor;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ps-comp-live-dot {
+      animation: ps-comp-pulse 1.6s ease-in-out infinite;
+    }
+  }
+  @keyframes ps-comp-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+</style>

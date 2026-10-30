@@ -1,0 +1,80 @@
+---
+// Entry list of one event (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// Seeded entries first, then the rest in the caller's order (never sorted by name), withdrawn entries last (entryRows in ./helpers.ts).
+// Names: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed); a protected entry's club is
+// hidden as well. Registration is OFF in this wave: this list only displays entries the owner has added.
+import { entryRows, type EntryItem } from './helpers';
+
+interface Props {
+  /** Caption, for example "Men's singles entries". */
+  caption: string;
+  items: readonly EntryItem[];
+}
+const { caption, items } = Astro.props;
+const rows = entryRows(items);
+const hasClub = rows.some((r) => r.club !== '');
+const hasStatus = rows.some((r) => r.statusText !== '');
+---
+<div data-entry-list>
+  {rows.length === 0 ? (
+    <p class="text-fg-muted">No entries yet.</p>
+  ) : (
+    <div class="overflow-x-auto" role="region" aria-label={caption} tabindex="0">
+      <table class="ps-entry-table">
+        <caption>{caption} <span class="font-normal text-fg-muted ps-num">({rows.filter((r) => !r.withdrawn).length} entered)</span></caption>
+        <thead>
+          <tr>
+            <th scope="col">Seed</th>
+            <th scope="col">Player or pair</th>
+            {hasClub && <th scope="col">Club</th>}
+            {hasStatus && <th scope="col">Status</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr class:list={{ 'ps-entry-withdrawn': r.withdrawn }} data-entry={r.id}>
+              <td class="ps-num">{r.seedText || <span class="sr-only">Unseeded</span>}</td>
+              <th scope="row">{r.name}</th>
+              {hasClub && <td>{r.club || '–'}</td>}
+              {hasStatus && <td>{r.statusText || '–'}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
+
+<style>
+  .ps-entry-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--ps-surface);
+  }
+  .ps-entry-table caption {
+    padding-bottom: 0.5rem;
+    text-align: left;
+    font-weight: 700;
+  }
+  .ps-entry-table th,
+  .ps-entry-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: left;
+  }
+  .ps-entry-table thead th {
+    font-size: var(--ps-text-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  .ps-entry-table tbody th {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  /* Withdrawn: the word "Withdrawn" is in the status column; the strike-through is extra, never the only signal. */
+  .ps-entry-withdrawn th {
+    text-decoration: line-through;
+    color: var(--ps-fg-muted);
+  }
+</style>

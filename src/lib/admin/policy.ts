@@ -127,6 +127,13 @@ export const RLS_MATRIX = {
   // 0013_live_pin.sql (D-101): the /live pin and past streams, explicit columns
   'api.public_live_settings': { private: false, grants: PUBLIC_VIEW },
   'api.public_live_past_streams': { private: false, grants: PUBLIC_VIEW },
+  // 0017_competition.sql (D-109 to D-113): public competition data, protected players never named; explicit columns
+  'api.public_competition_events': { private: false, grants: PUBLIC_VIEW },
+  'api.public_competition_draws': { private: false, grants: PUBLIC_VIEW },
+  'api.public_competition_draw_slots': { private: false, grants: PUBLIC_VIEW },
+  'api.public_competition_matches': { private: false, grants: PUBLIC_VIEW },
+  'api.public_competition_match_games': { private: false, grants: PUBLIC_VIEW },
+  'api.public_competition_rankings': { private: false, grants: PUBLIC_VIEW },
   // archive base tables: owner reads, writes only via RPC
   'videos': { private: true, grants: OWNER_READ_RPC_WRITE },
   'video_title_history': { private: true, grants: OWNER_READ },
@@ -160,6 +167,25 @@ export const RLS_MATRIX = {
   'tournament_submissions': { private: true, grants: OWNER_READ_RPC_WRITE },
   // 0016_filming_permission.sql (D-019, D-105): who granted filming permission (a person's name); written by admin_set_filming_permission
   'tournament_permissions': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0017_competition.sql (D-108 to D-114): the competition core; owner reads, writes only through the admin_* competition RPCs
+  'competition_settings': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'tournament_events': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'venues': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'courts': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'event_entries': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'event_entry_players': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'draws': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'draw_slots': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'competition_matches': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'match_games': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'match_score_events': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'ranking_snapshots': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'ranking_entries': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'organizer_assignments': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'notification_outbox': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'data_providers': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'data_import_runs': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'external_record_mappings': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placement_stats_daily': { private: true, grants: OWNER_READ },
   'placement_page_stats_daily': { private: true, grants: OWNER_READ },
   // Worker-only plumbing: no admin access at all
