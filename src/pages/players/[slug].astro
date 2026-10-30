@@ -75,6 +75,8 @@ const description = full
           {p.academy && <li class="ps-chip ps-chip-court">{p.academy}</li>}
           {p.categories.map((c) => <li class="ps-chip ps-chip-ink">{categoryLabel(c)}</li>)}
         </ul>
+        {/* The owner's own text about an ADULT player (D-100); plain text, line breaks kept. Minimal pages never get it. */}
+        {p.bio && <p class="mt-4 max-w-3xl whitespace-pre-line">{p.bio}</p>}
         <div class="ps-surface-dark mt-6 grid max-w-4xl gap-5 rounded-lg p-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] sm:items-center sm:p-6">
           <div class="grid grid-cols-2 gap-4">
             <StatCounter value={String(p.matchCount)} label="Matches on record" />

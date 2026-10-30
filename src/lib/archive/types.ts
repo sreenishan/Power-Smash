@@ -495,6 +495,8 @@ export type PublicPlayer = {
   instagram_handle: string | null;
   claimed: boolean;
   noindex: boolean;
+  /** 0012 (D-100): adults only, appended last. */
+  academy: string | null;
 };
 
 export type PublicTournament = {
@@ -675,7 +677,7 @@ export const API_VIEW_COLUMNS = {
   ],
   public_matches: ['id', 'video_id', 'slug', 'tournament_id', 'category', 'age_group', 'round', 'format', 'played_on', 'page_mode', 'noindex'],
   public_match_participants: ['match_id', 'side', 'position', 'raw_name', 'player_slug'],
-  public_players: ['id', 'slug', 'display_name', 'disambiguator', 'district', 'photo_path', 'bio', 'instagram_handle', 'claimed', 'noindex'],
+  public_players: ['id', 'slug', 'display_name', 'disambiguator', 'district', 'photo_path', 'bio', 'instagram_handle', 'claimed', 'noindex', 'academy'],
   public_tournaments: [
     'id', 'slug', 'name', 'series_key', 'edition_year', 'edition_no', 'season_label', 'level', 'region', 'city', 'district', 'venue',
     'start_date', 'end_date', 'categories', 'entry_info', 'registration_url', 'poster_path', 'status', 'is_featured', 'featured_until',

@@ -20,7 +20,7 @@ import {
 export const SEED_PLAYERS: readonly RawPlayer[] = [
   { id: 'p-a1', displayName: 'Demo Karthik R', ageStatus: 'adult_confirmed', district: 'Madurai' },
   { id: 'p-a2', displayName: 'Demo Karthik R', ageStatus: 'adult_confirmed', district: 'Chennai' },
-  { id: 'p-a3', displayName: 'Sample Arul T', ageStatus: 'adult_confirmed', district: 'Salem', academy: 'Sample Smash Academy' },
+  { id: 'p-a3', displayName: 'Sample Arul T', ageStatus: 'adult_confirmed', district: 'Salem', academy: 'Sample Smash Academy', bio: 'A fictional left-handed doubles player.\nSample text for the preview only.' },
   { id: 'p-a4', displayName: 'Mock Bala S', ageStatus: 'adult_confirmed', district: 'Tiruchirappalli' },
   { id: 'p-a5', displayName: 'Demo Selvi M', ageStatus: 'adult_confirmed', district: 'Madurai' },
   { id: 'p-a6', displayName: 'Mock Nithya S', ageStatus: 'adult_confirmed', district: 'Chennai' },

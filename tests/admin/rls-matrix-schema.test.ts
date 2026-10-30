@@ -8,11 +8,15 @@ import { checkMigration, statementsOf } from '../supabase/migration-rules';
 const DIR = 'supabase/migrations';
 const sqls = readdirSync(DIR).filter((f) => f.endsWith('.sql')).sort().map((f) => readFileSync(`${DIR}/${f}`, 'utf8'));
 const tables = sqls.flatMap((sql) => checkMigration(sql).tables).sort();
-const views = sqls
-  .flatMap((sql) => statementsOf(sql))
-  .map((s) => /^create (?:or replace )?view api\.([a-z_]+)/i.exec(s)?.[1])
-  .filter((v): v is string => typeof v === 'string')
-  .sort();
+// a view re-created by a later migration (0012 re-creates api.public_players) is still ONE view
+const views = [
+  ...new Set(
+    sqls
+      .flatMap((sql) => statementsOf(sql))
+      .map((s) => /^create (?:or replace )?view api\.([a-z_]+)/i.exec(s)?.[1])
+      .filter((v): v is string => typeof v === 'string'),
+  ),
+].sort();
 const matrixTables = Object.keys(RLS_MATRIX).filter((k) => !k.startsWith('api.')).sort();
 const matrixViews = Object.keys(RLS_MATRIX).filter((k) => k.startsWith('api.')).map((k) => k.slice(4)).sort();
 

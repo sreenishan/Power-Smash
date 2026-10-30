@@ -34,6 +34,8 @@ export const ADMIN_ACTIONS = {
   'players.merge': ownerWrite,
   'players.split': ownerWrite,
   'players.rename': ownerWrite,
+  'players.getProfile': ownerRead,
+  'players.updateProfile': ownerWrite,
   'players.confirmAdult': ownerWrite,
   'profileRequests.list': ownerRead,
   'profileRequests.resolve': ownerWrite,

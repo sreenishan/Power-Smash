@@ -96,8 +96,8 @@ describe('createSupabaseProvider', () => {
   });
 
   const players: PublicPlayer[] = [
-    { id: 'pl-1', slug: 'demo-ada-k', display_name: 'Demo Ada K', disambiguator: null, district: 'Madurai', photo_path: null, bio: null, instagram_handle: null, claimed: false, noindex: false },
-    { id: 'pl-2', slug: 'p-abc123', display_name: 'Trial Quiet Q', disambiguator: null, district: null, photo_path: null, bio: null, instagram_handle: null, claimed: false, noindex: true },
+    { id: 'pl-1', slug: 'demo-ada-k', display_name: 'Demo Ada K', disambiguator: null, district: 'Madurai', photo_path: null, bio: 'Demo bio line.', instagram_handle: null, claimed: false, noindex: false, academy: 'Demo Shuttle Club' },
+    { id: 'pl-2', slug: 'p-abc123', display_name: 'Trial Quiet Q', disambiguator: null, district: 'Trial District', photo_path: null, bio: 'Trial private bio', instagram_handle: null, claimed: false, noindex: true, academy: 'Trial Quiet Club' },
   ];
   const tournaments: PublicTournament[] = [
     {
@@ -148,6 +148,11 @@ describe('createSupabaseProvider', () => {
     // A noindex player row is read as unknown age: a minimal page at most, never indexed or searchable.
     expect(a.minimalPlayers.map((p) => p.slug)).toEqual(['player-pl-2']);
     expect(JSON.stringify(a.players)).not.toContain('Trial Quiet Q');
+    // Profile fields (0012, D-100): an adult's academy and bio pass through; a noindex row's never leave the provider.
+    expect(a.players[0]).toMatchObject({ district: 'Madurai', academy: 'Demo Shuttle Club', bio: 'Demo bio line.' });
+    const pl2 = raw.players.find((p) => p.id === 'pl-2');
+    expect(pl2).toMatchObject({ district: null, academy: null, bio: null });
+    expect(JSON.stringify(a)).not.toMatch(/Trial private bio|Trial Quiet Club|Trial District/);
   });
 
   it('an unknown_match_mode the code does not recognise hides minimal matches and unknown players', async () => {

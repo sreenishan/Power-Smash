@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { DuplicatePairDto, PlayerSummary } from '../../lib/admin/types';
+import { PROFILE_ADULT_ONLY, PROFILE_LIMITS, validatePlayerProfile, type PlayerProfileFields } from '../../lib/admin/player-profile';
 import { AGE_EXPLAIN, AGE_LABEL } from '../messages';
-import { AgeBadge, Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, cx, useAdmin, useAsync, useBusy } from '../ui';
+import { AgeBadge, Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, cx, inputCls, useAdmin, useAsync, useBusy } from '../ui';
 
 type Tab = 'search' | 'duplicates' | 'requests';
 const TAB_LABEL: Record<Tab, string> = { search: 'Find players', duplicates: 'Possible duplicates', requests: 'Player requests' };
@@ -99,7 +100,8 @@ function Search() {
 }
 
 function PlayerRowCard({ p, picked, onToggle }: { p: PlayerSummary; picked: boolean; onToggle: () => void }) {
-  const [mode, setMode] = useState<'none' | 'rename' | 'split'>('none');
+  const [mode, setMode] = useState<'none' | 'rename' | 'split' | 'profile'>('none');
+  const adult = p.ageStatus === 'adult_confirmed';
   return (
     <li className={cardCls}>
       <div className="flex items-start gap-3">
@@ -116,12 +118,72 @@ function PlayerRowCard({ p, picked, onToggle }: { p: PlayerSummary; picked: bool
           <div className="mt-2 flex flex-wrap gap-2">
             <Button small onClick={() => setMode(mode === 'rename' ? 'none' : 'rename')}>Rename</Button>
             <Button small onClick={() => setMode(mode === 'split' ? 'none' : 'split')}>Split into two people</Button>
+            {adult ? <Button small onClick={() => setMode(mode === 'profile' ? 'none' : 'profile')}>Profile</Button> : null}
           </div>
+          {adult ? null : <p className="mt-2 text-small text-fg-muted">{PROFILE_ADULT_ONLY}</p>}
         </div>
       </div>
       {mode === 'rename' ? <RenameForm p={p} onDone={() => setMode('none')} /> : null}
       {mode === 'split' ? <SplitForm p={p} onDone={() => setMode('none')} /> : null}
+      {mode === 'profile' ? <ProfileForm p={p} onDone={() => setMode('none')} /> : null}
     </li>
+  );
+}
+
+// An ADULT player's district, academy and bio (D-012, D-100). The store returns no profile for anyone else, and the database refuses.
+function ProfileForm({ p, onDone }: { p: PlayerSummary; onDone: () => void }) {
+  const { client } = useAdmin();
+  const current = useAsync(() => client.getPlayerProfile({ playerId: p.id }), [p.id]);
+  return (
+    <div className="mt-3">
+      <LoadState loading={current.loading} error={current.error}>
+        {current.data ? <ProfileFields p={p} initial={current.data} onDone={onDone} /> : <p className="text-small text-fg-muted">{PROFILE_ADULT_ONLY}</p>}
+      </LoadState>
+    </div>
+  );
+}
+
+function ProfileFields({ p, initial, onDone }: { p: PlayerSummary; initial: PlayerProfileFields; onDone: () => void }) {
+  const { client, actor, notify, check, bump } = useAdmin();
+  const [district, setDistrict] = useState(initial.district ?? '');
+  const [academy, setAcademy] = useState(initial.academy ?? '');
+  const [bio, setBio] = useState(initial.bio ?? '');
+  const [asking, setAsking] = useState(false);
+  const [busy, run] = useBusy();
+  const v = validatePlayerProfile({ district, academy, bio }, p.ageStatus);
+  const errors = v.ok ? {} : v.errors;
+  const go = async () => {
+    const r = await run(() => client.updatePlayerProfile(actor, { playerId: p.id, district, academy, bio, reason: 'Profile edited by owner' }));
+    setAsking(false);
+    if (r && check(r)) {
+      notify(r.data.fields.length > 0 ? 'Profile saved. Press "Publish now" on the dashboard to show it on the site.' : 'Nothing to change.');
+      bump();
+      onDone();
+    }
+  };
+  return (
+    <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); if (v.ok) setAsking(true); }}>
+      <Field label="District" htmlFor={`district-${p.id}`} hint={errors.district}>
+        <TextInput id={`district-${p.id}`} value={district} onChange={setDistrict} maxLength={PROFILE_LIMITS.district + 20} />
+      </Field>
+      <Field label="Academy or club" htmlFor={`academy-${p.id}`} hint={errors.academy}>
+        <TextInput id={`academy-${p.id}`} value={academy} onChange={setAcademy} maxLength={PROFILE_LIMITS.academy + 20} />
+      </Field>
+      <Field label="About the player (shown on the public page)" htmlFor={`bio-${p.id}`} hint={errors.bio ?? `Up to ${PROFILE_LIMITS.bio} characters. Write only what you know is true.`}>
+        <textarea id={`bio-${p.id}`} className={inputCls} rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
+      </Field>
+      <div><Button type="submit" variant="primary" disabled={!v.ok}>Save profile</Button></div>
+      {asking ? (
+        <Confirm
+          title={`Save the profile of ${p.displayName}?`}
+          body="District, academy and the text about the player show on the public player page after the next publish."
+          confirmLabel="Save profile"
+          busy={busy}
+          onConfirm={() => void go()}
+          onCancel={() => setAsking(false)}
+        />
+      ) : null}
+    </form>
   );
 }
 

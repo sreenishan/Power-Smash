@@ -9,6 +9,7 @@ import type { PlacementInput } from '../placements/validate';
 import type { PaymentRecord, Settlement } from '../pricing-admin/mark-paid';
 import type { ProductEditInput, ProductRecord } from '../pricing-admin/product-edit';
 import type { ReviewAction, VideoSubmission } from './submissions';
+import type { PlayerProfileFields } from './player-profile';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -244,6 +245,14 @@ export interface RenameInput {
   keepOldAsAlias?: boolean;
   reason: string;
 }
+/** The owner's edit of an ADULT player's profile (D-100). Empty text means "not stated". */
+export interface PlayerProfileInput {
+  playerId: string;
+  district: string | null;
+  academy: string | null;
+  bio: string | null;
+  reason: string;
+}
 export interface ConfirmAdultInput {
   playerIds: string[];
   evidence: string;
@@ -302,6 +311,9 @@ export interface AdminStore {
   mergePlayers(actor: Actor, input: MergeInput): Promise<StoreResult<WithUndo<{ keepId: string; dropId: string }>>>;
   splitPlayer(actor: Actor, input: SplitInput): Promise<StoreResult<{ newPlayerId: string }>>;
   renamePlayer(actor: Actor, input: RenameInput): Promise<StoreResult<{ playerId: string; slug: string }>>;
+  /** null = the player is not adult_confirmed, so there is no profile (D-012): a protected player's fields never leave the store. */
+  getPlayerProfile(opts: { playerId: string }): Promise<StoreResult<PlayerProfileFields | null>>;
+  updatePlayerProfile(actor: Actor, input: PlayerProfileInput): Promise<StoreResult<{ playerId: string; fields: string[] }>>;
   confirmAdultBulk(actor: Actor, input: ConfirmAdultInput): Promise<StoreResult<WithUndo<ConfirmAdultResult>>>;
 
   listProfileRequests(): Promise<StoreResult<ProfileRequest[]>>;

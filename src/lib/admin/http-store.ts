@@ -72,6 +72,8 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     mergePlayers: noActor('players.merge'),
     splitPlayer: noActor('players.split'),
     renamePlayer: noActor('players.rename'),
+    getPlayerProfile: (o) => post('players.getProfile', o),
+    updatePlayerProfile: noActor('players.updateProfile'),
     confirmAdultBulk: noActor('players.confirmAdult'),
     listLeads: (o) => post('leads.list', o),
     updateLead: noActor('leads.update'),

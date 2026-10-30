@@ -25,6 +25,8 @@ export interface RawPlayer {
   ageStatus: AgeStatus;
   district?: string | null;
   academy?: string | null;
+  /** The owner's text about an ADULT player (D-100). Never set for a protected player. */
+  bio?: string | null;
   /** false = an adult named in a full match who has no public profile page (the page is never built for them). Default true. */
   hasProfile?: boolean;
 }

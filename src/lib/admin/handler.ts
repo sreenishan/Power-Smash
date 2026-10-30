@@ -54,6 +54,9 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   'players.split': z
     .object({ playerId: uuid, newDisplayName: z.string().trim().min(1).max(120), participantIds: z.array(uuid).min(1).max(200), moveAliasIds: z.array(uuid).max(50).optional(), reason })
     .strict(),
+  'players.getProfile': z.object({ playerId: uuid }).strict(),
+  // generous bounds here; the exact limits (60/120/600 after trimming) are checked by validatePlayerProfile and by the SQL
+  'players.updateProfile': z.object({ playerId: uuid, district: z.string().max(200).nullable(), academy: z.string().max(400).nullable(), bio: z.string().max(2000).nullable(), reason }).strict(),
   'players.rename': z.object({ playerId: uuid, newDisplayName: z.string().trim().min(1).max(120), keepOldAsAlias: z.boolean().optional(), reason }).strict(),
   'players.confirmAdult': z.object({ playerIds: z.array(uuid).min(1).max(200), evidence: z.string().trim().min(3).max(500), reason }).strict(),
   'profileRequests.list': empty,
@@ -267,6 +270,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'players.merge': return fromStore(await s.mergePlayers(actor, input), cors);
     case 'players.split': return fromStore(await s.splitPlayer(actor, input), cors);
     case 'players.rename': return fromStore(await s.renamePlayer(actor, input), cors);
+    case 'players.getProfile': return fromStore(await s.getPlayerProfile(input), cors);
+    case 'players.updateProfile': return fromStore(await s.updatePlayerProfile(actor, input), cors);
     case 'players.confirmAdult': return fromStore(await s.confirmAdultBulk(actor, input), cors);
     case 'leads.list': return fromStore(await s.listLeads(input), cors);
     case 'leads.update': return fromStore(await s.updateLead(actor, input), cors);

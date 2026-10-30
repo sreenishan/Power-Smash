@@ -170,10 +170,16 @@ describe('TS enum lists equal the SQL check constraints', () => {
 
 describe('views and RPCs', () => {
   it('API_VIEWS equals the views created in schema api, and the column lists equal their select lists', () => {
-    const created = STATEMENTS.filter((s) => /^create view api\./i.test(s));
-    expect(created.map((s) => /^create view api\.([a-z_]+)/i.exec(s)?.[1]).sort()).toEqual(sorted(API_VIEWS));
+    // the LATEST definition of each archive view wins: 0012 re-creates api.public_players with academy appended (D-100)
+    const latest = new Map<string, string>();
+    for (const s of [...STATEMENTS, ...statementsOf(read('0012_player_profile.sql'))]) {
+      const name = /^create (?:or replace )?view api\.([a-z_]+)/i.exec(s)?.[1];
+      if (name) latest.set(name, s);
+    }
+    const created = [...latest.values()];
+    expect([...latest.keys()].sort()).toEqual(sorted(API_VIEWS));
     for (const s of created) {
-      const name = /^create view api\.([a-z_]+)/i.exec(s)?.[1] as keyof typeof API_VIEW_COLUMNS;
+      const name = /^create (?:or replace )?view api\.([a-z_]+)/i.exec(s)?.[1] as keyof typeof API_VIEW_COLUMNS;
       const select = /\bas select (.*?) from public\./i.exec(s)?.[1] as string;
       expect(select, name).toBeDefined();
       const cols = splitTop(select).map((item) => {

@@ -93,6 +93,8 @@ export function reshape(input: {
       // The view is for public players; a noindex row is protected by default (fails closed).
       ageStatus: p.noindex ? 'unknown' : 'adult_confirmed',
       district: p.noindex ? null : p.district,
+      academy: p.noindex ? null : p.academy,
+      bio: p.noindex ? null : p.bio,
     });
     bySlug.set(p.slug, p.id);
   }
@@ -202,7 +204,7 @@ export function createSupabaseProvider(opts: SupabaseProviderOptions): ArchivePr
         ),
         readAll<PublicMatch>(opts, 'public_matches', 'id,video_id,tournament_id,category,age_group,round,format,played_on,page_mode,noindex', 'id.asc'),
         readAll<PublicMatchParticipant>(opts, 'public_match_participants', 'match_id,side,position,raw_name,player_slug', 'match_id.asc,side.asc,position.asc'),
-        readAll<PublicPlayer>(opts, 'public_players', 'id,slug,display_name,disambiguator,district,photo_path,bio,instagram_handle,claimed,noindex', 'id.asc'),
+        readAll<PublicPlayer>(opts, 'public_players', 'id,slug,display_name,disambiguator,district,photo_path,bio,instagram_handle,claimed,noindex,academy', 'id.asc'),
         readAll<PublicTournament>(
           opts,
           'public_tournaments',
