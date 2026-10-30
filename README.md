@@ -65,7 +65,7 @@ CI (`.github/workflows/ci.yml`) runs a secret scan (gitleaks), then `npm ci`, `n
 | `power-smash-website-spec.md` | The product and technical specification (v1.0). Section 0 holds the rules for Claude Code. |
 | `CLAUDE.md` | Short guide for Claude Code sessions: commands, conventions, rules. |
 | `docs/BUILD_PLAN_PHASE1.md` | Milestones M0 to M4, gates, risks, what Claude Code will not do without asking. |
-| `docs/DECISIONS.md` | Decision records D-001 to D-097 (where the plan departs from the spec, and why; D-097 moves hosting to Vercel). |
+| `docs/DECISIONS.md` | Decision records D-001 to D-125 (where the plan departs from the spec, and why; D-097 moves hosting to Vercel; D-108 to D-125 are the tournament platform). |
 | `docs/VERIFIED_FACTS.md` | Third-party facts and pinned versions, with sources and dates. |
 | `docs/SPEC_AUDIT.md` | Spec audit findings and the parser corrections PC-01 to PC-30. |
 | `docs/OWNER_TODO.md` | What the owner has to do, in order, in plain English. |
@@ -81,12 +81,30 @@ CI (`.github/workflows/ci.yml`) runs a secret scan (gitleaks), then `npm ci`, `n
 | `docs/licenses/` | Licence texts for bundled fonts and icons. |
 | `public/brand/` | Logo and brand SVG files (the PNG share image needs a converter tool the owner has not yet approved). |
 | `src/`, `scripts/` | Site code (money pages, forms, the lead and event endpoints under `src/pages/api/`, `/go`, legal pages, the parser skeleton in `src/lib/parser`) and the Node scripts (build and release gates, the owner-run helpers, G0 measurements, brand checks). |
+| `docs/PLATFORM_CHECKLIST.md`, `docs/m5/` | The tournament platform (2026-10-30 brief): waves, switches, test results, international data facts and the wave 4-5 integration notes. |
 | `.env.example` | Every environment variable name, grouped by where it is set. Names only. |
 | `tests/fixtures/` | Parser fixtures (private repository only). See its README. |
 | `.github/` | CI, deploy workflow (Vercel) and Dependabot configuration. |
 | `CHANGELOG.md` | What changed, newest first. |
 
 Still to come (not written yet): `docs/OWNER_GUIDE.md` and `docs/RUNBOOK.md` (M4) and the rest of `src/` as milestones M2 and M3 are built. `supabase/` holds the migrations and their check scripts; the SQL has not yet been run on a real Postgres (see `docs/m1/fix-backend-notes.md` section 6).
+
+## The tournament platform (all switched off)
+
+Built in waves (`docs/PLATFORM_CHECKLIST.md`, decisions D-108 to D-125). Every public page and endpoint below needs its `features.*` flag in `src/content/legal/status.ts` and, where named, a runtime switch set to exactly `true` (`docs/SECRETS.md`). The release build (`npm run build:strict`) makes none of these pages while their flag is off.
+
+| Part | Code | Database | Public route | Switches |
+|---|---|---|---|---|
+| Rules engines (scoring, draws, brackets, scheduling, statistics, local ranking) | `src/lib/competition/` | | | none (a library) |
+| Running a tournament (admin "Competitions") | `src/lib/admin/competition/`, `src/admin/screens/competition/` | 0017, 0018 | | owner only |
+| Draw, order of play, results, rankings | `src/lib/competition/public/`, `src/pages/competitions/` | api views in 0017, 0018 | `/competitions/...` | `competitionPages`; `PS_COMPETITION_SOURCE=supabase` |
+| Organizer and scorer accounts | `src/lib/admin/accounts/`, `src/admin/screens/accounts/` | 0019 | | `organizerAccounts`, `ORGANIZER_ACCOUNTS_ENABLED`, admin switch |
+| Registration, manual payment check | `src/lib/registration/`, `src/pages/register/`, `src/pages/api/register.ts` | 0020 | `/register/<tournament>/<event>/` | `registrations`, `REGISTRATION_ENABLED`, admin switch |
+| Near-live scores | `src/lib/live-scores/`, `src/admin/screens/scoring/` | 0021 | `/api/live-scores/<event>` | `liveScores`, `LIVE_SCORES_ENABLED`, admin switch |
+| International events (links only) | `src/lib/international/`, `src/pages/international/` | 0022 | `/international/` | `internationalLinks`; `PS_INTERNATIONAL_SOURCE=supabase` |
+| Email updates, notices, outbox | `src/lib/notify/outbox/`, `src/lib/notices/`, `src/pages/api/notify/` | 0023 | notice banner, `/alerts/` | `emailNotifications`, `siteNotices`, `NOTIFY_SUBSCRIBE_ENABLED`, `EMAIL_ENABLED` |
+
+Database: `node scripts/pg-local.mjs all` applies every migration to the local PostgreSQL and runs every check (then `stop`). For the dev Supabase project, `npm run sql:bundle -- --from <first migration not yet applied>` writes the two files the owner pastes into the SQL editor. No international data source is connected: an adapter exists (`src/lib/providers/`), and it waits for a licensed source (`docs/m5/international-data.md`).
 
 ## Rules that apply to everyone who touches this repo
 
