@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MANIFEST, SENSITIVE_SCOPES, VERCEL_CLI_VERSION, VERCEL_SCOPE, buildPlan, main, redact, vercelEnvAddArgs } from '../../scripts/load-secrets.mjs';
+import { MANIFEST, SENSITIVE_SCOPES, VERCEL_CLI_VERSION, VERCEL_SCOPE, buildPlan, failureDetail, main, redact, vercelEnvAddArgs } from '../../scripts/load-secrets.mjs';
 import { parseSecretsText, printableName, secretsFileProblem } from '../../scripts/lib/secrets-file.mjs';
 import { VERCEL_INSTALL_COMMAND, resolveLockedVercel } from '../../scripts/lib/vercel-cli.mjs';
 import { ROOT, cleanupTemp, fakeAgePrivateKey, fakeAgePublicKey, fakeSupabaseSecret, fakeTelegramToken, tempDir } from './helpers';
@@ -206,6 +206,29 @@ describe('load-secrets: sending', () => {
     expect(text).toContain('FAIL  HMAC_KEY');
     expect(text).toContain('[hidden]');
     for (const v of VALUES) expect(text).not.toContain(v);
+  });
+
+  it('a failed send shows the real cause, not a deprecation warning printed before it (Vercel CLI 64.6+)', async () => {
+    const h = harness(`HMAC_KEY=${HMAC}`, {
+      run: () => ({
+        status: 1,
+        stdout: '',
+        stderr: 'WARN! The "production" argument is deprecated. Use --environment production instead.\n\nError: The variable "HMAC_KEY" already exists in the production environment.',
+        error: null,
+      }),
+    });
+    expect(await main(['--only', 'vercel'], h.deps)).toBe(1);
+    expect(h.all()).toMatch(/FAIL {2}HMAC_KEY {2}->.*: Error: The variable "HMAC_KEY" already exists/);
+    expect(h.all()).not.toMatch(/FAIL[^\n]*deprecated/);
+  });
+
+  it('failureDetail: the first line that is not a warning, else the first line, else "no message"', () => {
+    expect(failureDetail('Warning: --target is deprecated\nError: Not logged in')).toBe('Error: Not logged in');
+    expect(failureDetail('DEPRECATED: use --environment\n  Error: no project linked  ')).toBe('Error: no project linked');
+    expect(failureDetail('Note: the bare environment argument is deprecated\nfatal: denied')).toBe('fatal: denied');
+    expect(failureDetail('WARN only a warning')).toBe('WARN only a warning');
+    expect(failureDetail('\n\n')).toBe('no message');
+    expect(failureDetail('could not set it: [hidden] was rejected')).toBe('could not set it: [hidden] was rejected');
   });
 
   it('one unknown name refuses the whole run before anything is sent', async () => {
