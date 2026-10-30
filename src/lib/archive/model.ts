@@ -88,6 +88,20 @@ export interface ArchiveTournament {
   lastmod: string | null;
 }
 
+/** A pinned tournament for the Featured group on /tournaments/ (D-104). `pageSlug` is set only when the tournament has its own page. */
+export interface FeaturedTournament {
+  id: string;
+  name: string;
+  year: number | null;
+  city: string | null;
+  district: string | null;
+  level: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  featuredUntil: string | null;
+  pageSlug: string | null;
+}
+
 export interface PlayerLink extends PlayerRef {
   count: number;
 }
@@ -136,6 +150,11 @@ export interface PublicArchive {
   players: ArchivePlayer[];
   minimalPlayers: MinimalPlayer[];
   tournaments: ArchiveTournament[];
+  /**
+   * Tournaments the owner pinned as Featured (D-102, D-104), from every VISIBLE tournament, not only those with a page: an approved
+   * organizer submission has no videos yet. Which are current is decided on the page with today's date (featured.ts).
+   */
+  featured: FeaturedTournament[];
   /** Stored slugs that were replaced or removed (protected slugs are opaque, hidden items are gone). */
   superseded: SupersededPath[];
   /** Counts for the page-budget guard and the notes. */
@@ -426,6 +445,23 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
       return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
     });
 
+  // 7b) the owner's Featured pins (D-104): any VISIBLE tournament (a hidden one is never shown, D-018), with a link only to a real page
+  const pageSlugById = new Map(tournaments.map((t) => [t.id, t.slug]));
+  const featured: FeaturedTournament[] = raw.tournaments
+    .filter((t) => t.featured === true && t.visibility !== 'hidden')
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      year: t.editionYear ?? null,
+      city: t.city ?? null,
+      district: t.district ?? null,
+      level: t.level ?? null,
+      startDate: t.startDate ?? null,
+      endDate: t.endDate ?? null,
+      featuredUntil: t.featuredUntil ?? null,
+      pageSlug: pageSlugById.get(t.id) ?? null,
+    }));
+
   // 8) stored addresses that no longer name a live page (redirects.ts turns these into rules).
   const superseded: SupersededPath[] = [];
   const minimalById = new Map(minimalPlayers.map((p) => [p.id, p.slug]));
@@ -450,6 +486,7 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
     players,
     minimalPlayers,
     tournaments,
+    featured,
     superseded,
     dropped: { hiddenMatches, protectedPlayers, thinPlayers, tournamentSlugConflicts },
   };

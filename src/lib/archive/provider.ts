@@ -47,6 +47,10 @@ export interface RawTournament {
   pageEligible?: boolean;
   /** Instant (ISO 8601) of the last change, for sitemap lastmod. */
   updatedAt?: string | null;
+  /** The owner's free "Featured" pin (admin Details, D-102); shown on /tournaments/ until `featuredUntil` (D-104). */
+  featured?: boolean;
+  /** Last day of the pin (YYYY-MM-DD, India time), or null. */
+  featuredUntil?: string | null;
 }
 
 export interface RawMatch {

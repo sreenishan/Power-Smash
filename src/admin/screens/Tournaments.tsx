@@ -16,10 +16,10 @@ type Tab = 'submitted' | 'found' | 'approved';
 const VISIBILITY = { public: 'Shown on the site', listed_no_player_pages: 'Listed only', hidden: 'Hidden' } as const;
 
 // What a details save really changes today (D-102): the tournament pages built from the videos are not published yet
-// (features.archivePages is off, and the build reads the database only with PS_ARCHIVE_SOURCE=supabase), and even then no page shows
-// "featured", "Power Smash films this" or the venue yet. Remove or reword this in the change that publishes them.
+// (features.archivePages is off, and the build reads the database only with PS_ARCHIVE_SOURCE=supabase). Once it does, a featured
+// tournament shows on /tournaments/ (D-104); "Power Smash films this" and the venue are still shown nowhere. Reword this when that changes.
 export const TOURNAMENT_SWITCH_NOTE =
-  'Saved in the admin only for now: the tournament pages made from your videos are not on the site yet, and "featured", "Power Smash films this" and the venue are not shown on any page yet. The tournaments you list yourself on the website are not changed here.';
+  'Saved in the admin only for now: the website does not read tournaments from the database yet (a switch that needs your yes). Once it does, a featured tournament shows at the top of the Tournaments page until its "featured until" day, and the tournament pages made from your videos follow when they are published. "Power Smash films this" and the venue are not shown on any page yet. The tournaments you list yourself on the website are not changed here.';
 
 export function Tournaments() {
   const { client } = useAdmin();

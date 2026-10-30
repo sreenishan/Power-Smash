@@ -111,6 +111,8 @@ export function reshape(input: {
     endDate: t.end_date,
     visibility: scope(t.visibility),
     pageEligible: t.page_eligible,
+    featured: t.is_featured === true,
+    featuredUntil: t.featured_until,
   }));
 
   const videosById = new Map(input.videos.map((v) => [v.youtube_id, v]));

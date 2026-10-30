@@ -5,6 +5,8 @@
 // src/lib/tournament-filters-client.ts runs, so without JavaScript every tournament is simply listed and no control is dead.
 // "From our videos" (D-098, spec 7.6 video counts) lists the archive tournaments that have a page (read from YouTube titles), each
 // with its number of match videos; it carries the sample-data notice and stays outside the filters (they key off owner records).
+// The Featured group also holds the tournaments the owner pinned in the admin (database, D-104): current pins only (today's India date),
+// each with the same ribbon, linked to its own page when it has one; they carry the sample-data notice like every archive section.
 // With nothing listed at all it shows an EmptyState with the two organizer calls to action.
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHero from '../../components/ui/PageHero.astro';
@@ -15,6 +17,7 @@ import EmptyState from '../../components/ui/EmptyState.astro';
 import CtaBlock from '../../components/ui/CtaBlock.astro';
 import TournamentCard from '../../components/site/TournamentCard.astro';
 import ArchiveTournamentCard from '../../components/archive/ArchiveTournamentCard.astro';
+import FeaturedTournamentCard from '../../components/archive/FeaturedTournamentCard.astro';
 import ArchiveSeedNotice from '../../components/archive/ArchiveSeedNotice.astro';
 import { whatsappTextForPath } from '../../components/site/whatsappText';
 import {
@@ -28,6 +31,7 @@ import {
 } from '../../content/tournaments';
 import { todayIst } from '../../lib/dates';
 import { loadPublicArchive } from '../../lib/archive/model';
+import { currentFeatured, featuredFilterKeys } from '../../lib/archive/featured';
 import { TOURNAMENT_PAGES_BUILT } from '../../lib/archive/provider';
 import { PAGE_META, titleWithBrand } from '../../lib/seo';
 import { ROUTES } from '../../lib/urls';
@@ -39,7 +43,9 @@ const { upcoming, past } = splitTournaments(tournaments, today);
 const { now, featured, months } = upcomingSections(tournaments, today);
 const archive = await loadPublicArchive();
 const fromVideos = TOURNAMENT_PAGES_BUILT ? archive.tournaments : [];
-const isEmpty = upcoming.length === 0 && past.length === 0 && fromVideos.length === 0;
+// the owner's pins from the database; a link only to a page that is built
+const pinned = currentFeatured(archive.featured, today).map((t) => (TOURNAMENT_PAGES_BUILT ? t : { ...t, pageSlug: null }));
+const isEmpty = upcoming.length === 0 && past.length === 0 && fromVideos.length === 0 && pinned.length === 0;
 const options = tournamentFilterOptions(tournaments);
 const filterFields = [
   { name: 'district', label: 'District', all: 'All districts', choices: options.district.map((v) => ({ value: v, label: v })) },
@@ -116,15 +122,17 @@ const buttonClass = 'min-h-[3rem] rounded-md border-2 border-line-strong px-5 fo
     </div>
   )}
 
-  {upcoming.length > now.length && (
+  {(upcoming.length > now.length || pinned.length > 0) && (
     <div data-tournament-group>
     <Section labelledBy="upcoming-title">
       <SectionHeading id="upcoming-title" title="Upcoming" />
-      {featured.length > 0 && (
+      {(featured.length > 0 || pinned.length > 0) && (
         <div class="mt-8" data-tournament-group>
           <h3 class="text-h4">Featured</h3>
+          {pinned.length > 0 && <ArchiveSeedNotice source={archive.source} />}
           <ul class="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featured.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} featured /></li>)}
+            {pinned.map((t) => <li data-tournament-card data-keys={JSON.stringify(featuredFilterKeys(t))}><FeaturedTournamentCard tournament={t} headingLevel={3} /></li>)}
           </ul>
         </div>
       )}
