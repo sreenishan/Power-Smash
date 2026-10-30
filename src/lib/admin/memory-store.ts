@@ -1,6 +1,7 @@
 // In-memory AdminStore: used by tests and by the admin preview when no backend is configured. It applies the SAME pure identity
 // rules (src/lib/identity) the SQL RPCs implement, writes an audit row for every privileged action, and offers undo where possible.
 // Seed data is FICTIONAL (invented names, `fake-` video ids). Nothing here touches the network.
+import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
 import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
@@ -40,6 +41,7 @@ import {
   type StoreResult,
   type TournamentCandidate,
   type UndoDescriptor,
+  type PlayerProfileInput,
 } from './types';
 
 export interface MemoryVideo extends ReviewVideo {
@@ -81,6 +83,8 @@ export interface MemoryState {
   suppressions: MemorySuppression[];
   dismissedPairs: string[];
   modes: { unknown_match_mode: ProtectedMatchMode; minor_match_mode: ProtectedMatchMode };
+  /** Adult players' profile fields by player id (D-100). Absent = nothing stated. */
+  playerProfiles?: Record<string, PlayerProfileFields>;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -92,6 +96,8 @@ export interface MemoryOptions {
   newId?: () => string;
   state?: MemoryState;
 }
+
+const NO_PROFILE: PlayerProfileFields = { district: null, academy: null, bio: null };
 
 const SEED_IDS = {
   p1: '10000000-0000-4000-8000-000000000001',
@@ -496,6 +502,26 @@ export class MemoryAdminStore implements AdminClient {
     this.audit(actor, 'player.rename', 'player', input.playerId, input.reason);
     this.markDirty();
     return okResult({ playerId: p.id, slug: p.slug });
+  }
+
+  async getPlayerProfile(opts: { playerId: string }) {
+    const p = this.state.identity.players.find((x) => x.id === opts.playerId);
+    if (!p) return failResult('NOT_FOUND');
+    if (p.ageStatus !== 'adult_confirmed') return okResult<PlayerProfileFields | null>(null); // D-012: no profile, nothing passed on
+    return okResult<PlayerProfileFields | null>({ ...(this.state.playerProfiles?.[p.id] ?? NO_PROFILE) });
+  }
+
+  async updatePlayerProfile(actor: Actor, input: PlayerProfileInput) {
+    const p = this.state.identity.players.find((x) => x.id === input.playerId);
+    if (!p) return failResult('NOT_FOUND');
+    const v = validatePlayerProfile(input, p.ageStatus);
+    if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+    const fields = changedProfileFields(this.state.playerProfiles?.[p.id] ?? NO_PROFILE, v.value);
+    if (fields.length === 0) return okResult({ playerId: p.id, fields: [] as string[] });
+    (this.state.playerProfiles ??= {})[p.id] = v.value;
+    this.audit(actor, 'player.update_profile', 'player', p.id, fields.join(', ')); // field names only, like the SQL audit (never the text)
+    this.markDirty();
+    return okResult({ playerId: p.id, fields: fields as string[] });
   }
 
   async confirmAdultBulk(actor: Actor, input: Parameters<AdminStore['confirmAdultBulk']>[1]) {

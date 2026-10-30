@@ -262,3 +262,29 @@ test.describe('An open message never hides the end of a screen', () => {
     expect((close?.x ?? 0) + (close?.width ?? 0), 'Close stays on the screen').toBeLessThanOrEqual(screenWidth);
   });
 });
+
+test.describe('Player profile (adults only, D-100)', () => {
+  test('an adult gets a Profile form that saves after a confirm step; a protected player gets none', async ({ page }) => {
+    const stray = await open(page, '#/players');
+    const adult = page.locator('#admin-main li').filter({ hasText: 'Demo Arvind Testwell' }).first();
+    const unknown = page.locator('#admin-main li').filter({ hasText: 'Demo Meena Samplestone' }).first();
+    await expect(unknown.getByRole('button', { name: 'Profile' })).toHaveCount(0);
+    await expect(unknown.getByText('Profile details can only be added after the player is confirmed as an adult.')).toBeVisible();
+
+    await adult.getByRole('button', { name: 'Profile' }).click();
+    await adult.getByLabel('District').fill('Demo District');
+    await adult.getByLabel('Academy or club').fill('Demo Shuttle Club');
+    await adult.getByLabel(/About the player/).fill('A made-up bio for a test.');
+    await noHorizontalScroll(page);
+    await axeClean(page);
+    await adult.getByRole('button', { name: 'Save profile' }).click();
+    const dlg = page.getByRole('alertdialog', { name: 'Save the profile of Demo Arvind Testwell?' });
+    await dlg.getByRole('button', { name: 'Save profile' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Profile saved.' })).toBeVisible();
+
+    // opening the form again shows what was saved
+    await adult.getByRole('button', { name: 'Profile' }).click();
+    await expect(adult.getByLabel('Academy or club')).toHaveValue('Demo Shuttle Club');
+    expect(stray).toEqual([]);
+  });
+});

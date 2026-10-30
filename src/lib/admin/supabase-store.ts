@@ -5,6 +5,8 @@
 //
 // Database objects it needs, all in supabase/migrations: tables profile_requests and player_dup_dismissed, RPCs admin_set_setting,
 // admin_dismiss_duplicate, admin_decide_tournament, admin_resolve_profile_request and admin_set_match_lock (0008), plus the RPCs of 0006.
+import type { AgeStatus } from '../identity/types';
+import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
 import type { PlayerRow, SuppressionKind, VideoRow, AdminRpcArgs, EmergencyHideResult } from '../archive/types';
 import { findPossibleDuplicates, canConfirmAdult, MAX_BULK_CONFIRM, planMerge, type IdAlias, type IdPlayer } from '../identity';
 import { chooseSlug } from '../identity/operations';
@@ -44,6 +46,7 @@ import {
   type StoreResult,
   type TournamentCandidate,
   type UndoDescriptor,
+  type PlayerProfileInput,
 } from './types';
 
 export interface SupabaseStoreConfig {
@@ -172,6 +175,7 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
       : undefined;
   };
 
+  type ProfileRow = { age_status: AgeStatus; district: string | null; academy: string | null; bio: string | null };
   type ProductRow = {
     slug: string; name: string; summary: string; price_type: ProductRecord['priceType']; price_paise: number | null; gst_inclusive: boolean | null;
     delivery_days: number | null; visible: boolean; sort: number; inclusions: string[]; inclusions_approved: boolean; quote_wording_approved: boolean;
@@ -581,6 +585,30 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
         }
         await rpc('admin_rename_player', { p_actor: actor.userId, p_player: input.playerId, p_display_name: name, p_name_normalized: norm, p_reason: input.reason, p_new_slug: slug } satisfies AdminRpcArgs['admin_rename_player']);
         return okResult({ playerId: input.playerId, slug: slug ?? row.slug });
+      }),
+
+    // Adult players' profile (0012, D-100): read only for adult_confirmed rows, so a protected player's fields never leave the store
+    getPlayerProfile: (o) =>
+      guard(async () => {
+        const [row] = await select<ProfileRow>('players', `select=age_status,district,academy,bio&id=eq.${encodeURIComponent(o.playerId)}&limit=1`);
+        if (!row) return failResult('NOT_FOUND');
+        if (row.age_status !== 'adult_confirmed') return okResult<PlayerProfileFields | null>(null);
+        return okResult<PlayerProfileFields | null>({ district: row.district, academy: row.academy, bio: row.bio });
+      }),
+
+    updatePlayerProfile: (actor, input) =>
+      guard(async () => {
+        const [row] = await select<ProfileRow>('players', `select=age_status,district,academy,bio&id=eq.${encodeURIComponent(input.playerId)}&limit=1`);
+        if (!row) return failResult('NOT_FOUND');
+        // refused here for a protected player (the RPC refuses too), so the database is never asked
+        const v = validatePlayerProfile(input, row.age_status);
+        if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+        const fields = changedProfileFields({ district: row.district, academy: row.academy, bio: row.bio }, v.value);
+        if (fields.length === 0) return okResult({ playerId: input.playerId, fields: [] as string[] });
+        await rpc('admin_update_player_profile', {
+          p_actor: actor.userId, p_player: input.playerId, p_district: v.value.district, p_academy: v.value.academy, p_bio: v.value.bio, p_reason: input.reason,
+        });
+        return okResult({ playerId: input.playerId, fields: fields as string[] });
       }),
 
     confirmAdultBulk: (actor, input) =>

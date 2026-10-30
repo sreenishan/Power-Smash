@@ -3,11 +3,14 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createSupabaseProvider } from '../../src/lib/archive/supabase-provider';
 
-const sql = readFileSync(join(process.cwd(), 'supabase/migrations/0006_archive_api.sql'), 'utf8').replace(/\r\n/g, '\n');
+// 0006 creates the views; a later migration may re-create one (0012 appends academy to public_players, D-100): the LAST definition wins.
+const sql = ['0006_archive_api.sql', '0012_player_profile.sql']
+  .map((name) => readFileSync(join(process.cwd(), 'supabase/migrations', name), 'utf8').replace(/\r\n/g, '\n'))
+  .join('\n');
 
 /** Output column names of `create view api.<name> ... as select ... from`. */
 function viewColumns(name: string): string[] {
-  const start = sql.indexOf(`create view api.${name} `);
+  const start = Math.max(sql.lastIndexOf(`create view api.${name} `), sql.lastIndexOf(`create or replace view api.${name} `));
   expect(start, name).toBeGreaterThan(-1);
   const rest = sql.slice(start).split(/;\s*\n/)[0] ?? '';
   const multi = rest.split('\nselect\n')[1];
@@ -27,7 +30,7 @@ function viewColumns(name: string): string[] {
   return cols;
 }
 
-describe('supabase-provider selects only columns the api views really have (migration 0006)', () => {
+describe('supabase-provider selects only columns the api views really have (migrations 0006, 0012)', () => {
   it('parses the view columns sanely', () => {
     expect(viewColumns('public_videos')).toContain('youtube_id');
     expect(viewColumns('public_videos')).toContain('page_mode');

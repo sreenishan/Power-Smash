@@ -98,6 +98,8 @@ export interface ArchivePlayer {
   name: string;
   district: string | null;
   academy: string | null;
+  /** The owner's text about the player (D-100); full adult profiles only. */
+  bio: string | null;
   matchCount: number;
   tournamentCount: number;
   firstDate: string;
@@ -370,6 +372,7 @@ export function buildPublicArchive(raw: RawArchive, options: BuildOptions = {}):
         name: p.displayName,
         district: p.district ?? null,
         academy: p.academy ?? null,
+        bio: p.bio ?? null,
         matchCount: mine.length,
         tournamentCount: tourCount.size,
         firstDate: dates[0] as string,

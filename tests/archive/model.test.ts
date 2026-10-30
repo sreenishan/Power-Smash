@@ -178,6 +178,12 @@ describe('protected-player leakage matrix over the seed', () => {
     expect(json).not.toContain('Sample Arul T');
     expect(json).not.toContain('sample-arul-t');
     expect(a.matches.some((m) => m.rawTitle.includes('Sample Arul T'))).toBe(false);
+    // the owner's profile text goes with the player (D-100)
+    expect(JSON.stringify(a)).not.toMatch(/Sample Smash Academy|fictional left-handed/);
+  });
+  it('an adult profile carries the owner\'s academy and bio (D-100)', () => {
+    const p = buildPublicArchive(seedArchive).players.find((x) => x.name === 'Sample Arul T');
+    expect(p).toMatchObject({ academy: 'Sample Smash Academy', bio: 'A fictional left-handed doubles player.\nSample text for the preview only.' });
   });
 });
 
