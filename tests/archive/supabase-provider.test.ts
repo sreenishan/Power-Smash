@@ -155,6 +155,15 @@ describe('createSupabaseProvider', () => {
     expect(JSON.stringify(a)).not.toMatch(/Trial private bio|Trial Quiet Club|Trial District/);
   });
 
+  it('passes the owner\'s Featured pin on (D-104)', async () => {
+    const pinned = tournaments.map((t) => ({ ...t, is_featured: true, featured_until: '2026-12-31' }));
+    const provider = createSupabaseProvider({ url: URL_OK, publishableKey: KEY, fetch: mockFetch({ ...tables, public_tournaments: pinned }) });
+    const raw = await provider.load();
+    expect(raw.tournaments[0]).toMatchObject({ featured: true, featuredUntil: '2026-12-31' });
+    const plain = await createSupabaseProvider({ url: URL_OK, publishableKey: KEY, fetch: mockFetch(tables) }).load();
+    expect(plain.tournaments[0]).toMatchObject({ featured: false, featuredUntil: null });
+  });
+
   it('an unknown_match_mode the code does not recognise hides minimal matches and unknown players', async () => {
     const provider = createSupabaseProvider({
       url: URL_OK,

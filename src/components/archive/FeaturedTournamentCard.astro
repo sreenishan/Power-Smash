@@ -1,0 +1,35 @@
+---
+// A tournament the owner pinned as Featured in the admin (D-102, D-104), from the database, in the Featured group on /tournaments/: the
+// same "Featured" ribbon as TournamentCard, dates (or year), place and level. It links to the tournament's own page only when one exists
+// (an approved organizer submission without match videos has none yet); the link goes through tournamentPath() (R-LINKS).
+import { formatDateRange } from '../../lib/dates';
+import type { FeaturedTournament } from '../../lib/archive/model';
+import { archiveTournamentPlace } from '../../lib/archive/tournament-page';
+import { tournamentPath } from '../../lib/urls';
+
+interface Props {
+  tournament: FeaturedTournament;
+  headingLevel?: 2 | 3;
+}
+const { tournament: t, headingLevel = 3 } = Astro.props;
+const Tag = headingLevel === 2 ? 'h2' : 'h3';
+const when = t.startDate ? formatDateRange(t.startDate, t.endDate) : t.year ? String(t.year) : null;
+const place = archiveTournamentPlace(t);
+const LEVEL: Record<string, string> = {
+  district: 'District', state: 'State', zonal: 'Zonal', national: 'National', open: 'Open', corporate: 'Corporate', veterans: 'Veterans', school_college: 'School or college', other: 'Other',
+};
+const level = t.level ? (LEVEL[t.level] ?? null) : null;
+---
+<article class={`ps-card ${t.pageSlug ? 'ps-card-hover' : ''} ps-card-accent relative flex h-full flex-col p-5 pt-6`}>
+  <p class="absolute right-0 top-0 rounded-bl-md bg-ps-volt px-3 py-1 font-[family-name:var(--ps-font-display)] text-small font-extrabold uppercase tracking-wider text-ps-ink">Featured</p>
+  {when && <p class="ps-eyebrow ps-num">{when}</p>}
+  <Tag class="mt-2 text-h4">
+    {t.pageSlug ? <a href={tournamentPath(t.pageSlug)} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a> : t.name}
+  </Tag>
+  {place && <p class="mt-2 text-fg-muted">{place}</p>}
+  {level && (
+    <ul class="mt-auto flex flex-wrap gap-2 pt-4">
+      <li class="ps-chip ps-chip-court">{level}</li>
+    </ul>
+  )}
+</article>
