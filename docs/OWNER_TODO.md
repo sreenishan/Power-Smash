@@ -110,7 +110,7 @@ Tags used below: **[PHONE]** you can do it from your phone; **[PC]** needs the c
 |---|---|---|
 | OT-05 | Decide who receives the money, with a CA | You need an accountant's appointment, and Razorpay, the domain and the invoices all depend on the answer. |
 | OT-06 | Razorpay account and KYC | Razorpay publishes no approval time; its bank partner decides. |
-| OT-07 | Buy powersmash.in and finish .IN KYC | A .IN domain is switched off if the government-ID check is not finished, and email waits for it. |
+| OT-07 | Confirm the domain www.elitetournaments.in (D-106) | A .IN domain is switched off if the government-ID check is not finished, and email waits for it. |
 | OT-15 | Find a lawyer | No price or timing is known; the legal pages cannot go public without a review. |
 | OT-16 | Send YouTube a written question | Only YouTube can answer, and it sets its own pace. |
 
@@ -140,7 +140,7 @@ Tags used below: **[PHONE]** you can do it from your phone; **[PC]** needs the c
 |---|---|---|---|---|---|
 | 6 | OT-05 | Decide who receives the money, with a CA | 5, 12, 15 | CA fee unknown | Razorpay, domain, M3 payment fields |
 | 7 | OT-06 | Razorpay account and KYC | 15 | see item | first online payment |
-| 8 | OT-07 | Buy powersmash.in and finish .IN KYC | 1 | see item | custom domain, email, Razorpay website review |
+| 8 | OT-07 | Confirm the domain www.elitetournaments.in (D-106) | 1 | see item | custom domain, email, Razorpay website review |
 | 9 | OT-08 | Telegram bot for alerts | 10 | free | M1 alert testing |
 | 10 | OT-09 | WhatsApp Business app and WhatsApp Channel | 11 | check store | only the display of the Channel button and link (hidden until you send the link); not G1 |
 | 11 | OT-10 | Standard block in YouTube descriptions | - | free | nothing; starts traffic |
@@ -326,7 +326,18 @@ Costs mentioned are the verified ones; where no price is verified I say so and y
 
 **Cost.** No setup or yearly fee. Each payment costs 2% plus 18% GST on that fee (about 2.36%). New accounts activated on or after 2026-07-01 pay 0% platform fee for 90 days or Rs 5,00,000, whichever comes first (tax on the fee still applies); the clock starts at activation, so activate when you are ready to take money. A Rs 199 KYC fee plus tax may apply. Refunds do not return the fee. Check the live dashboard before quoting any of this to a customer.  **Blocks.** Your first online payment (not the build). Budget about a week plus a buffer.  **Order.** 7.
 
-## OT-07 Buy powersmash.in and finish .IN KYC (spec row 1) [PHONE] [owner pays]
+## OT-07 Confirm the domain www.elitetournaments.in (spec row 1, D-106) [PHONE]
+
+**Changed 2026-10-30 (D-106).** You chose **www.elitetournaments.in**, which is already connected to the Vercel project; `powersmash.in` is not bought. What is left:
+1. At your registrar, check that the domain is registered in your real name (matching OT-05) and that its .IN ID check (KYC) shows **verified**. An unverified .IN domain is switched off.
+2. Turn on the registrar's two-step sign-in and its "registrar lock" (OT-14), and note the renewal date.
+3. Tell me which registrar it is and which service hosts its DNS (the registrar, Vercel or Cloudflare). Free email forwarding (Cloudflare Email Routing) needs the DNS on Cloudflare; I will ask before anything changes.
+4. In Vercel, **Settings**, **Domains**: make `www.elitetournaments.in` the main address and let `elitetournaments.in` redirect to it (a Vercel setting: you change it, or I do with your yes).
+5. The planned email addresses become `hello@elitetournaments.in`, the grievance address on the same domain, and the sending subdomain `mail.elitetournaments.in` (OT-40).
+
+**Cost.** The renewal at your registrar (you pay).  **Blocks.** Email forwarding, Resend email verification and the Razorpay website review, not the build.
+
+**The original steps below (buying powersmash.in) no longer apply.**
 
 **What and why.** (Reminder: `.IN` domains need the government-ID check, KYC, or the domain is switched off.) The site can be built and shown on a private Vercel preview address (ending `.vercel.app`) first, so the domain does not block the build. It does block your email address (`hello@powersmash.in`), the custom web address and Razorpay's website review. `.IN` domains need a government-ID check (KYC) the moment you buy; if it is not done the domain is switched off, taking the site and email down with it.
 
