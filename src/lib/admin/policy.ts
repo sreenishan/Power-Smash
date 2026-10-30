@@ -46,6 +46,8 @@ export const ADMIN_ACTIONS = {
   'tournaments.update': ownerWrite,
   'tournaments.previewSubmission': ownerRead,
   'tournaments.addSubmission': ownerWrite,
+  'tournaments.permission': ownerRead,
+  'tournaments.setPermission': ownerWrite,
   'leads.list': ownerRead,
   'leads.update': ownerWrite,
   'payments.list': ownerRead,
@@ -156,6 +158,8 @@ export const RLS_MATRIX = {
   'live_past_streams': { private: true, grants: OWNER_READ_RPC_WRITE },
   // 0015_submitted_tournaments.sql (D-103): which organizer submission became which tournament; ids only, written by admin_add_submitted_tournament
   'tournament_submissions': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0016_filming_permission.sql (D-019, D-105): who granted filming permission (a person's name); written by admin_set_filming_permission
+  'tournament_permissions': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placement_stats_daily': { private: true, grants: OWNER_READ },
   'placement_page_stats_daily': { private: true, grants: OWNER_READ },
   // Worker-only plumbing: no admin access at all

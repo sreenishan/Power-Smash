@@ -6,6 +6,8 @@ import { TOURNAMENT_LEVELS } from '../../lib/archive/types';
 import { todayIst } from '../../lib/dates';
 import { CATEGORIES } from '../../lib/parser/types';
 import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, inputCls, useAdmin, useAsync, useBusy } from '../ui';
+import { coverageGap, STATUS_LABEL } from '../../lib/admin/filming-permission';
+import { FilmingPermissionPanel } from './FilmingPermission';
 
 const REGION = { tamil_nadu: 'Tamil Nadu', other_india: 'Elsewhere in India', international: 'International', unknown: 'Place not known' } as const;
 const LEVEL_LABEL: Record<(typeof TOURNAMENT_LEVELS)[number], string> = {
@@ -66,6 +68,9 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
   const { client, actor, notify, check, bump } = useAdmin();
   const [asking, setAsking] = useState<'promote' | 'reject' | 'hide' | null>(null);
   const [editing, setEditing] = useState(false);
+  const [permission, setPermission] = useState(false);
+  // D-019: a tournament marked "Power Smash films this" without granted permission shows the gap
+  const gap = approved ? coverageGap(t.coveredByPowerSmash === true, t.filmingPermission) : null;
   const [checks, setChecks] = useState<number[]>([]);
   const [busy, run] = useBusy();
   const go = async (decision: 'promote' | 'reject' | 'hide') => {
@@ -94,6 +99,7 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
         <Badge>{t.matchCount} {t.matchCount === 1 ? 'match' : 'matches'}</Badge>
         {t.source === 'submitted' ? <Badge tone="warn">Submitted by organizer</Badge> : null}
         {t.isPromoted ? <Badge tone="good">Approved</Badge> : null}
+        {approved ? <Badge tone={t.filmingPermission === 'granted' ? 'good' : 'warn'}>{`Filming permission: ${STATUS_LABEL[t.filmingPermission ?? 'unknown']}`}</Badge> : null}
         {approved ? <Badge tone={t.visibility === 'hidden' ? 'warn' : 'neutral'}>{VISIBILITY[t.visibility]}</Badge> : null}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -103,6 +109,7 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
         {approved && t.visibility === 'hidden' ? null : <Button small onClick={() => setAsking('hide')}>Hide</Button>}
         {approved ? null : <Button small onClick={() => setAsking('reject')}>Reject</Button>}
         <Button small onClick={() => setEditing(!editing)}>{editing ? 'Close details' : 'Details'}</Button>
+        {approved ? <Button small onClick={() => setPermission(!permission)}>{permission ? 'Close filming permission' : 'Filming permission'}</Button> : null}
       </div>
       {asking ? <Confirm title={`${asking === 'promote' ? (approved ? 'Show again' : 'Approve') : asking === 'hide' ? 'Hide' : 'Reject'} "${t.name}"?`} body={TEXT[asking]} confirmLabel="Yes" busy={busy} onConfirm={() => { if (asking === 'promote' && !approved && t.source === 'submitted' && checks.length < CHECKLIST.length) return; void go(asking); }} onCancel={() => setAsking(null)}>
         {asking === 'promote' && !approved && t.source === 'submitted' ? (
@@ -111,7 +118,9 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
           </fieldset>
         ) : null}
       </Confirm> : null}
+      {gap ? <p role="note" className="mt-2 rounded-lg border-2 border-ps-live bg-ps-live-tint p-3 text-small text-ps-ink">{gap}</p> : null}
       {editing ? <DetailsLoader t={t} onDone={() => setEditing(false)} /> : null}
+      {permission ? <FilmingPermissionPanel tournamentId={t.id} tournamentName={t.name} onDone={() => setPermission(false)} /> : null}
     </article>
   );
 }
@@ -212,6 +221,7 @@ function DetailsForm({ t, initial, onDone }: { t: TournamentCandidate; initial: 
       ) : null}
       {err('featuredUntil')}
       <label className="flex min-h-tap items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f.coveredByPowerSmash} onChange={(e) => set('coveredByPowerSmash', e.target.checked)} />Power Smash films this tournament</label>
+      {coverageGap(f.coveredByPowerSmash, t.filmingPermission) ? <p className="text-small font-semibold text-ps-live">{coverageGap(f.coveredByPowerSmash, t.filmingPermission)}</p> : null}
       {errors.form ? <p role="alert" className="font-semibold text-ps-live">{errors.form}</p> : null}
       <div><Button type="submit" variant="primary">Review and save</Button></div>
       {asking ? (

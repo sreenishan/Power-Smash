@@ -12,6 +12,7 @@ import { todayIst } from '../dates';
 import { CATEGORIES, type Category } from '../parser/types';
 import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
 import { slugOptionsFor, submissionPreview, type SubmissionPayload, type SubmissionPreview } from './submission-candidate';
+import { changedPermissionFields, NO_PERMISSION, validatePermission, type FilmingPermission, type PermissionStatus } from './filming-permission';
 import type { PlayerRow, SuppressionKind, VideoRow, AdminRpcArgs, EmergencyHideResult } from '../archive/types';
 import { findPossibleDuplicates, canConfirmAdult, MAX_BULK_CONFIRM, planMerge, type IdAlias, type IdPlayer } from '../identity';
 import { chooseSlug } from '../identity/operations';
@@ -215,6 +216,21 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
       duplicate = (await select<{ id: string }>('tournaments', `select=id&series_key=eq.${encodeURIComponent(draft.record.seriesKey)}&edition_year=${year}&limit=1`)).length > 0;
     }
     return okResult(submissionPreview({ id: lead.id, refCode: lead.ref_code, payload }, { addedAs: link ? { tournamentId: link.tournament_id } : null, slugTaken: (s) => taken.has(s), isDuplicate: () => duplicate }));
+  };
+
+  // Filming permission (0016, D-105): private (a person's name), read with the service role; no row = unknown
+  type PermissionRow = { status: PermissionStatus; granted_by_name: string | null; granted_by_role: string | null; granted_on: string | null; scope_filming: boolean; scope_youtube: boolean; scope_live_stream: boolean; scope_sponsor_overlays: boolean; exclusive_partner: FilmingPermission['exclusivePartner']; document_ref: string | null };
+  const loadPermission = async (tournamentId: string): Promise<FilmingPermission> => {
+    const [r] = await select<PermissionRow>('tournament_permissions', `select=status,granted_by_name,granted_by_role,granted_on,scope_filming,scope_youtube,scope_live_stream,scope_sponsor_overlays,exclusive_partner,document_ref&tournament_id=eq.${encodeURIComponent(tournamentId)}&limit=1`);
+    return r
+      ? { status: r.status, grantedByName: r.granted_by_name, grantedByRole: r.granted_by_role, grantedOn: r.granted_on, scopeFilming: r.scope_filming, scopeYoutube: r.scope_youtube, scopeLiveStream: r.scope_live_stream, scopeSponsorOverlays: r.scope_sponsor_overlays, exclusivePartner: r.exclusive_partner, documentRef: r.document_ref }
+      : { ...NO_PERMISSION };
+  };
+  /** The embedded permission status: PostgREST returns the one-to-one row as an object (or null); a list form is accepted too. */
+  const permissionStatusOf = (embedded: unknown): PermissionStatus => {
+    const row = Array.isArray(embedded) ? embedded[0] : embedded;
+    const s = row && typeof row === 'object' ? (row as { status?: unknown }).status : undefined;
+    return s === 'requested' || s === 'granted' || s === 'refused' || s === 'not_required' ? s : 'unknown';
   };
 
   type LivePastRow = { video_id: string; title: string; streamed_on: string | null; position: number };
@@ -711,6 +727,25 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
       }),
 
     // Tournament details (migration 0014, D-102): read with the service role; saved through admin_update_tournament (owner only, audited)
+    getFilmingPermission: (o) =>
+      guard(async () => {
+        const [t] = await select<{ id: string }>('tournaments', `select=id&id=eq.${encodeURIComponent(o.tournamentId)}&limit=1`);
+        return t ? okResult(await loadPermission(o.tournamentId)) : failResult('NOT_FOUND');
+      }),
+
+    setFilmingPermission: (actor, input) =>
+      guard(async () => {
+        // checked here first: a refused form makes no network call at all
+        const v = validatePermission(input, todayIst(now()));
+        if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+        const [t] = await select<{ id: string }>('tournaments', `select=id&id=eq.${encodeURIComponent(input.tournamentId)}&limit=1`);
+        if (!t) return failResult('NOT_FOUND');
+        const fields = changedPermissionFields(await loadPermission(input.tournamentId), v.value) as string[];
+        if (fields.length === 0) return okResult({ tournamentId: input.tournamentId, permission: v.value, fields });
+        await rpc('admin_set_filming_permission', { p_actor: actor.userId, p_tournament: input.tournamentId, p_record: v.value, p_reason: input.reason });
+        return okResult({ tournamentId: input.tournamentId, permission: v.value, fields });
+      }),
+
     previewSubmission: (o) => guard(() => loadSubmissionPreview(o.leadId)),
 
     addSubmission: (actor, input) =>
@@ -726,11 +761,11 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
 
     listApprovedTournaments: () =>
       guard(async () => {
-        const rows = await select<{ id: string; name: string; series_key: string; edition_year: number | null; region: TournamentCandidate['region']; is_promoted: boolean; source: TournamentCandidate['source']; visibility: TournamentCandidate['visibility']; status: TournamentCandidate['status']; matches: { count: number }[] | null }>(
+        const rows = await select<{ id: string; name: string; series_key: string; edition_year: number | null; region: TournamentCandidate['region']; is_promoted: boolean; source: TournamentCandidate['source']; visibility: TournamentCandidate['visibility']; status: TournamentCandidate['status']; matches: { count: number }[] | null; covered_by_power_smash?: boolean; tournament_permissions?: unknown }>(
           'tournaments',
-          'select=id,name,series_key,edition_year,region,is_promoted,source,visibility,status,matches(count)&status=in.(published,completed)&order=start_date.desc.nullslast,created_at.desc&limit=200',
+          'select=id,name,series_key,edition_year,region,is_promoted,source,visibility,status,covered_by_power_smash,matches(count),tournament_permissions(status)&status=in.(published,completed)&order=start_date.desc.nullslast,created_at.desc&limit=200',
         );
-        return okResult<TournamentCandidate[]>(rows.map((r) => ({ id: r.id, name: r.name, seriesKey: r.series_key, editionYear: r.edition_year, matchCount: r.matches?.[0]?.count ?? 0, region: r.region, isPromoted: r.is_promoted, source: r.source, visibility: r.visibility, status: r.status })));
+        return okResult<TournamentCandidate[]>(rows.map((r) => ({ id: r.id, name: r.name, seriesKey: r.series_key, editionYear: r.edition_year, matchCount: r.matches?.[0]?.count ?? 0, region: r.region, isPromoted: r.is_promoted, source: r.source, visibility: r.visibility, status: r.status, filmingPermission: permissionStatusOf(r.tournament_permissions), coveredByPowerSmash: r.covered_by_power_smash === true })));
       }),
 
     getTournamentDetails: (o) =>

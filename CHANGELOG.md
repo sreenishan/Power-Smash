@@ -51,6 +51,13 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
   - The Vercel deploy tool 64.5 to 65.2. A new major version, but its one breaking change is in a command this project never uses; every command used here still works. Its second version pin, in the secrets loader, is updated too.
 
   Since 64.6, the deploy tool prints a warning that two of the options used here have new names. They still work. When a secret upload fails, the loader now shows the real reason instead of that warning. **One step for you:** run `npm run vercel:install` once on your PC before the next `npm run secrets:load`; until then the loader refuses to run, because your copy of the tool is the old version. The security advisory counts did not change (7 and 33, all in build-time tools).
+- **Admin: record each tournament's filming permission (2026-10-30, D-105, the safe default of D-019).**
+  - Each approved tournament now shows "Filming permission: Not recorded" (or its status), and a "Filming permission" button lets you record what the organizer agreed: the status (not recorded, asked, granted, refused, not needed), who gave it and their role, the date, and what it covers (filming, publishing and earning on YouTube, a live stream, sponsor logos on the video). It also asks whether another media partner has exclusive rights, and where you keep the proof (for example "WhatsApp from the secretary, saved in Drive").
+  - "Granted" needs who, their role, the date and filming; the screen says what is missing. A tournament you have not recorded counts as "not recorded".
+  - A tournament ticked "Power Smash films this" without granted permission now shows a red note on its card and in Details. It warns but does not stop you; whether it should stop you is a question for you and your lawyer.
+  - The record is private: only you see it, nothing reaches the site, and the record of changes keeps the status but never the person's name or where the proof is. An independent review found one wording problem, fixed before this was opened: the red note for "Not needed" contradicted itself, so each status now has its own sentence.
+
+  Migration `0016_filming_permission.sql` adds the private table and the owner-only save. D-019 itself still waits for your approval and a lawyer's review of the coverage agreement and the video licence wording; this only stores what you record.
 - **Unverified, to prove on the first preview:** the prebuilt deploy with the Vercel command-line tool under our install-script policy, Vercel's behaviour for a page address without the trailing slash, the Instant Rollback and Promote buttons, connecting the .in domain, and whether Cloudflare's page counter accepts a vercel.app address.
 
 ### Added

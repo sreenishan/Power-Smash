@@ -410,3 +410,48 @@ test.describe('Organizer submission to the tournament list (D-103)', () => {
     expect(stray).toEqual([]);
   });
 });
+
+test.describe('Filming permission (D-019, D-105)', () => {
+  test('a covered tournament without permission shows the gap; an incomplete grant is refused in words; a full grant clears the gap', async ({ page }) => {
+    const stray = await open(page, '#/tournaments');
+    const card = page.locator('article').filter({ hasText: 'Demo Open Cup' });
+    await card.getByRole('button', { name: 'Approve' }).click();
+    const approve = page.getByRole('alertdialog', { name: /Approve/ });
+    for (const box of await approve.getByRole('checkbox').all()) await box.check();
+    await approve.getByRole('button', { name: 'Yes' }).click();
+    await page.getByRole('tab', { name: 'Approved (1)' }).click();
+    const approved = page.locator('article').filter({ hasText: 'Demo Open Cup' });
+    await expect(approved.getByText('Filming permission: Not recorded')).toBeVisible();
+
+    // mark it covered: the gap shows in the form and then on the card
+    await approved.getByRole('button', { name: 'Details' }).click();
+    await approved.getByLabel('Power Smash films this tournament').check();
+    await expect(approved.getByText(/filming permission is not recorded/)).toBeVisible();
+    await approved.getByRole('button', { name: 'Review and save' }).click();
+    await page.getByRole('alertdialog', { name: /Save the details/ }).getByRole('button', { name: 'Save' }).click();
+    await expect(approved.getByRole('note')).toContainText('filming permission is not recorded');
+
+    // record the permission: incomplete first
+    await approved.getByRole('button', { name: 'Filming permission', exact: true }).click();
+    await approved.getByLabel('Filming permission', { exact: true }).selectOption('granted');
+    await approved.getByRole('button', { name: 'Review and save' }).click();
+    await expect(approved.getByRole('alert').filter({ hasText: 'Who gave permission' })).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+    await approved.getByLabel('Who gave permission').fill('Demo Secretary Person');
+    await approved.getByLabel('Their role').fill('Secretary, Demo District Association');
+    await approved.getByLabel('Date given').fill('2026-10-01');
+    await approved.getByLabel('Filming the matches').check();
+    await approved.getByLabel('Publishing and earning on YouTube').check();
+    await noHorizontalScroll(page);
+    await axeClean(page);
+    await approved.getByRole('button', { name: 'Review and save' }).click();
+    const save = page.getByRole('alertdialog', { name: /Save the filming permission/ });
+    await expect(save).toContainText('status, who, their role, date, filming, YouTube');
+    await save.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Filming permission saved.' })).toBeVisible();
+    await expect(approved.getByText('Filming permission: Granted')).toBeVisible();
+    await expect(approved.getByRole('note')).toHaveCount(0);
+    expect(stray).toEqual([]);
+  });
+});
