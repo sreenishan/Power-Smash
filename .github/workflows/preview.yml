@@ -35,7 +35,9 @@ concurrency:
 jobs:
   preview:
     name: Build and deploy a preview
-    if: ${{ vars.PREVIEW_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Dependabot's runs get no Actions secrets, so a preview of its branches could only fail ('Deploy credentials are missing'); skip them
+    # so a red preview check always means something. Dependency updates are tested locally and through the CI job instead.
+    if: ${{ vars.PREVIEW_ENABLED == 'true' && github.actor != 'dependabot[bot]' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

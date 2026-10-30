@@ -8,7 +8,7 @@ Re-copy them if a package is upgraded.
 | Barlow Condensed (headings) | `@fontsource/barlow-condensed` 5.3.0 | SIL OFL-1.1 | The Barlow Project Authors | `OFL-Barlow-Condensed.txt` | `.woff2` files in the site build |
 | Inter (body, UI) | `@fontsource-variable/inter` 5.3.0 | SIL OFL-1.1 | The Inter Project Authors | `OFL-Inter.txt` | `.woff2` file in the site build |
 | Noto Sans Tamil (Tamil, rupee sign) | `@fontsource/noto-sans-tamil` 5.3.0 | SIL OFL-1.1 | The Noto Project Authors | `OFL-Noto-Sans-Tamil.txt` | `.woff2` files in the site build |
-| Lucide icons | `@lucide/astro` 1.56.0 (VERIFIED_FACTS VF-F14 lists 1.60.0, the newest in the 7-day window) | ISC, plus MIT for the icons derived from Feather | Lucide Icons and Contributors; Cole Bemis (Feather icons) | `LICENSE-Lucide-ISC-and-MIT.txt` | inline SVG in pages |
+| Lucide icons | `@lucide/astro` 1.61.0 (installed 2026-10-30; the licence is unchanged since the 1.60.0 that VERIFIED_FACTS VF-F14 checked) | ISC, plus MIT for the icons derived from Feather | Lucide Icons and Contributors; Cole Bemis (Feather icons) | `LICENSE-Lucide-ISC-and-MIT.txt` | inline SVG in pages |
 
 ## Notes
 
