@@ -1,0 +1,55 @@
+---
+// /competitions/<tournament-slug>/: the public events of one tournament, each linking to its own page. Static, no client JavaScript.
+// Names never appear on this page. SportsEvent structured data only for real data (never for the fictional seed).
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import CompetitionSampleNotice from '../_parts/CompetitionSampleNotice.astro';
+import { loadCompetitionSite } from '../../../lib/competition/public/load';
+import { competitionTournamentJsonLd, tournamentPlace, tournamentWhen, updatedText, type CompetitionTournamentPage } from '../../../lib/competition/public/model';
+import type { CompetitionSource } from '../../../lib/competition/public/provider';
+import { COMPETITION_ROUTES } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const site = await loadCompetitionSite();
+  return site.tournaments.map((t) => ({ params: { tournament: t.slug }, props: { t, source: site.source, generatedAt: site.generatedAt } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  t: CompetitionTournamentPage;
+  source: CompetitionSource;
+  generatedAt: string;
+}
+const { t, source, generatedAt } = Astro.props;
+// a once-per-build snapshot: say when it was taken
+const updated = updatedText(generatedAt);
+const when = tournamentWhen(t);
+const place = tournamentPlace(t);
+const jsonLd = competitionTournamentJsonLd(t, source, Astro.site ?? Astro.url) ?? undefined;
+---
+<BaseLayout
+  title={titleWithBrand(`${t.name}: draws and results`)}
+  description={`Draws, order of play and results of ${t.name}${place ? `, ${place}` : ''}.`}
+  canonicalPath={t.path}
+  noindex={source === 'seed'}
+  jsonLd={jsonLd}
+>
+  <CompetitionSampleNotice source={source} />
+  <PageHero tone="dark" title={t.name} lead={place ? `${when} · ${place}` : when} crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: t.name }]} />
+
+  <Section labelledBy="events-title">
+    <h2 id="events-title" class="text-h3">Events</h2>
+    {updated && <p class="mt-2 text-small text-fg-muted ps-num" data-updated-note>{updated}.</p>}
+    <ul class="mt-4 grid gap-3 sm:grid-cols-2" data-competition-events>
+      {t.events.map((e) => (
+        <li class="relative rounded-lg border border-line bg-surface p-4 ps-transition hover:shadow-card">
+          <a href={e.path} class="font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">{e.title}</a>
+          <p class="mt-1 text-small text-fg-muted">{e.formatText}</p>
+          <p class="text-small">{e.drawPublished ? `${e.entries.length} ${e.entries.length === 1 ? 'entry' : 'entries'} in the draw` : 'The draw is not published yet.'}</p>
+        </li>
+      ))}
+    </ul>
+  </Section>
+</BaseLayout>

@@ -26,6 +26,7 @@ const SCREENS: Record<AdminRoute, ComponentType> = {
   prices: lazy(() => import('./screens/Prices').then((m) => ({ default: m.Prices }))),
   posters: lazy(() => import('./screens/Posters').then((m) => ({ default: m.Posters }))),
   live: lazy(() => import('./screens/Live').then((m) => ({ default: m.Live }))),
+  competitions: lazy(() => import('./screens/Competitions').then((m) => ({ default: m.Competitions }))),
   settings: lazy(() => import('./screens/Settings').then((m) => ({ default: m.Settings }))),
   more: lazy(() => import('./screens/More').then((m) => ({ default: m.More }))),
 };

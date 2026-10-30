@@ -1,0 +1,124 @@
+---
+// /competitions/<tournament-slug>/<event-code>/: one event's entries, draw (bracket or groups), order of play and results.
+// Static, no client JavaScript. Everything comes from the page model (src/lib/competition/public/model.ts); names only through
+// protect.ts (anyone not a confirmed adult, and everyone in a junior event, reads "Protected player", D-012, D-109).
+// Never "Live" on this page (D-113): the scoreboards only get confirmed results, and `now` is the snapshot time. The page is a
+// once-per-build snapshot, so it prints when that snapshot was taken next to the order of play (updatedText).
+// Group events show the entries once, in their group tables (no second flat list). The draw band is a plain wrapper: BracketView
+// names its own section, so there is no second, nested "Draw" region.
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import BracketView from '../../../components/competition/BracketView.astro';
+import EntryList from '../../../components/competition/EntryList.astro';
+import MatchScoreboard from '../../../components/competition/MatchScoreboard.astro';
+import ScheduleTable from '../../../components/competition/ScheduleTable.astro';
+import CompetitionSampleNotice from '../_parts/CompetitionSampleNotice.astro';
+import { loadCompetitionSite } from '../../../lib/competition/public/load';
+import { tournamentWhen, updatedText, type CompetitionEventPage, type CompetitionTournamentPage } from '../../../lib/competition/public/model';
+import type { CompetitionSource } from '../../../lib/competition/public/provider';
+import { COMPETITION_ROUTES } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const site = await loadCompetitionSite();
+  return site.tournaments.flatMap((t) =>
+    t.events.map((e) => ({ params: { tournament: t.slug, event: e.code }, props: { t, e, source: site.source, generatedAt: site.generatedAt } })),
+  );
+}) satisfies GetStaticPaths;
+
+interface Props {
+  t: CompetitionTournamentPage;
+  e: CompetitionEventPage;
+  source: CompetitionSource;
+  generatedAt: string;
+}
+const { t, e, source, generatedAt } = Astro.props;
+const now = new Date(generatedAt);
+const updated = updatedText(generatedAt);
+const showFlatEntries = e.groups.length === 0;
+---
+<BaseLayout
+  title={titleWithBrand(`${e.title}: ${t.name}`)}
+  description={`${e.title} at ${t.name}: entries, draw, order of play and results.`}
+  canonicalPath={e.path}
+  noindex={source === 'seed'}
+>
+  <CompetitionSampleNotice source={source} />
+  <PageHero
+    tone="dark"
+    eyebrow={t.name}
+    title={e.title}
+    lead={`${e.formatText} · ${tournamentWhen(t)}`}
+    crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: t.name, href: t.path }, { name: e.title }]}
+  />
+
+  {e.junior && (
+    <Section compact>
+      <p class="max-w-3xl rounded-md border-2 border-line-strong bg-surface p-3 text-small" role="note" data-junior-note>
+        This is a junior event. To protect young players, no player is named on this page.
+      </p>
+    </Section>
+  )}
+
+  {showFlatEntries && (
+    <Section labelledBy="entries-title">
+      <h2 id="entries-title" class="text-h3">Entries</h2>
+      <div class="mt-4">
+        {e.drawPublished ? (
+          <EntryList caption={`${e.title} entries`} items={e.entries} />
+        ) : (
+          <p class="text-fg-muted">The entry list appears here when the draw is published.</p>
+        )}
+      </div>
+    </Section>
+  )}
+
+  {e.groups.length > 0 && (
+    <Section tone="surface" labelledBy="groups-title">
+      <h2 id="groups-title" class="text-h3">Groups</h2>
+      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+        {e.groups.map((g) => <EntryList caption={g.label} items={g.entries} />)}
+      </div>
+    </Section>
+  )}
+
+  {(e.bracket !== null || (e.format === 'knockout' && e.groups.length === 0)) && (
+    <Section>
+      <BracketView title={e.format === 'groups_knockout' ? 'Knockout stage' : 'Draw'} rounds={e.bracket ?? []} id="draw" />
+    </Section>
+  )}
+
+  <Section tone="surface" labelledBy="schedule-title">
+    <h2 id="schedule-title" class="text-h3">Order of play</h2>
+    {updated && (
+      <p class="mt-2 text-small text-fg-muted ps-num" data-updated-note>
+        {updated}. Times, courts and matches shown as in progress may have changed since then.
+      </p>
+    )}
+    <div class="mt-4">
+      <ScheduleTable caption={`${e.title} order of play`} items={e.schedule} />
+    </div>
+    {e.awaitingCount > 0 && (
+      <p class="mt-3 text-small text-fg-muted" data-awaiting-note>
+        {e.awaitingCount === 1 ? 'One finished match is' : `${e.awaitingCount} finished matches are`} waiting for the result to be confirmed. Results appear once the organiser confirms them.
+      </p>
+    )}
+  </Section>
+
+  <Section labelledBy="results-title">
+    <h2 id="results-title" class="text-h3">Results</h2>
+    {e.results.length === 0 ? (
+      <p class="mt-4 text-fg-muted">No confirmed results yet.</p>
+    ) : (
+      <ul class="mt-4 grid gap-4 lg:grid-cols-2">
+        {e.results.map((r) => (
+          <li>
+            <MatchScoreboard a={r.a} b={r.b} status={r.status} games={r.games} winner={r.winner} round={r.round} court={r.court} live={false} now={now} />
+          </li>
+        ))}
+      </ul>
+    )}
+  </Section>
+</BaseLayout>

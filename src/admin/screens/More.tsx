@@ -1,7 +1,7 @@
 import { hashFor, ROUTE_NOTE, ROUTE_TITLE, type AdminRoute } from '../messages';
 import { cardCls } from '../ui';
 
-const ITEMS: AdminRoute[] = ['tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'settings'];
+const ITEMS: AdminRoute[] = ['tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'competitions', 'settings'];
 
 export function More() {
   return (

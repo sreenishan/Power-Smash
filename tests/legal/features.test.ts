@@ -24,6 +24,7 @@ const PROBES: Record<FeatureName, RegExp[]> = {
   youtubeApiData: [/uses YouTube API Services/, /Google Privacy Policy/],
   youtubeEmbeds: [/loads from YouTube only after you tap to play/, /through YouTube's player/, /Video thumbnails come from YouTube/],
   archivePages: [/profile page/, /\bprotected\b/, /Match details by Power Smash/, /player, match and tournament pages/],
+  competitionPages: [/"Protected player"/, /draws, order of play and results/, /not official BWF rankings/, /do not count towards our local rankings/, /entered by Power Smash/],
   requestVerification: [/one-time code/],
   ageProofChecks: [/age proof/i],
   emailAlerts: [/email alerts/i, /18 or older/],

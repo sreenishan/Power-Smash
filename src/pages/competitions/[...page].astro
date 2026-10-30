@@ -1,0 +1,20 @@
+---
+// The two FIXED competition pages, /competitions/ and /competitions/rankings/, as one static route so a build without competition
+// pages writes neither of them (competitionFixedPaths() returns no path then: the strict release build while
+// features.competitionPages is off). No prune step is needed, and the release gate never meets these pages' owner marker for a
+// feature that is switched off. The tournament and event pages ([tournament]/...) are not generated either (empty site).
+// The page bodies live in _parts/ (not routed). "rankings" is a reserved tournament slug (paths.ts), so the [tournament] route never
+// claims /competitions/rankings/.
+import type { GetStaticPaths } from 'astro';
+import CompetitionIndexPage from './_parts/CompetitionIndexPage.astro';
+import CompetitionRankingsPage from './_parts/CompetitionRankingsPage.astro';
+import { competitionFixedPaths, type CompetitionFixedPage } from '../../lib/competition/in-build';
+
+export const getStaticPaths = (() => competitionFixedPaths()) satisfies GetStaticPaths;
+
+interface Props {
+  which: CompetitionFixedPage;
+}
+const { which } = Astro.props;
+---
+{which === 'rankings' ? <CompetitionRankingsPage /> : <CompetitionIndexPage />}

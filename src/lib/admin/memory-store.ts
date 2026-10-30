@@ -7,9 +7,10 @@ import { todayIst } from '../dates';
 import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
 import { submissionPreview, type SubmissionPayload, type SubmissionPreview } from './submission-candidate';
 import { changedPermissionFields, NO_PERMISSION, validatePermission, type FilmingPermission, type PermissionInput } from './filming-permission';
-import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
+import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions, isSuppressed } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
+import { isCompetitionNamed } from '../competition/db';
 import { products as contentProducts } from '../../content/products';
 import type { InboxLead } from '../inbox/lead';
 import type { Placement } from '../placements/schedule';
@@ -19,6 +20,9 @@ import type { PaymentRecord } from '../pricing-admin/mark-paid';
 import { applyLeadUpdate, checkStatusChange, prepareMarkPaid, prepareNewPlacement, prepareProductSave } from './ops';
 import { consentView, leadMove, validateReview, type VideoSubmission } from './submissions';
 import type { AdminClient } from './http-store';
+import { createCompetitionService } from './competition/service';
+import { COMP_SEED, createCompetitionSeed, createMemoryCompetitionBackend, emptyCompetitionState, type MemoryCompetitionState } from './competition/memory-backend';
+import { COMPETITION_STORE_METHODS, type CompetitionAdminStore } from './competition/types';
 import {
   failResult,
   okResult,
@@ -103,6 +107,8 @@ export interface MemoryState {
   tournamentSlugs?: Record<string, string>;
   /** Filming permission by tournament id (D-019, D-105). Absent = unknown. */
   filmingPermissions?: Record<string, FilmingPermission>;
+  /** Competitions (D-108 to D-114): events, entries, draws, matches, courts, rankings. Absent = none. */
+  competition?: MemoryCompetitionState;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -112,6 +118,8 @@ export interface MemoryState {
 export interface MemoryOptions {
   now?: () => Date;
   newId?: () => string;
+  /** A new random draw seed; default the crypto random source. Tests inject one. */
+  randomSeed?: () => number;
   state?: MemoryState;
 }
 
@@ -162,6 +170,12 @@ export function createSeedState(): MemoryState {
     seedPlayer(SEED_IDS.p4, 'Demo Junior Fakeson', { ageStatus: 'minor_suspected', ageSignals: ['age_token:U15'], slug: 'p-0000000000000004', visibility: 'hidden' }),
     seedPlayer(SEED_IDS.p5, 'Demo Kiran Placeholder', { ageStatus: 'unknown', slug: 'p-0000000000000005', visibility: 'hidden', provisional: true }),
     seedPlayer(SEED_IDS.p6, 'Demo Kiran Placeholdr', { ageStatus: 'unknown', slug: 'p-0000000000000006', visibility: 'hidden', provisional: true }),
+    // competition sample (D-108): fictional adults entered in the Demo Open Cup events
+    seedPlayer(COMP_SEED.anand, 'Demo Comp Anand Mockwell'),
+    seedPlayer(COMP_SEED.bala, 'Demo Comp Bala Fictor'),
+    seedPlayer(COMP_SEED.eswar, 'Demo Comp Eswar Nullby'),
+    seedPlayer(COMP_SEED.chitra, 'Demo Comp Chitra Samplely'),
+    seedPlayer(COMP_SEED.divya, 'Demo Comp Divya Testrow'),
   ];
   const al = (id: string, alias: string, playerId: string): IdAlias => ({ id, aliasNormalized: alias, playerId, status: 'confirmed', scopeTournamentId: null, scopeDistrict: null });
   const video = (n: number, title: string, over: Partial<MemoryVideo> = {}): MemoryVideo => ({
@@ -243,6 +257,8 @@ export function createSeedState(): MemoryState {
     suppressions: [],
     dismissedPairs: [],
     modes: { unknown_match_mode: 'noindex_minimal', minor_match_mode: 'hidden' },
+    // one sample tournament (Demo Open Cup) with two events; Demo Meena Samplestone (unknown age) plays in the women's singles
+    competition: createCompetitionSeed(SEED_IDS.t1, SEED_IDS.p1, SEED_IDS.p3),
     audit: [],
     siteDirty: false,
     lastDeployStatus: null,
@@ -263,7 +279,66 @@ export class MemoryAdminStore implements AdminClient {
     this.state = opts.state ?? createSeedState();
     this.now = opts.now ?? (() => new Date());
     this.newId = opts.newId ?? rnd;
+    const service = createCompetitionService(
+      createMemoryCompetitionBackend({
+        state: () => (this.state.competition ??= emptyCompetitionState()),
+        players: () =>
+          this.state.identity.players
+            .filter((p) => p.mergedInto === null)
+            .map((p) => ({ id: p.id, displayName: p.displayName, ageStatus: p.ageStatus, academy: p.ageStatus === 'adult_confirmed' ? (this.state.playerProfiles?.[p.id]?.academy ?? null) : null })),
+        tournaments: () =>
+          this.state.tournaments
+            .filter((t) => t.status !== 'rejected')
+            .map((t) => {
+              const d = this.state.tournamentDetails?.[t.id];
+              // a school or college tournament is a minor signal (D-012), like tournaments.is_minor_signal
+              const minorSignal = t.isMinorSignal === true || d?.level === 'school_college';
+              return { id: t.id, name: d?.name ?? t.name, level: d?.level ?? null, startDate: d?.startDate ?? null, endDate: d?.endDate ?? null, minorSignal, status: t.status };
+            }),
+        rankable: (ids) => {
+          const active = this.state.suppressions.filter((x) => x.releasedAt === null);
+          // one TS copy of the competition naming rule (db.ts isCompetitionNamed, mirrors app.competition_named_players). The name
+          // key is checked both ways (the display name normalised as a suppression is, and the stored name key), so it fails closed.
+          const suppressed = (p: IdPlayer): boolean =>
+            isSuppressed(active, { name: p.displayName, playerId: p.id }) || (p.nameKey !== null && active.some((x) => x.kind === 'name_normalized' && x.key === p.nameKey));
+          return this.state.identity.players
+            .filter((p) => ids.includes(p.id))
+            .filter((p) => isCompetitionNamed({ ageStatus: p.ageStatus, visibility: p.visibility, isProvisional: p.provisional, mergedInto: p.mergedInto, suppressed: suppressed(p) }, false))
+            .map((p) => p.id);
+        },
+        audit: (actor, action, entity, entityId, reason) => this.audit(actor, action, entity, entityId, reason),
+        markDirty: () => this.markDirty(),
+        now: () => this.now(),
+        newId: () => this.newId(),
+      }),
+      { now: () => this.now(), ...(opts.randomSeed ? { randomSeed: opts.randomSeed } : {}) },
+    );
+    for (const k of COMPETITION_STORE_METHODS) Object.defineProperty(this, k, { value: service[k], enumerable: false, writable: false });
   }
+
+  // competitions (D-108 to D-114): set in the constructor from the shared service over the memory backend
+  declare readonly competitionTournaments: CompetitionAdminStore['competitionTournaments'];
+  declare readonly competitionEvent: CompetitionAdminStore['competitionEvent'];
+  declare readonly competitionCourts: CompetitionAdminStore['competitionCourts'];
+  declare readonly competitionRankings: CompetitionAdminStore['competitionRankings'];
+  declare readonly competitionRanking: CompetitionAdminStore['competitionRanking'];
+  declare readonly competitionSettings: CompetitionAdminStore['competitionSettings'];
+  declare readonly competitionSaveEvent: CompetitionAdminStore['competitionSaveEvent'];
+  declare readonly competitionAddEntry: CompetitionAdminStore['competitionAddEntry'];
+  declare readonly competitionWithdrawEntry: CompetitionAdminStore['competitionWithdrawEntry'];
+  declare readonly competitionSetEntry: CompetitionAdminStore['competitionSetEntry'];
+  declare readonly competitionGenerateDraw: CompetitionAdminStore['competitionGenerateDraw'];
+  declare readonly competitionPublishDraw: CompetitionAdminStore['competitionPublishDraw'];
+  declare readonly competitionSyncMatches: CompetitionAdminStore['competitionSyncMatches'];
+  declare readonly competitionSaveMatch: CompetitionAdminStore['competitionSaveMatch'];
+  declare readonly competitionSchedule: CompetitionAdminStore['competitionSchedule'];
+  declare readonly competitionRecordResult: CompetitionAdminStore['competitionRecordResult'];
+  declare readonly competitionConfirmResult: CompetitionAdminStore['competitionConfirmResult'];
+  declare readonly competitionComputeRanking: CompetitionAdminStore['competitionComputeRanking'];
+  declare readonly competitionPublishRanking: CompetitionAdminStore['competitionPublishRanking'];
+  declare readonly competitionSaveVenue: CompetitionAdminStore['competitionSaveVenue'];
+  declare readonly competitionSaveCourt: CompetitionAdminStore['competitionSaveCourt'];
+  declare readonly competitionApprovePointsTable: CompetitionAdminStore['competitionApprovePointsTable'];
 
   // ------------------------------------------------------------ helpers
   private audit(actor: Actor, action: string, entity: string, entityId: string | null, reason: string | null): void {

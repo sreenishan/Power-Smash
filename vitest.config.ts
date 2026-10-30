@@ -8,9 +8,13 @@ import { defineConfig } from 'vitest/config';
 // `test:red` script keeps working until the lead deletes the script (docs/m1/m2b-notes.md).
 
 export default defineConfig({
+  // The admin screens (src/admin/**/*.tsx) are React. tsconfig keeps `jsx: preserve` for Astro, so the test transform is told to
+  // compile JSX with the automatic React runtime (Vite 8 transforms with oxc). No DOM is installed: render tests use
+  // react-dom/server renderToStaticMarkup in plain Node (tests/admin-ui/competition-render.test.ts).
+  oxc: { jsx: { runtime: 'automatic', importSource: 'react' } },
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.{ts,mjs}', 'src/**/*.test.ts', 'scripts/**/*.test.{ts,mjs}'],
+    include: ['tests/**/*.test.{ts,tsx,mjs}', 'src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,mjs}'],
     exclude: ['node_modules/**', 'dist/**', 'spike/**'],
   },
 });

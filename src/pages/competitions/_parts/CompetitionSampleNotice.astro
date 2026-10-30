@@ -1,0 +1,31 @@
+---
+// Shown on every competition page while the data is not the real, approved data (like ArchiveSeedNotice.astro).
+//  - Source is the FICTIONAL seed: a visible "sample data" banner; in the STRICT release build also a <Todo>, so the release gate
+//    refuses to publish made-up players and results (D-034).
+//  - Real data but the legal switch features.competitionPages is still off: the same Todo in the strict build only (the strict build
+//    normally builds no competition page at all then; this is the second line of defence).
+import Todo from '../../../components/site/Todo.astro';
+import { features } from '../../../content/legal/status';
+import type { CompetitionSource } from '../../../lib/competition/public/provider';
+
+interface Props {
+  source: CompetitionSource;
+}
+const { source } = Astro.props;
+const strict = process.env.PS_STRICT === '1';
+const isSeed = source === 'seed';
+const legalOff = features.competitionPages !== true;
+---
+{isSeed && (
+  <div class="border-b-2 border-ps-live bg-ps-live-tint" role="note" data-competition-sample>
+    <p class="ps-container py-2 text-small font-semibold text-ps-ink">
+      Sample data: the tournaments, players, draws and results on this page are made up for testing. They are not real people or real results.
+    </p>
+  </div>
+)}
+{strict && (isSeed || legalOff) && (
+  <div class="ps-container py-2">
+    {isSeed && <Todo what="connect the real competition data: this page is built from fictional sample data" />}
+    {legalOff && <Todo what="approve the competition pages (features.competitionPages in src/content/legal/status.ts) after the owner and the lawyer confirm the protected-player rules (D-012, D-109)" />}
+  </div>
+)}

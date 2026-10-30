@@ -26,7 +26,7 @@ D-108 organizer and scorer accounts by invitation; D-109 juniors and unknown-age
 | Audit | Status of all 24 modules, owner decisions, phased plan | done (7 decisions answered: D-108 to D-114) |
 | A. Engines | Scoring rules and live rally state, draws (knockout with seeding and byes, round robin, groups), bracket progression, scheduling and conflict report, statistics and local ranking calculator (`src/lib/competition/`) | built and reviewed (pull request: engines + foundations) |
 | 2. Foundations | Competition database schema 0017 (events, entries, draws, matches, games, score log, rankings, organizer assignments, notification outbox, data providers), international data adapter, notification outbox, competition UI components | built and reviewed; checks 0001 to 0017 pass locally; the dev Supabase project needs the 0017 bundle pasted |
-| 3. Wiring | Admin screens and server actions for events, entries, draws, scheduling, scoring and results; public tournament pages showing draws, schedules and results | next |
+| 3. Wiring | Admin screens and server actions for events, entries, draws, scheduling, scoring and results; public tournament pages showing draws, schedules and results | built and reviewed (migration 0018; D-115 routes, D-116 naming rule); pull request after wave 2 |
 | 4. Accounts | Organizer and scorer access limited to their own tournaments, by invitation (D-108) | decided; queued after wave 3 |
 | 5. Registration | Free registration on the site, manual payment verification (D-111); near-live scores endpoint (D-113); international link-out listings (D-112) | decided; queued after wave 3 |
 | 6. Integrations | International data (licensed source), payment gateway, email and WhatsApp delivery | after credentials |

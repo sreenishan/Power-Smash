@@ -40,6 +40,13 @@ export const privacyFuture = {
       'The player, tournament, category and round details on our pages are our own records. We make them by reading video titles, and we label them "Match details by Power Smash". A video\'s title is always shown exactly as it appears on YouTube.',
   },
 
+  /** Platform wave 3. Public competition pages (/competitions/) entered by Power Smash in the owner-only admin; protected players never named (D-012, D-109). */
+  competitionPages: {
+    protectedPlayers: p(
+      'Our competition pages (draws, order of play and results) name a player only when the player is an adult whose age we have confirmed. A player who is under 18 or whose age we have not confirmed, and every player in a junior event or at a school or college event, is shown there as "Protected player". A player who is under 18 or whose age we have not confirmed is left out of our local rankings, and the places of the other players are renumbered. Results from junior events and from school or college events do not count towards our local rankings. Results on these pages are entered by Power Smash. Our local rankings are not official BWF rankings.',
+    ),
+  },
+
   /** M2a. The site calls the YouTube API (Developer Policies III.A.1 and III.A.2: the privacy policy must say so and link both policies). */
   youtubeApiData: {
     providerPart: 'Supply public information about our channel through YouTube API Services.',
@@ -342,6 +349,7 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
           `Our forms and services are for adults: organisers, businesses, coaches, parents, and players aged 18 or over. If you are under 18, please ask a parent or guardian to contact us for you. We do not market to anyone under 18.${f.emailAlerts ? fut.emailAlerts.adultsOnly : ''}`,
         ),
         ...ifOn(f.archivePages, ...fut.archivePages.protectedPlayers),
+        ...ifOn(f.competitionPages, fut.competitionPages.protectedPlayers),
         p(
           'A parent or guardian can ask us at any time to hide a child\'s name or to remove a video, a page or a listing. See our ',
           link('/content-removal', 'Content Removal and Takedown Policy'),

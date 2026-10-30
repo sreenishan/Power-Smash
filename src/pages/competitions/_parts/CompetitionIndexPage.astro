@@ -1,0 +1,49 @@
+---
+// The /competitions/ page body: every tournament with a public competition event (owner-entered draws, order of play and results,
+// platform wave 3). Rendered by ../[...page].astro, which builds it only when competitionFixedPaths() says this build carries the
+// competition pages (never in the strict release build while features.competitionPages is off).
+// Static, no client JavaScript. Data through loadCompetitionSite() (one snapshot per build); names never appear on this page.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import EmptyState from '../../../components/ui/EmptyState.astro';
+import CompetitionSampleNotice from './CompetitionSampleNotice.astro';
+import { loadCompetitionSite } from '../../../lib/competition/public/load';
+import { eventCountText, tournamentPlace, tournamentWhen } from '../../../lib/competition/public/model';
+import { COMPETITION_ROUTES } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+const site = await loadCompetitionSite();
+---
+<BaseLayout
+  title={titleWithBrand('Draws and results')}
+  description="Draws, order of play and results of badminton tournaments run with Power Smash."
+  canonicalPath={COMPETITION_ROUTES.index}
+  noindex={site.source === 'seed'}
+>
+  <CompetitionSampleNotice source={site.source} />
+  <PageHero tone="dark" title="Draws and results" lead="Entry lists, draws, order of play and results, as entered by the organisers." crumbs={[{ name: 'Draws and results' }]} />
+
+  <Section labelledBy="competitions-title">
+    <h2 id="competitions-title" class="text-h3">Tournaments</h2>
+    {site.tournaments.length === 0 ? (
+      <EmptyState title="No draws are published yet" class="mt-4">
+        <p>Draws and results appear here once an organiser publishes them.</p>
+      </EmptyState>
+    ) : (
+      <ul class="mt-4 grid gap-3 sm:grid-cols-2" data-competition-list>
+        {site.tournaments.map((t) => (
+          <li class="relative rounded-lg border border-line bg-surface p-4 ps-transition hover:shadow-card">
+            <a href={t.path} class="font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a>
+            <p class="mt-1 text-small text-fg-muted ps-num">{tournamentWhen(t)}</p>
+            {tournamentPlace(t) && <p class="text-small text-fg-muted">{tournamentPlace(t)}</p>}
+            <p class="mt-1 text-small">{eventCountText(t.events.length)}</p>
+          </li>
+        ))}
+      </ul>
+    )}
+    {site.rankings.length > 0 && (
+      <p class="mt-6"><a href={COMPETITION_ROUTES.rankings} class="font-bold">Local rankings</a> <span class="text-fg-muted">(not official BWF rankings)</span></p>
+    )}
+  </Section>
+</BaseLayout>

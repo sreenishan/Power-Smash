@@ -65,7 +65,28 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
 
 ### Added
 
-*The tournament platform, waves A and 2 (2026-10-30, your brief of 24 modules and decisions D-108 to D-114); nothing is shown on the site or switched on yet*
+*The tournament platform, wave 3 (2026-10-31): running a tournament from the admin, and the public competition pages; all switched off*
+
+- **Run a tournament from your phone (admin, "Competitions").** Create events inside a tournament, then:
+  - **Entries:** add players or pairs, confirm or withdraw them, and set seeds.
+  - **Draw:** made on the server with a draw number you can note down; the same number always makes the same draw. Preview it, make it again if you like, then publish it. A published draw cannot be changed, and the screen warns you first.
+  - **Order of play:** place matches on courts and times, with clashes explained in plain words. "Update matches" moves winners into their next match.
+  - **Results:** entered game by game, with the scoring rules checked as you type. Walkover, retired and abandoned are explained. A winner moves on only after you confirm the result.
+  - **Local ranking:** worked out from confirmed results only, and refused until you approve a points table (D-110). It cannot be published if anyone listed has since become protected.
+  - **Migration 0018** adds what these screens needed: venues and courts, entry status, the points table, and the checks above.
+- **Public pages under /competitions/ (D-115).** For each event: entries, the draw or groups, the order of play in India time, results, and a published local ranking labelled "not an official BWF ranking". Every page says when its data was taken.
+  - **Off for the real site.** The release build makes none of these pages until the new switch `competitionPages` is on (your yes plus the lawyer's re-read). Other builds show them with fictional sample data and a sample notice.
+- **Who is named (D-116).** Only players you have confirmed as adults, with a public profile, appear by name.
+  - Everyone else is "Protected player": anyone under 18 or whose age is not confirmed, everyone in a junior event, and everyone at a school or college event. Those under 18 or with an unconfirmed age are also left out of rankings, places are renumbered so no gap is left, and junior or school results earn no ranking points.
+  - Unlike player pages, this no longer needs a match video. Juniors are never named.
+  - The rule is one database view, checked by tests against its copies in the code.
+- **Smaller fixes.**
+  - The "changed since you opened it" message no longer talks about videos on screens that have nothing to do with videos.
+  - The admin date helpers moved into the one date module.
+  - React screen tests now run.
+  - The privacy text for the competition pages waits behind the switch, with a line in the lawyer's re-read checklist.
+
+, your brief of 24 modules and decisions D-108 to D-114); nothing is shown on the site or switched on yet*
 
 - **The rules engines behind running a tournament.** One shared, tested code library (`src/lib/competition/`) now does the work an organizer does by hand:
   - **Scoring:** 21 points, win by 2, capped at 30, best of 3 games, with interval and change-of-ends points. It records rally by rally with undo and checks a finished score is possible (30-28 is valid, 31-29 is not). It refuses a "retirement" where no rally was played: that is a walkover.

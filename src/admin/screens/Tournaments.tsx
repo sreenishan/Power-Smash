@@ -8,6 +8,7 @@ import { CATEGORIES } from '../../lib/parser/types';
 import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, inputCls, useAdmin, useAsync, useBusy } from '../ui';
 import { coverageGap, STATUS_LABEL } from '../../lib/admin/filming-permission';
 import { FilmingPermissionPanel } from './FilmingPermission';
+import { STALE_TOURNAMENT_DETAILS } from '../messages';
 
 const REGION = { tamil_nadu: 'Tamil Nadu', other_india: 'Elsewhere in India', international: 'International', unknown: 'Place not known' } as const;
 const LEVEL_LABEL: Record<(typeof TOURNAMENT_LEVELS)[number], string> = {
@@ -164,7 +165,7 @@ function DetailsForm({ t, initial, onDone }: { t: TournamentCandidate; initial: 
       notify(r.data.fields.length > 0 ? 'Saved in the admin.' : 'Nothing to change.');
       bump();
       onDone();
-    } else setErrors(r.errors ?? {});
+    } else setErrors(r.code === 'STALE' && !r.errors?.['form'] ? { ...(r.errors ?? {}), form: STALE_TOURNAMENT_DETAILS } : (r.errors ?? {}));
   };
 
   return (

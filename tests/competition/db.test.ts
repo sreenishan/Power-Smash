@@ -1,7 +1,8 @@
-// The competition schema (migration 0017) must not drift from src/lib/competition/db.ts and the engines: the api view columns, the
-// vocabularies in the check constraints, the default ruleset, the house rules (RLS, revokes, service-role reads, locked-down owner RPCs)
-// and the safe defaults (all switches off, nothing seeded). Static: reads the SQL text, no database (the database behaviour is
-// supabase/checks/0017_assertions.sql). Pattern: tests/supabase/products-view.test.ts.
+// The competition schema (migrations 0017 and 0018) must not drift from src/lib/competition/db.ts and the engines: the api view
+// columns, the vocabularies in the check constraints, the default ruleset, the house rules (RLS, revokes, service-role reads,
+// locked-down owner RPCs), the competition naming rule (0018) and the safe defaults (all switches off, nothing seeded). Static: reads
+// the SQL text, no database (the database behaviour is supabase/checks/0017_assertions.sql and 0018_assertions.sql). Pattern:
+// tests/supabase/products-view.test.ts.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -17,18 +18,24 @@ import {
   COMPETITION_AGE_GROUP_PATTERN,
   competitionErrorCode,
   isCompetitionAgeGroup,
+  isCompetitionNamed,
   isJuniorAgeGroup,
   outboxPayloadProblem,
 } from '../../src/lib/competition/db';
 import { DEFAULT_RULESET } from '../../src/lib/competition/scoring';
 import { MATCH_STATUSES } from '../../src/lib/competition/types';
 import { checkMigration, statementsOf } from '../supabase/migration-rules';
+import { rankingProtectedMessage } from '../../src/lib/admin/competition/service';
 
 const sql = readFileSync('supabase/migrations/0017_competition.sql', 'utf8').replace(/\r\n/g, '\n');
 const checks = readFileSync('supabase/checks/0017_assertions.sql', 'utf8').replace(/\r\n/g, '\n');
 const statements = statementsOf(sql);
 /** The statements with whitespace collapsed (no comments), for exact phrase checks. */
 const flat = statements.join(';\n');
+// 0018 replaces some 0017 objects (create or replace); the database ends with the LAST definition
+const sql18 = readFileSync('supabase/migrations/0018_competition_admin.sql', 'utf8').replace(/\r\n/g, '\n');
+const checks18 = readFileSync('supabase/checks/0018_assertions.sql', 'utf8').replace(/\r\n/g, '\n');
+const statements18 = statementsOf(sql18);
 
 /** Split on commas that are not inside parentheses or quotes. */
 function splitTop(list: string): string[] {
@@ -49,10 +56,12 @@ function splitTop(list: string): string[] {
   return out;
 }
 
-function viewColumns(name: string): string[] {
-  const s = statements.find((x) => x.startsWith(`create view api.${name} `));
+/** The view's columns as 0017 created it, or (final = true) as the database ends up after 0018 replaced it. */
+function viewColumns(name: string, final = false): string[] {
+  const replaced = final ? statements18.find((x) => x.startsWith(`create or replace view api.${name} `)) : undefined;
+  const s = replaced ?? statements.find((x) => x.startsWith(`create view api.${name} `));
   expect(s, name).toBeDefined();
-  expect(s, name).toMatch(new RegExp(`^create view api\\.${name} with \\(security_barrier = true\\) as select `));
+  expect(s, name).toMatch(new RegExp(`^create (or replace )?view api\\.${name} with \\(security_barrier = true\\) as select `));
   const select = /\bas select (.*?) from public\./.exec(s as string)?.[1];
   expect(select, name).toBeDefined();
   return splitTop(select as string).map((item) => {
@@ -79,17 +88,27 @@ describe('migration 0017 competition: the public api views', () => {
     expect([...created].sort()).toEqual([...COMPETITION_VIEWS].sort());
   });
 
-  it.each(COMPETITION_VIEWS)('api.%s selects exactly the declared columns, in order, and is granted to the API roles', (name) => {
-    expect(viewColumns(name)).toEqual([...COMPETITION_VIEW_COLUMNS[name]]);
+  it.each(COMPETITION_VIEWS)('api.%s selects exactly the declared columns, in order (after 0018), and is granted to the API roles', (name) => {
+    expect(viewColumns(name, true)).toEqual([...COMPETITION_VIEW_COLUMNS[name]]);
     expect(sql).toContain(`grant select on api.${name} to anon, authenticated;`);
+    if (statements18.some((x) => x.startsWith(`create or replace view api.${name} `))) expect(sql18).toContain(`grant select on api.${name} to anon, authenticated;`);
   });
 
-  it('the check file asserts the same column lists against the database', () => {
+  it('0018 only APPENDS columns to a 0017 view (create or replace view cannot drop or reorder)', () => {
+    for (const name of COMPETITION_VIEWS) {
+      const before = viewColumns(name);
+      expect(viewColumns(name, true).slice(0, before.length), name).toEqual(before);
+    }
+    expect(COMPETITION_VIEW_COLUMNS.public_competition_events.at(-1)).toBe('is_junior');
+  });
+
+  it('the check files assert the same column lists against the database (every check runs after every migration: the final shape)', () => {
     for (const name of COMPETITION_VIEWS) {
       const m = new RegExp(`'${name}', jsonb_build_array\\(([^)]*)\\)`).exec(checks);
       expect(m, name).not.toBeNull();
-      expect([...(m as RegExpExecArray)[1]!.matchAll(/'([^']*)'/g)].map((x) => x[1])).toEqual([...COMPETITION_VIEW_COLUMNS[name]]);
+      expect([...(m as RegExpExecArray)[1]!.matchAll(/'([^']*)'/g)].map((x) => x[1])).toEqual(viewColumns(name, true));
     }
+    expect(checks18).toContain(`is distinct from '${JSON.stringify([...COMPETITION_VIEW_COLUMNS.public_competition_events]).replace(/","/g, '", "')}'::jsonb`);
   });
 
   it('never uses select *, never exposes a player id, and names players only through the masked entry faces or the eligible check', () => {
@@ -183,20 +202,28 @@ describe('migration 0017 competition: house rules and safe defaults', () => {
     expect(sql).not.toMatch(/create policy/i);
   });
 
-  it.each(COMPETITION_RPCS)('public.%s is SECURITY DEFINER, calls app.require_owner first, and only service_role may run it', (rpc) => {
-    const s = statements.find((x) => x.startsWith(`create or replace function public.${rpc}(`)) as string;
+  it.each(COMPETITION_RPCS)('public.%s (its last definition) is SECURITY DEFINER, calls app.require_owner first, and only service_role may run it', (rpc) => {
+    const in18 = statements18.find((x) => x.startsWith(`create or replace function public.${rpc}(`));
+    const s = (in18 ?? statements.find((x) => x.startsWith(`create or replace function public.${rpc}(`))) as string;
+    const file = in18 ? sql18 : sql;
     expect(s, rpc).toBeDefined();
-    expect(s).toMatch(/returns jsonb language plpgsql security definer set search_path = '' as \$\$ declare .*? begin perform app\.require_owner\(p_actor\);/);
     const args = /^create or replace function public\.[a-z_]+\(([^)]*)\)/.exec(s)?.[1] as string;
     const types = args.split(',').map((a) => a.trim().split(' ')[1]).join(', ');
-    expect(sql).toContain(`revoke all on function public.${rpc}(${types}) from public, anon, authenticated;`);
-    expect(sql).toContain(`grant execute on function public.${rpc}(${types}) to service_role;`);
+    expect(file).toContain(`revoke all on function public.${rpc}(${types}) from public, anon, authenticated;`);
+    expect(file).toContain(`grant execute on function public.${rpc}(${types}) to service_role;`);
+    if (rpc === 'admin_competition_rankable_players') {
+      // the one read: no reason, no audit, no write
+      expect(s).toMatch(/returns uuid\[\] language plpgsql stable security definer set search_path = '' as \$\$ begin perform app\.require_owner\(p_actor\);/);
+      expect(s).not.toMatch(/app\.audit\(|insert into|update public\.|delete from/);
+      return;
+    }
+    expect(s).toMatch(/returns jsonb language plpgsql security definer set search_path = '' as \$\$ declare .*? begin perform app\.require_owner\(p_actor\);/);
     expect(s).toMatch(/app\.audit\(p_actor, /);
   });
 
-  it('the declared RPC list is every admin function of the migration', () => {
-    const created = [...sql.matchAll(/^create or replace function public\.([a-z_]+)\(/gm)].map((m) => m[1]);
-    expect(created.sort()).toEqual([...COMPETITION_RPCS].sort());
+  it('the declared RPC list is every admin function of 0017 and 0018', () => {
+    const created = [...`${sql}\n${sql18}`.matchAll(/^create or replace function public\.([a-z_]+)\(/gm)].map((m) => m[1]);
+    expect([...new Set(created)].sort()).toEqual([...COMPETITION_RPCS].sort());
   });
 
   it('switches all default off, payments can only be manual, nothing but the settings row is seeded, profiles roles are untouched', () => {
@@ -302,6 +329,94 @@ describe('migration 0017 competition: wave 2 review fixes', () => {
     for (const fn of ['app.competition_age_group_ok(text)', 'app.competition_age_is_junior(text)', 'app.competition_outbox_payload_ok(jsonb)']) {
       expect(sql).toContain(`revoke all on function ${fn} from public, anon, authenticated;`);
       expect(checks).toContain(`'${fn}'`);
+    }
+  });
+});
+
+describe('migration 0018: the competition naming rule (lead decision, wave 3)', () => {
+  const named = statements18.find((s) => s.startsWith('create view app.competition_named_players')) as string;
+  const faces = statements18.find((s) => s.startsWith('create or replace view app.competition_entry_faces')) as string;
+  const rankings = statements18.find((s) => s.startsWith('create or replace view api.public_competition_rankings')) as string;
+  const events = statements18.find((s) => s.startsWith('create or replace view api.public_competition_events')) as string;
+  const publish = statements18.find((s) => s.startsWith('create or replace function public.admin_publish_ranking_snapshot(')) as string;
+  const rankable = statements18.find((s) => s.startsWith('create or replace function public.admin_competition_rankable_players(')) as string;
+
+  it('app.competition_named_players: adult_confirmed, public, not provisional, unmerged, not suppressed; no archive match needed; internal', () => {
+    expect(named).toBe(
+      'create view app.competition_named_players as select p.id from public.players p where p.age_status = \'adult_confirmed\' and p.visibility = \'public\' and not p.is_provisional and p.merged_into is null and not exists (select 1 from app.suppressed_keys k where (k.kind = \'player_id\' and k.value = p.id::text) or (k.kind = \'name_normalized\' and k.value = p.name_normalized))',
+    );
+    expect(named).not.toMatch(/match|video|alias|eligible_players/);
+    expect(sql18).toContain('revoke all on app.competition_named_players from public, anon, authenticated;');
+    expect(sql18).not.toMatch(/grant [^;]*app\.competition_named_players/);
+  });
+
+  it('every competition naming decision uses it: the entry faces, the public rankings, the rankable RPC and publishing', () => {
+    expect(faces).toContain('(not coalesce(pe.is_junior, true) and exists (select 1 from app.competition_named_players np where np.id = en.player1_id)) as named');
+    expect(faces).toContain('(en.player2_id is not null and not coalesce(pe.is_junior, true) and exists (select 1 from app.competition_named_players np where np.id = en.player2_id)) as named');
+    // app.eligible_players (the archive rule) only decides whether a slug may appear, never whether a name may
+    expect(faces).toContain('case when n1.named and n1.has_page and not pe.no_player_pages then p1.slug end as player1_slug');
+    expect(faces).toContain('case when n2.named and n2.has_page and not pe.no_player_pages then p2.slug end as player2_slug');
+    expect(faces).toContain('case when n1.named then p1.display_name end as player1_name');
+    expect(faces).toContain('case when n2.named then p2.display_name end as player2_name');
+    expect(rankings).toContain('and not coalesce(s.is_junior, true) and exists (select 1 from app.competition_named_players np where np.id = r.player_id)');
+    expect(rankings).toContain('(rank() over (partition by r.snapshot_id order by r.rank))::integer as rank');
+    expect(rankings).toContain('case when exists (select 1 from app.eligible_players ep where ep.id = r.player_id) then p.slug end as player_slug');
+    expect(rankable).toContain('from app.competition_named_players np where np.id = any (p_players)');
+    expect(rankable).not.toContain('eligible_players');
+    expect(publish).toContain('(coalesce(s.is_junior, true) or not exists (select 1 from app.competition_named_players np where np.id = r.player_id))');
+  });
+
+  it('api.public_competition_events ends with is_junior, never null', () => {
+    expect(events).toContain('e.ruleset, coalesce(pe.is_junior, true) as is_junior from public.tournament_events e join app.competition_public_events pe on pe.id = e.id');
+  });
+
+  it('publishing refuses a snapshot with a protected row, with the same plain sentence as the admin service', () => {
+    const order = ['perform app.require_owner(p_actor);', 'perform app.competition_reason(p_reason);', 'select count(*) into v_protected', 'if v_protected > 0 then', 'update public.ranking_snapshots set published = true'];
+    let at = -1;
+    for (const step of order) {
+      const i = publish.indexOf(step);
+      expect(i, step).toBeGreaterThan(at);
+      at = i;
+    }
+    // the SQL builds the sentence from the count; for 1 and 2 rows it reads exactly like rankingProtectedMessage
+    const template = /raise exception 'INVALID: % in this ranking % now protected ([^']*)'/.exec(publish)?.[1];
+    expect(template).toBeDefined();
+    expect(`1 player in this ranking is now protected ${template}`).toBe(rankingProtectedMessage(1));
+    expect(`2 players in this ranking are now protected ${template}`).toBe(rankingProtectedMessage(2));
+    expect(checks18).toContain(`'INVALID: ${rankingProtectedMessage(1)}'`);
+    expect(publish).toMatch(/app\.audit\(p_actor, 'publish_ranking_snapshot'/);
+  });
+
+  it('the TS copy of the rule fails closed', () => {
+    const adult = { ageStatus: 'adult_confirmed', visibility: 'public', isProvisional: false, mergedInto: null, suppressed: false };
+    expect(isCompetitionNamed(adult, false)).toBe(true);
+    expect(isCompetitionNamed(adult, true)).toBe(false);
+    expect(isCompetitionNamed(null, false)).toBe(false);
+    expect(isCompetitionNamed(undefined, false)).toBe(false);
+    for (const bad of [
+      { ageStatus: 'unknown' },
+      { ageStatus: 'minor_suspected' },
+      { ageStatus: 'minor_confirmed' },
+      { visibility: 'hidden' },
+      { visibility: 'listed' },
+      { isProvisional: true },
+      { mergedInto: '80000000-0000-4000-8000-000000000009' },
+      { suppressed: true },
+    ]) {
+      expect(isCompetitionNamed({ ...adult, ...bad }, false), JSON.stringify(bad)).toBe(false);
+    }
+  });
+
+  it('the 0018 check file covers the rule: an adult with no video named, the others protected, junior events, publish refused', () => {
+    for (const phrase of [
+      'an adult_confirmed public player with no video is not named in the draw',
+      'protected slots in the adult event (expected unknown, private, minor, provisional and both suppressed)',
+      'a player is named in a junior event or a minor-signal tournament',
+      'api.public_competition_events.is_junior is wrong',
+      'publishing a ranking with a newly protected row was not refused as planned',
+      'the public ranking does not name the adult with no video',
+    ]) {
+      expect(checks18).toContain(phrase);
     }
   });
 });

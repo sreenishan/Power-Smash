@@ -97,6 +97,24 @@ export const tournamentPath = (slug: string): string => `/tournaments/${slug}/`;
 /** /matches/ for page 1, /matches/page/N/ after that. */
 export const matchListPath = (page: number): string => (page <= 1 ? ARCHIVE_ROUTES.matches : `/matches/page/${Math.floor(page)}/`);
 
+/**
+ * Public competition pages (platform wave 3, additive). Kept apart from ROUTES for the same reason as ARCHIVE_ROUTES: nav.ts treats
+ * every ROUTES value as an M1 page that the footer must link, and these are not linked yet (they are left out of the strict release
+ * build while features.competitionPages is off). The lead moves them into ROUTES with the nav and footer links and a sitemap.
+ * Tournament and event addresses come from the helpers below; src/lib/competition/public/paths.ts re-exports all three and owns the
+ * slug and event-code rules. Competition pages never link to player pages.
+ */
+export const COMPETITION_ROUTES = {
+  index: '/competitions/',
+  /** Published local rankings (not official BWF rankings). */
+  rankings: '/competitions/rankings/',
+} as const;
+
+/** /competitions/<tournament-slug>/ (canonical slash form). */
+export const competitionTournamentPath = (slug: string): string => path(`/competitions/${slug}/`);
+/** /competitions/<tournament-slug>/<event-code>/ */
+export const competitionEventPath = (slug: string, code: string): string => path(`/competitions/${slug}/${code}/`);
+
 /** Slug of a printable poster page: lowercase letters, digits and hyphens (the tournament slug rule, spec 6.3), at most 80 characters. */
 export const POSTER_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

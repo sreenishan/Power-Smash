@@ -32,7 +32,9 @@ describe.skipIf(!up)('local PostgreSQL: migrations and privileges', () => {
     for (const t of tables) {
       firstColumn[t] = psql(
         DB,
-        `select column_name from information_schema.columns where table_schema = 'public' and table_name = '${t}' order by ordinal_position limit 1`,
+        // the first column an UPDATE may name: an always-generated identity or computed column (0017 match_score_events.id,
+        // tournament_events.is_junior) answers "can only be updated to DEFAULT" before the permission check, which would hide the denial
+        `select column_name from information_schema.columns where table_schema = 'public' and table_name = '${t}' and is_identity = 'NO' and is_generated = 'NEVER' order by ordinal_position limit 1`,
       ).stdout.trim();
     }
   }, 120_000);

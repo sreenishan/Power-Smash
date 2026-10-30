@@ -1575,6 +1575,48 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
 - **Consequences.** The notification queue (wave 2) never sends twice and never claims a message was sent when a channel is not configured.
 - **Status.** adopted (owner decision 2026-10-30); built in waves, see docs/PLATFORM_CHECKLIST.md.
 
+## D-115 Public competition pages live under /competitions/, behind their own switch
+
+- **Context.** Draws, order of play and results need public pages. `/tournaments/<slug>/` exists only for owner-entered tournaments (no database id) and for tournaments made from videos, which the first release leaves out (D-107).
+- **Decision (lead, 2026-10-30, wave 3).** A separate family that never depends on the archive being built:
+  - `/competitions/`: tournaments with a public event.
+  - `/competitions/rankings/`: published local rankings.
+  - `/competitions/<tournament>/`: one tournament's events.
+  - `/competitions/<tournament>/<event>/`: entries, draw or groups, order of play and results for one event. The event code is the category plus the age group, for example `ms` or `ms-u17`.
+  - Switch `features.competitionPages` (off): the release build (`PS_STRICT=1`) builds none of these pages until it is on (`competitionInBuild()`, mirroring D-107's `archiveInBuild()`). Other builds show them with fictional sample data, a sample notice and noindex. A release build refuses the sample data.
+  - Data source: the sample unless `PS_COMPETITION_SOURCE` is exactly `supabase`. Then the six `api.public_competition_*` views are read with the publishable key.
+  - **No player links**, because player pages belong to the archive. A doubles pair with one protected player is hidden as a whole.
+  - Only confirmed results are shown, never "Live" on a static page (near-live is D-113, wave 5).
+  - Every page prints when its data was taken ("Updated ... (India time)").
+  - Ranks are renumbered over the shown rows, so a left-out player leaves no gap.
+- **Consequences.** The owner tournament page links to its competition page only when slug and start date both match. Turning the pages on needs the owner's yes and the lawyer's re-read of the privacy wording (G1 checklist).
+- **Status.** built (wave 3); switched off.
+
+## D-116 Who is named in competition data; ranking and draw rules (extends D-109, D-110)
+
+- **Context.** As first built, competition pages named a player only through the archive rule `app.eligible_players`. That rule also needs published match videos, so a player entered only for a competition could never be named, and the local ranking would stay almost empty.
+- **Decision (lead, 2026-10-30, wave 3; within D-012 and D-109).** In competition data a player is named publicly only when **all** of these hold:
+  - the owner has confirmed the player is an adult (`adult_confirmed`, never from a self-claim);
+  - the profile is public;
+  - the player is not provisional, merged into another record or suppressed;
+  - the event is not a junior event, and the tournament has no minor signal and is not at school or college level (`level = 'school_college'` counts as a minor signal; an unknown signal counts as one too).
+
+  Everyone else shows as "Protected player" and is left out of local rankings. The archive keeps its own stricter rule for player pages. The rule lives in one SQL view (`app.competition_named_players`, migration 0018), with copies in TS that are tested against it.
+  - This names more people than before: adults the owner has confirmed now appear on draw and result pages even with no match video yet.
+  - A player's archive slug is still sent only when that player also has an archive page (`app.eligible_players`). The competition pages do not use it (they never link to player pages), and it is the same slug the archive already publishes.
+  - The admin preview of public output uses the same rule, asked of the server with the signed-in owner.
+- **Ranking rules.**
+  - Only results of published or completed tournaments count, and only confirmed results.
+  - League and group events count as taking part, not as a finishing place.
+  - A ranking is refused while no owner-approved points table exists (D-110).
+  - Publishing is refused if anyone listed has become protected since the ranking was worked out.
+- **Draw rules.**
+  - Draws are made on the server from confirmed entries, with a recorded draw number, so the same number makes the same draw.
+  - A draft draw is cleared when its entries change.
+  - Publishing refuses a draw made from an out-of-date entry list.
+  - A published draw cannot be changed, and a winner moves on only after a confirmed result.
+- **Status.** built (wave 3, migration 0018).
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

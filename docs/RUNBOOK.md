@@ -250,6 +250,7 @@ Common checklist for every flag: (1) the feature really exists and works; (2) th
 | `youtubeApiData` | YouTube API Services statement, Terms and Privacy links | YouTube key exists; OT-16 answered or risk accepted in writing (D-016); sync works on dev; activates the cron import guard (section 12) |
 | `youtubeEmbeds` | Click-to-load player and thumbnails | "This loads YouTube" notice present; no image requests before click; privacy page names the iframe, `i.ytimg.com`, Turnstile |
 | `archivePages` | Player, match and tournament pages; protected-player wording | Owner approved D-012 modes and D-078; lawyer saw junior text (OT-28); `PS_ARCHIVE_SOURCE=supabase` build with real data; anon and privacy tests green; "Sample data" banner gone |
+| `competitionPages` | Draw, order-of-play, result and local-ranking pages under /competitions/ (D-115, D-116) | Owner approved the naming rule (only owner-confirmed adults named; juniors, unknown age and school or college events shown as "Protected player"); lawyer re-read the privacy wording (G1 checklist); `PS_COMPETITION_SOURCE=supabase` build with real data; anon and privacy tests green; "Sample data" notice gone |
 | `requestVerification` | One-time code for requesters | Code flow built and tested |
 | `ageProofChecks` | Age proof viewed and deleted | D-015 approved; deletion proven |
 | `emailAlerts` | Alerts sign-up wording, 18+ confirmation | Double opt-in email path works (needs `EMAIL_ENABLED`) |

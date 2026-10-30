@@ -108,3 +108,30 @@ export function formatInstantIst(iso: string): string {
   if (Number.isNaN(d.getTime())) throw new RangeError('Not an instant');
   return `${instantFormat.format(d)} (India time)`;
 }
+
+// ----------------------------------------------------------------------------- India time for forms (UTC+05:30 all year: India has no daylight saving)
+
+const IST_OFFSET = '+05:30';
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const ZONED_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** True for a 24-hour clock time written HH:MM ("09:30", "23:59"). */
+export function isHhMm(time: string): boolean {
+  return HHMM.test(time);
+}
+
+/** "2026-11-14" + "09:30" -> "2026-11-14T09:30:00+05:30" (that date and time in India), or null for a bad date or time. */
+export function istInstant(date: string, time: string): string | null {
+  if (!isIsoDate(date) || !isHhMm(time)) return null;
+  return `${date}T${time}:00${IST_OFFSET}`;
+}
+
+const hhmmIst = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** An instant with a zone split into its India date and time, for a form ("2026-11-14", "09:30"); empty strings when unreadable. */
+export function splitIst(instant: string | null | undefined): { date: string; time: string } {
+  if (typeof instant !== 'string' || !ZONED_INSTANT.test(instant)) return { date: '', time: '' };
+  const d = new Date(instant);
+  if (Number.isNaN(d.getTime())) return { date: '', time: '' };
+  return { date: isoParts.format(d), time: hhmmIst.format(d) };
+}

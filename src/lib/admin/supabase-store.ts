@@ -24,6 +24,8 @@ import { PLACEMENT_COLUMNS, placementFromRow } from '../placements/store';
 import { istDateOf, type Placement } from '../placements/schedule';
 import { validateProductEdit, type ProductRecord } from '../pricing-admin/product-edit';
 import { isAcceptableSupabaseUrl } from '../supabase/rest';
+import { createCompetitionService } from './competition/service';
+import { createSupabaseCompetitionBackend } from './competition/supabase-backend';
 import type { PaymentRecord } from '../pricing-admin/mark-paid';
 import { applyLeadUpdate, checkStatusChange, prepareMarkPaid, prepareNewPlacement, prepareProductSave } from './ops';
 import { leadMove, submissionFromLead, validateReview, type VideoSubmission } from './submissions';
@@ -66,9 +68,27 @@ export interface SupabaseStoreConfig {
 }
 
 class BackendError extends Error {
-  constructor(readonly code: AdminErrorCode) {
+  constructor(
+    readonly code: AdminErrorCode,
+    /** Competition RPCs only: the database's own plain-English sentence after INVALID:/STALE:/NOT_FOUND: (never a response body). */
+    readonly detail?: string,
+  ) {
     super(code);
   }
+}
+
+/** The competition RPCs (0017, 0018) raise only sentences we wrote ('INVALID: the event is full ...'); those may reach the owner. */
+const COMPETITION_DETAIL_RPCS = new Set(['admin_save_event', 'admin_add_entry', 'admin_withdraw_entry', 'admin_set_entry', 'admin_save_draw', 'admin_publish_draw', 'admin_save_match', 'admin_record_result', 'admin_confirm_result', 'admin_save_ranking_snapshot', 'admin_publish_ranking_snapshot', 'admin_save_venue', 'admin_save_court', 'admin_set_ranking_points']);
+const DETAIL_PREFIX = /^(INVALID|STALE|NOT_FOUND): (.{1,300})/;
+
+/** The sentence of a competition RPC error, or undefined. Control characters are dropped; only our own prefixed raises qualify. */
+export function competitionDetail(path: string, message: string): string | undefined {
+  const name = /^rpc\/([a-z_]+)$/.exec(path)?.[1];
+  if (!name || !COMPETITION_DETAIL_RPCS.has(name)) return undefined;
+  const m = DETAIL_PREFIX.exec(message);
+  if (!m) return undefined;
+  const text = (m[2] ?? '').replace(/\p{Cc}/gu, ' ').trim();
+  return text === '' ? undefined : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Codes the database raises at the start of an error message ('INVALID: ...', 'FORBIDDEN: ...' come last so a specific code wins).
@@ -133,14 +153,16 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
     }
     if (res.ok) return res;
     let code: AdminErrorCode = 'BACKEND_ERROR';
+    let detail: string | undefined;
     try {
       const body = (await res.json()) as { message?: unknown };
       const msg = typeof body.message === 'string' ? body.message : '';
       code = KNOWN.find((k) => msg.includes(k)) ?? 'BACKEND_ERROR';
+      detail = code === 'BACKEND_ERROR' || code === 'FORBIDDEN' ? undefined : competitionDetail(path, msg);
     } catch {
       // not JSON
     }
-    throw new BackendError(code);
+    throw new BackendError(code, detail);
   }
 
   const select = async <T>(table: string, query: string): Promise<T[]> => (await (await call(`${table}?${query}`, { method: 'GET' })).json()) as T[];
@@ -278,7 +300,11 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
   });
   const loadPlayers = async (ids: string[]): Promise<PlayerDbRow[]> => (ids.length === 0 ? [] : select<PlayerDbRow>('players', `select=${PLAYER_COLS}&id=in.(${ids.join(',')})`));
 
+  // competitions (D-108 to D-114): the shared service over the 0017/0018 owner RPCs
+  const competition = createCompetitionService(createSupabaseCompetitionBackend({ select, rpc }), { now });
+
   return {
+    ...competition,
     // ------------------------------------------------------------------ reads
     getDashboard: () =>
       guard(async () => {

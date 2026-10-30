@@ -20,7 +20,7 @@ export interface HttpStoreOptions {
   fetch: typeof fetch;
 }
 
-const CODES: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP', 'UNDO_UNAVAILABLE', 'INVALID', 'UNAUTHORIZED', 'FORBIDDEN'];
+const CODES: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP', 'UNDO_UNAVAILABLE', 'STALE', 'INVALID', 'UNAUTHORIZED', 'FORBIDDEN'];
 
 
 /** S2-8: asks the Worker whether a first TOTP factor may be enrolled for this (aal1) session. Anything but an explicit yes is a no. */
@@ -107,6 +107,29 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     recordDispatch: async () => okResult({ recorded: true as const }), // the Worker records dispatches itself
     listAudit: (o) => post('audit.list', o),
     undo: (_actor, descriptor) => post('undo', { descriptor }),
+    // competitions (D-108 to D-114)
+    competitionTournaments: () => post('competition.tournaments'),
+    competitionEvent: (o) => post('competition.event', o),
+    competitionCourts: (o) => post('competition.courts', o),
+    competitionRankings: () => post('competition.rankings'),
+    competitionRanking: (o) => post('competition.ranking', o),
+    competitionSettings: () => post('competition.settings'),
+    competitionSaveEvent: noActor('competition.saveEvent'),
+    competitionAddEntry: noActor('competition.addEntry'),
+    competitionWithdrawEntry: noActor('competition.withdrawEntry'),
+    competitionSetEntry: noActor('competition.setEntry'),
+    competitionGenerateDraw: noActor('competition.generateDraw'),
+    competitionPublishDraw: noActor('competition.publishDraw'),
+    competitionSyncMatches: noActor('competition.syncMatches'),
+    competitionSaveMatch: noActor('competition.saveMatch'),
+    competitionSchedule: noActor('competition.schedule'),
+    competitionRecordResult: noActor('competition.recordResult'),
+    competitionConfirmResult: noActor('competition.confirmResult'),
+    competitionComputeRanking: noActor('competition.computeRanking'),
+    competitionPublishRanking: noActor('competition.publishRanking'),
+    competitionSaveVenue: noActor('competition.saveVenue'),
+    competitionSaveCourt: noActor('competition.saveCourt'),
+    competitionApprovePointsTable: noActor('competition.approvePointsTable'),
     syncNow: () => post('site.syncNow'),
     publishNow: () => post('site.publishNow'),
   };

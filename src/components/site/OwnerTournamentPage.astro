@@ -30,6 +30,8 @@ import {
   type TournamentRecord,
 } from '../../content/tournaments';
 import { todayIst } from '../../lib/dates';
+import { loadCompetitionSite } from '../../lib/competition/public/load';
+import { competitionLinkFor } from '../../lib/competition/public/model';
 import { titleWithBrand } from '../../lib/seo';
 import { ROUTES } from '../../lib/urls';
 
@@ -46,6 +48,9 @@ const phase = tournamentPhase(t, today);
 const mapUrl = tournamentMapUrl(t);
 const calendarHref = hasCalendarFile(t, today) ? `/tournaments/${t.slug}.ics` : null;
 const alertsHref = tournamentAlertsHref();
+// Draws, order of play and results of this tournament, when the organiser has published them under /competitions/ (real data only;
+// the same slug AND the same start date, so an unrelated tournament that shares a slug is never linked).
+const competitionHref = competitionLinkFor(await loadCompetitionSite(), { slug: t.slug, startDate: t.startDate });
 ---
 <BaseLayout title={titleWithBrand(t.name)} description={description} jsonLd={jsonLd}>
   <PageHero
@@ -83,6 +88,12 @@ const alertsHref = tournamentAlertsHref();
       {t.organizerName && (<><dt class="font-bold text-fg">Organizer</dt><dd>{t.organizerName}</dd></>)}
     </dl>
     {t.description && <p class="mt-6 max-w-3xl whitespace-pre-line">{t.description}</p>}
+
+    {competitionHref && (
+      <p class="mt-6" data-competition-link>
+        <Button href={competitionHref} variant="quiet">Draws, order of play and results</Button>
+      </p>
+    )}
 
     {upcoming && (
       <div class="mt-8 flex flex-wrap gap-3">

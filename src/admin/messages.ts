@@ -12,7 +12,7 @@ const MESSAGES: Record<AdminErrorCode, string> = {
   ALIAS_NOT_OWNED: 'One of the chosen names does not belong to this player.',
   REDIRECT_LOOP: 'This change would make two web addresses point at each other, so it was stopped.',
   UNDO_UNAVAILABLE: 'This cannot be undone any more.',
-  STALE: 'This changed since you opened it (for example, new videos added a category). Close it, open it again and make your change once more.',
+  STALE: 'This changed since you opened it. Open it again and make your change once more.',
   INVALID: 'Something in the form is not valid. Check the fields and try again.',
   UNAUTHORIZED: 'Your sign-in has run out. Sign in again.',
   FORBIDDEN: 'This account is not allowed to do that.',
@@ -22,6 +22,9 @@ const MESSAGES: Record<AdminErrorCode, string> = {
 export function messageFor(code: AdminErrorCode): string {
   return MESSAGES[code] ?? MESSAGES.BACKEND_ERROR;
 }
+
+/** STALE on the tournament-details form only: there the usual cause is new videos (a category is added by the video sync). */
+export const STALE_TOURNAMENT_DETAILS = 'This tournament changed since you opened it (for example, new videos added a category). Close it, open it again and make your change once more.';
 
 export const AGE_LABEL = {
   adult_confirmed: 'Adult (confirmed)',
@@ -44,7 +47,7 @@ export const MODE_LABEL = {
 
 // ----------------------------------------------------------------------------- hash router
 
-export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'settings', 'more'] as const;
+export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'competitions', 'settings', 'more'] as const;
 export type AdminRoute = (typeof ROUTES_ADMIN)[number];
 
 export const ROUTE_TITLE: Record<AdminRoute, string> = {
@@ -58,6 +61,7 @@ export const ROUTE_TITLE: Record<AdminRoute, string> = {
   prices: 'Prices',
   posters: 'QR posters',
   live: 'Live page',
+  competitions: 'Competitions',
   settings: 'Settings',
   more: 'More',
 };
@@ -73,13 +77,14 @@ export const ROUTE_NOTE: Record<AdminRoute, string> = {
   prices: 'Type or change a price.',
   posters: 'Get the QR link for a printed poster.',
   live: 'Pin the stream on the Live page and list past streams.',
+  competitions: 'Events, entries, draws, order of play, results and local rankings.',
   settings: 'What the public sees for players who are not confirmed adults.',
   more: 'All areas.',
 };
 
 /** The five tabs of the bottom bar, in order; the rest live under More. */
 export const TAB_ROUTES: readonly AdminRoute[] = ['dashboard', 'inbox', 'videos', 'players', 'more'];
-export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', live: 'Live', settings: 'Settings' };
+export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', live: 'Live', competitions: 'Competitions', settings: 'Settings' };
 /** Which tab to highlight for a route. */
 export const tabFor = (r: AdminRoute): AdminRoute => (TAB_ROUTES.includes(r) ? r : 'more');
 

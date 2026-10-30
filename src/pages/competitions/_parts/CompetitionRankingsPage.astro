@@ -1,0 +1,44 @@
+---
+// The /competitions/rankings/ page body (rendered by ../[...page].astro, see CompetitionIndexPage.astro for the gate): published LOCAL
+// rankings (not official BWF rankings). The view returns a snapshot only after the owner
+// publishes it AND switches rankings_public on; the page model leaves out junior rankings and every protected player (D-109), so a
+// row here is always a named adult. Static, no client JavaScript.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import EmptyState from '../../../components/ui/EmptyState.astro';
+import RankingTable from '../../../components/competition/RankingTable.astro';
+import CompetitionSampleNotice from './CompetitionSampleNotice.astro';
+import { loadCompetitionSite } from '../../../lib/competition/public/load';
+import { COMPETITION_ROUTES } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+const site = await loadCompetitionSite();
+---
+<BaseLayout
+  title={titleWithBrand('Local rankings')}
+  description="Local badminton rankings kept by Power Smash. They are not official BWF rankings."
+  canonicalPath={COMPETITION_ROUTES.rankings}
+  noindex={site.source === 'seed'}
+>
+  <CompetitionSampleNotice source={site.source} />
+  <PageHero
+    tone="dark"
+    title="Local rankings"
+    lead="Local Power Smash rankings from tournaments entered here. They are not official BWF rankings."
+    crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: 'Local rankings' }]}
+  />
+  <Section>
+    {site.rankings.length === 0 ? (
+      <EmptyState title="No rankings are published yet">
+        <p>Rankings appear here once Power Smash publishes one.</p>
+      </EmptyState>
+    ) : (
+      <div class="grid gap-10">
+        {site.rankings.map((r, i) => (
+          <RankingTable title={r.title} items={r.items} snapshotDate={r.asOf} ownerApproved={true} id={`ranking-${i + 1}`} />
+        ))}
+      </div>
+    )}
+  </Section>
+</BaseLayout>

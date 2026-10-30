@@ -14,6 +14,7 @@ import type { LiveEditInput, LiveSettings } from '../live/rules';
 import type { TournamentDetails, TournamentDetailField, TournamentEditInput } from './tournament-edit';
 import type { SubmissionPreview } from './submission-candidate';
 import type { FilmingPermission, PermissionInput, PermissionStatus } from './filming-permission';
+import type { CompetitionAdminStore } from './competition/types';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -149,6 +150,8 @@ export interface TournamentCandidate {
   filmingPermission?: PermissionStatus;
   /** "Power Smash films this" (D-102): with no granted permission the admin shows the gap. */
   coveredByPowerSmash?: boolean;
+  /** tournaments.is_minor_signal (D-012): a school, college or age-group tournament. Absent = false, as the column default. */
+  isMinorSignal?: boolean;
 }
 
 export interface LeadUpdateInput {
@@ -318,7 +321,8 @@ export type ProtectedModeKey = (typeof PROTECTED_MODE_KEYS)[number];
 
 // ----------------------------------------------------------------------------- the store
 
-export interface AdminStore {
+/** The competition actions (D-108 to D-114) are in ./competition/types.ts; every store implements them through ./competition/service.ts. */
+export interface AdminStore extends CompetitionAdminStore {
   getDashboard(): Promise<StoreResult<DashboardData>>;
   listReviewQueue(opts: { limit: number; offset: number }): Promise<StoreResult<ReviewVideo[]>>;
   resolveReview(actor: Actor, input: ReviewResolveInput): Promise<StoreResult<{ videoId: string }>>;

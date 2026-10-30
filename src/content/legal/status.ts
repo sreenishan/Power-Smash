@@ -43,6 +43,14 @@ export interface LegalFeatures {
   readonly youtubeEmbeds: boolean;
   /** M2c. Player, match and tournament archive pages and the protected-player rules of D-012 (decision still PROPOSED: owner approval first). */
   readonly archivePages: boolean;
+  /**
+   * Platform wave 3. Public competition pages (/competitions/: entry lists, draws, order of play, results, published local
+   * rankings) built from the data the organizer and the owner enter. A player is named only when age_status is
+   * adult_confirmed, the player is public, not provisional, not merged and not suppressed (no published video needed:
+   * the archive rule stays separate); everyone else, and everyone in a junior event or a minor-signal tournament, is
+   * "Protected player" and left out of rankings. Competition pages never link to player pages (D-012, D-109).
+   */
+  readonly competitionPages: boolean;
   /** M2d. A one-time code (or similar) to check that a requester controls the phone or email. */
   readonly requestVerification: boolean;
   /** M2d. Age proof viewed privately and deleted (D-015, still PROPOSED). */
@@ -89,6 +97,7 @@ export const features: LegalFeatures = {
   youtubeApiData: false,
   youtubeEmbeds: false,
   archivePages: false,
+  competitionPages: false,
   requestVerification: false,
   ageProofChecks: false,
   emailAlerts: false,
@@ -113,6 +122,7 @@ export const FEATURE_INFO: Record<FeatureName, { readonly arrives: string; reado
   youtubeApiData: { arrives: 'M2a', unlocks: 'YouTube API Services statement, YouTube Terms of Service agreement, Google Privacy Policy links, "YouTube views" wording' },
   youtubeEmbeds: { arrives: 'M2c', unlocks: 'the click-to-load video player and thumbnails: cookie and provider wording' },
   archivePages: { arrives: 'M2c', unlocks: 'player, match and tournament pages: protected-player rules (D-012), "Match details by Power Smash"' },
+  competitionPages: { arrives: 'platform wave 3 (owner + lawyer)', unlocks: 'the /competitions/ pages in the release build: entry lists, draws, order of play, results and local rankings (not official BWF rankings), with "Protected player" for anyone not confirmed adult' },
   requestVerification: { arrives: 'M2d', unlocks: 'one-time code to check who is making a request' },
   ageProofChecks: { arrives: 'M2d', unlocks: 'age proof viewed privately and deleted (D-015)' },
   emailAlerts: { arrives: 'M3', unlocks: 'email alerts sign-up wording and the 18+ confirmation' },

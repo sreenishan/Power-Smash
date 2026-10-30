@@ -37,7 +37,7 @@ declare
   private_tables text[] := array['event_entry_players', 'match_score_events', 'organizer_assignments', 'notification_outbox', 'data_providers',
     'data_import_runs', 'external_record_mappings', 'competition_settings'];
   views jsonb := jsonb_build_object(
-    'public_competition_events', jsonb_build_array('id', 'tournament_id', 'category', 'age_group', 'format', 'status', 'capacity', 'ruleset'),
+    'public_competition_events', jsonb_build_array('id', 'tournament_id', 'category', 'age_group', 'format', 'status', 'capacity', 'ruleset', 'is_junior'),
     'public_competition_draws', jsonb_build_array('id', 'event_id', 'status', 'seed', 'published_at'),
     'public_competition_draw_slots', jsonb_build_array('draw_id', 'position', 'group_label', 'entry_id', 'is_bye', 'seed', 'player1_slug', 'player1_name',
       'player2_slug', 'player2_name', 'is_protected'),
@@ -597,13 +597,17 @@ begin
     execute 'reset role';
     if exists (select 1 from api.public_competition_rankings where snapshot_id = rs) then raise exception 'ASSERT FAIL: an unpublished ranking is public'; end if;
     execute 'set local role service_role';
+    -- 0018: a ranking holding a protected player (pc, unknown age) cannot be published; the owner works it out again without them
+    perform pg_temp.expect_code(format($q$select public.admin_publish_ranking_snapshot(%L, %L, 'r')$q$, v_actor, rs), 'INVALID', 'publishing a ranking with a protected player');
+    rs := (public.admin_save_ranking_snapshot(v_actor, jsonb_build_object('label', 'Fake local ranking', 'category', 'MS', 'ageGroup', null, 'asOf', '2026-10-01',
+      'entries', jsonb_build_array(jsonb_build_object('playerId', pa, 'rank', 1, 'points', 120, 'eventsCounted', 2))), 'test') ->> 'id')::uuid;
     j := public.admin_publish_ranking_snapshot(v_actor, rs, 'test');
     execute 'reset role';
     if (j ->> 'publiclyVisible')::boolean or exists (select 1 from api.public_competition_rankings where snapshot_id = rs) then
       raise exception 'ASSERT FAIL: a published ranking is public while rankings_public is off';
     end if;
     update public.competition_settings set rankings_public = true where id = 1;
-    if (select count(*) from api.public_competition_rankings where snapshot_id = rs) <> 1 then raise exception 'ASSERT FAIL: the published ranking is not public with the switch on (one named row; the unknown-age player is left out)'; end if;
+    if (select count(*) from api.public_competition_rankings where snapshot_id = rs) <> 1 then raise exception 'ASSERT FAIL: the published ranking is not public with the switch on (one named row)'; end if;
     if (select player_name from api.public_competition_rankings where snapshot_id = rs and rank = 1) is distinct from 'Fake Comp Alpha'
        or exists (select 1 from api.public_competition_rankings where snapshot_id = rs and (rank = 2 or is_protected or player_name is null)) then
       raise exception 'ASSERT FAIL: the ranking does not leave out the unknown-age player';

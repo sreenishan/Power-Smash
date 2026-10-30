@@ -34,7 +34,96 @@ const ageNoAdult = z.enum(AGE_STATUSES.filter((s) => s !== 'adult_confirmed') as
 const empty = z.object({}).strict();
 const page = z.object({ limit: z.number().int().min(1).max(100).default(50), offset: z.number().int().min(0).max(100_000).default(0) }).strict();
 
+// competitions (D-108 to D-114): generous bounds here; the exact rules are in src/lib/admin/competition (validate.ts, the engines) and the SQL
+const nullableUuid = uuid.nullable();
+const category = z.enum(CATEGORIES);
+const ageGroup = z.string().trim().max(20).nullable().transform((v) => (v === '' ? null : v));
+const sideEnum = z.enum(['A', 'B']);
+const roundCode = z.enum(['F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', '3P', 'group', 'league']);
+const groupLabel = z.string().regex(/^[A-Z]{1,2}$/).nullable();
+const revision = z.number().int().min(1).max(1_000_000_000);
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const smallInt = (min: number, max: number) => z.number().int().min(min).max(max);
+const ruleset = z
+  .object({ gamesToWin: smallInt(1, 9), pointsToWin: smallInt(1, 99), winBy: smallInt(1, 99), pointCap: smallInt(1, 99).nullable(), intervalAt: smallInt(1, 99).nullable(), changeEndsInDecidingGameAt: smallInt(1, 99).nullable() })
+  .strict();
+
+const COMPETITION_SCHEMAS = {
+  'competition.tournaments': empty,
+  'competition.event': z.object({ eventId: uuid }).strict(),
+  'competition.courts': z.object({ tournamentId: uuid }).strict(),
+  'competition.rankings': empty,
+  'competition.ranking': z.object({ snapshotId: uuid }).strict(),
+  'competition.settings': empty,
+  'competition.saveEvent': z
+    .object({ id: nullableUuid, tournamentId: uuid, category, ageGroup, format: z.enum(['knockout', 'round_robin', 'groups_knockout']), ruleset, capacity: smallInt(0, 100_000).nullable(), status: z.enum(['draft', 'open', 'closed']), reason })
+    .strict(),
+  'competition.addEntry': z.object({ eventId: uuid, players: z.array(uuid).min(1).max(2), seed: smallInt(1, 256).nullable(), status: z.enum(['pending', 'confirmed', 'waitlisted']), reason }).strict(),
+  'competition.withdrawEntry': z.object({ entryId: uuid, reason }).strict(),
+  'competition.setEntry': z.object({ entryId: uuid, status: z.enum(['pending', 'confirmed', 'waitlisted', 'rejected']), seed: smallInt(1, 256).nullable(), reason }).strict(),
+  'competition.generateDraw': z
+    .object({ eventId: uuid, seed: smallInt(0, 4294967295).nullable().optional(), separateClubs: z.boolean(), seeds: smallInt(0, 64), groupCount: smallInt(1, 26).nullable().optional(), advancePerGroup: smallInt(1, 64).nullable().optional(), reason })
+    .strict(),
+  'competition.publishDraw': z.object({ eventId: uuid, drawId: uuid, reason }).strict(),
+  'competition.syncMatches': z.object({ eventId: uuid, reason }).strict(),
+  'competition.saveMatch': z
+    .object({
+      id: nullableUuid,
+      expectedRevision: revision.nullable(),
+      eventId: uuid,
+      roundCode,
+      matchNumber: smallInt(1, 9999),
+      groupLabel,
+      sideA: nullableUuid,
+      sideB: nullableUuid,
+      scheduledAt: z.iso.datetime({ offset: true }).nullable(),
+      courtId: nullableUuid,
+      reason,
+    })
+    .strict(),
+  'competition.schedule': z
+    .object({
+      tournamentId: uuid,
+      eventIds: z.array(uuid).min(1).max(50).optional(),
+      windows: z.array(z.object({ date: isoDate, start: hhmm, end: hhmm }).strict()).min(1).max(14),
+      durationMinutes: smallInt(5, 300),
+      restMinutes: smallInt(0, 600),
+      courtIds: z.array(uuid).min(1).max(64).optional(),
+      save: z.boolean(),
+      expected: z.record(z.uuid(), revision).optional(),
+      reason,
+    })
+    .strict(),
+  'competition.recordResult': z
+    .object({
+      matchId: uuid,
+      expectedRevision: revision,
+      status: z.enum(['completed', 'walkover', 'retired', 'abandoned']),
+      games: z.array(z.object({ a: smallInt(0, 99), b: smallInt(0, 99) }).strict()).max(5),
+      walkoverWinner: sideEnum.nullable(),
+      retiringSide: sideEnum.nullable(),
+      reason,
+    })
+    .strict(),
+  'competition.confirmResult': z.object({ matchId: uuid, expectedRevision: revision, reason }).strict(),
+  'competition.computeRanking': z.object({ label: z.string().trim().min(2).max(120), category: category.nullable(), ageGroup, asOf: isoDate, reason }).strict(),
+  'competition.publishRanking': z.object({ snapshotId: uuid, reason }).strict(),
+  'competition.saveVenue': z.object({ id: nullableUuid, name: z.string().max(200), city: z.string().max(100).nullable(), reason }).strict(),
+  'competition.saveCourt': z.object({ id: nullableUuid, tournamentId: uuid, venueId: nullableUuid, label: z.string().max(60), sort: smallInt(0, 999), reason }).strict(),
+  'competition.approvePointsTable': z
+    .object({
+      label: z.string().max(200),
+      levels: z.record(z.string().max(30), z.record(z.string().max(10), smallInt(0, 1_000_000))),
+      windowDays: smallInt(1, 100_000),
+      bestN: smallInt(1, 1000),
+      reason,
+    })
+    .strict(),
+} as const;
+
 const SCHEMAS: Record<AdminActionName, z.ZodType> = {
+  ...COMPETITION_SCHEMAS,
   'dashboard': empty,
   'review.list': page,
   'review.resolve': z
@@ -363,6 +452,28 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'emergency.release': return fromStore(await s.releaseSuppression(actor, input), cors);
     case 'audit.list': return fromStore(await s.listAudit(input), cors);
     case 'undo': return fromStore(await s.undo(actor, input.descriptor), cors);
+    case 'competition.tournaments': return fromStore(await s.competitionTournaments(), cors);
+    case 'competition.event': return fromStore(await s.competitionEvent(input, actor), cors);
+    case 'competition.courts': return fromStore(await s.competitionCourts(input), cors);
+    case 'competition.rankings': return fromStore(await s.competitionRankings(), cors);
+    case 'competition.ranking': return fromStore(await s.competitionRanking(input, actor), cors);
+    case 'competition.settings': return fromStore(await s.competitionSettings(), cors);
+    case 'competition.saveEvent': return fromStore(await s.competitionSaveEvent(actor, input), cors);
+    case 'competition.addEntry': return fromStore(await s.competitionAddEntry(actor, input), cors);
+    case 'competition.withdrawEntry': return fromStore(await s.competitionWithdrawEntry(actor, input), cors);
+    case 'competition.setEntry': return fromStore(await s.competitionSetEntry(actor, input), cors);
+    case 'competition.generateDraw': return fromStore(await s.competitionGenerateDraw(actor, input), cors);
+    case 'competition.publishDraw': return fromStore(await s.competitionPublishDraw(actor, input), cors);
+    case 'competition.syncMatches': return fromStore(await s.competitionSyncMatches(actor, input), cors);
+    case 'competition.saveMatch': return fromStore(await s.competitionSaveMatch(actor, input), cors);
+    case 'competition.schedule': return fromStore(await s.competitionSchedule(actor, input), cors);
+    case 'competition.recordResult': return fromStore(await s.competitionRecordResult(actor, input), cors);
+    case 'competition.confirmResult': return fromStore(await s.competitionConfirmResult(actor, input), cors);
+    case 'competition.computeRanking': return fromStore(await s.competitionComputeRanking(actor, input), cors);
+    case 'competition.publishRanking': return fromStore(await s.competitionPublishRanking(actor, input), cors);
+    case 'competition.saveVenue': return fromStore(await s.competitionSaveVenue(actor, input), cors);
+    case 'competition.saveCourt': return fromStore(await s.competitionSaveCourt(actor, input), cors);
+    case 'competition.approvePointsTable': return fromStore(await s.competitionApprovePointsTable(actor, input), cors);
     case 'site.syncNow': return dispatchAction('sync', actor, deps, cors);
     case 'site.publishNow': return dispatchAction('publish', actor, deps, cors);
     case 'emergency.hide': {

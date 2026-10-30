@@ -1,4 +1,4 @@
-// The competition database (migration supabase/migrations/0017_competition.sql): row types of the private tables (read by server code
+// The competition database (migrations supabase/migrations/0017_competition.sql and 0018_competition_admin.sql): row types of the private tables (read by server code
 // with the secret key only), the PUBLIC api views and their explicit columns (read by the build with the publishable key), and the owner
 // RPC names. tests/competition/db.test.ts keeps these lists in step with the SQL, the same way src/lib/products/db.ts does for products.
 //
@@ -252,7 +252,10 @@ export interface ExternalRecordMappingRow {
 }
 
 // ------------------------------------------------------------------------------------------------ public api views (publishable key)
-// A name and slug appear ONLY for an eligible adult in a non-junior event; everyone else is null with is_protected = true (D-012).
+// A name appears ONLY for a player the competition naming rule allows (app.competition_named_players, 0018: adult_confirmed, public,
+// not provisional, unmerged, not suppressed; no archive match needed) in an event that is not junior; everyone else is null with
+// is_protected = true (D-012). A slug only when that player also has an archive page (app.eligible_players); competition pages do not
+// link to player pages. isCompetitionNamed below is the TS copy of the rule.
 
 export interface PublicCompetitionEvent {
   id: string;
@@ -263,6 +266,8 @@ export interface PublicCompetitionEvent {
   status: Exclude<EventStatus, 'draft'>;
   capacity: number | null;
   ruleset: Ruleset;
+  /** The event's junior flag or its tournament's minor signal (0018). Never null: nobody in a junior event is named (D-109). */
+  is_junior: boolean;
 }
 
 export interface PublicCompetitionDraw {
@@ -340,7 +345,7 @@ export interface PublicCompetitionRanking {
 }
 
 export const COMPETITION_VIEW_COLUMNS = {
-  public_competition_events: ['id', 'tournament_id', 'category', 'age_group', 'format', 'status', 'capacity', 'ruleset'],
+  public_competition_events: ['id', 'tournament_id', 'category', 'age_group', 'format', 'status', 'capacity', 'ruleset', 'is_junior'],
   public_competition_draws: ['id', 'event_id', 'status', 'seed', 'published_at'],
   public_competition_draw_slots: [
     'draw_id', 'position', 'group_label', 'entry_id', 'is_bye', 'seed', 'player1_slug', 'player1_name', 'player2_slug', 'player2_name', 'is_protected',
@@ -381,6 +386,12 @@ export const COMPETITION_RPCS = [
   'admin_confirm_result',
   'admin_save_ranking_snapshot',
   'admin_publish_ranking_snapshot',
+  // 0018_competition_admin.sql
+  'admin_set_entry',
+  'admin_save_venue',
+  'admin_save_court',
+  'admin_set_ranking_points',
+  'admin_competition_rankable_players',
 ] as const;
 export type CompetitionRpc = (typeof COMPETITION_RPCS)[number];
 
@@ -466,6 +477,26 @@ export function isJuniorAgeGroup(value: string | null): boolean {
   const plus = /^([0-9]{1,2})\+$/.exec(value);
   if (plus) return Number(plus[1]) < 19;
   return true;
+}
+
+/** What the competition naming rule reads about a player (the players columns, and whether an active suppression matches). */
+export interface CompetitionNamingFacts {
+  ageStatus: string;
+  visibility: string;
+  isProvisional: boolean;
+  mergedInto: string | null;
+  /** An active suppression by player id or name key (app.suppressed_keys). */
+  suppressed: boolean;
+}
+
+/**
+ * Mirrors app.competition_named_players (0018) plus the junior rule: competition pages may NAME a player only when adult_confirmed,
+ * public, not provisional, not merged and not suppressed, and only outside a junior event or minor-signal tournament. No archive match
+ * is needed (that is app.eligible_players, the archive rule). FAIL CLOSED: a missing player, or any unexpected value, is protected.
+ */
+export function isCompetitionNamed(p: CompetitionNamingFacts | null | undefined, junior: boolean): boolean {
+  if (!p || junior !== false) return false;
+  return p.ageStatus === 'adult_confirmed' && p.visibility === 'public' && p.isProvisional === false && p.mergedInto === null && p.suppressed === false;
 }
 
 /** An outbox payload value: a reference or a code, never contact data (D-029). */
