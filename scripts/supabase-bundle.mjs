@@ -37,6 +37,10 @@ const body = (files, fix = (t) => t) => files.map((x) => `-- ===================
 /** Session helpers (pg_temp.*) must be replaceable when several check files run in one session. */
 export const replaceTempHelpers = (sql) => sql.replace(/\bcreate\s+function\s+pg_temp\./gi, 'create or replace function pg_temp.');
 
+/**
+ * @param {string} [root]
+ * @param {{ from?: string | null }} [opts] from = a four-digit migration number: bundle only that migration and the later ones
+ */
 export function buildBundles(root = ROOT, { from = null } = {}) {
   if (from !== null && !/^\d{4}$/.test(from)) throw new Error(`--from must be a four-digit migration number such as 0011, not ${from}`);
   const all = readSql(join(root, 'supabase', 'migrations'));
