@@ -75,6 +75,9 @@ declare
   t public.tournaments%rowtype;
 begin
   begin
+    -- a real owner may already exist (the owner's own login, OT-51), and only one owner is allowed (profiles_single_owner): set it aside
+    -- for this test only. The whole block ends in ps_rollback, so the real profile is never changed.
+    update public.profiles set role = 'editor' where role = 'owner';
     insert into public.profiles (id, role, display_name) values (v_owner, 'owner', 'Fake Owner'), (v_editor, 'editor', 'Fake Editor');
     insert into public.tournaments (id, slug, name, series_key, edition_year, region, status, visibility, categories, district)
       values (v_t, 'fake-open-2026', 'Fake Open', 'fake open', 2026, 'tamil_nadu', 'published', 'public', array['MS'], 'Fakedistrict');

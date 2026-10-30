@@ -125,7 +125,7 @@ export async function runHarness(opts) {
   // Postgres error 55000 on a WRITE: the `api` view joins or masks several tables, so it is "not automatically updatable" and the database
   // refuses every insert, update and delete before any grant is even looked at. That is a denial by construction (the SQL check
   // supabase/checks/0006_assertions.sql still proves anon holds no write grant on these views). Any other 5xx stays an error.
-  const record = (target, op, status, expectedDenied, code = null) => {
+  const record = (target, op, status, expectedDenied, code = null, quiet = false) => {
     const notWritable = expectedDenied && op !== 'select' && status === 500 && code === '55000';
     const denied = isDenied(status) || notWritable;
     const unreachable = !notWritable && (status === 0 || status >= 500);
@@ -134,7 +134,7 @@ export async function runHarness(opts) {
     results.push(entry);
     if (unreachable) errors.push(entry);
     else if (!ok) leaks.push(entry);
-    log(`${ok ? 'PASS' : unreachable ? 'ERROR' : 'LEAK '} ${op.padEnd(6)} ${target} -> HTTP ${status} (expected ${entry.expected})${notWritable ? ' view cannot be written at all (not automatically updatable)' : ''}`);
+    if (!quiet) log(`${ok ? 'PASS' : unreachable ? 'ERROR' : 'LEAK '} ${op.padEnd(6)} ${target} -> HTTP ${status} (expected ${entry.expected})${notWritable ? ' view cannot be written at all (not automatically updatable)' : ''}`);
   };
 
   for (const t of manifest) {
@@ -144,12 +144,15 @@ export async function runHarness(opts) {
     const rollback = { prefer: 'tx=rollback,return=minimal' };
 
     const sel = await call('GET', `${rel}?select=*&limit=1`, { schema: t.schema });
-    record(t.name, 'select', sel.status, !t.expectSelect);
-    // For an allowed `api` view, additionally require a 2xx (not a 400 from a broken view).
-    if (t.expectSelect && !(sel.status >= 200 && sel.status < 300)) {
+    // For an allowed `api` view, additionally require a 2xx (not a 400 from a broken view, not a 404 from a view that is not there): such a
+    // select is an ERROR line, never a PASS line (the first dev runs on 2026-10-30 printed PASS for these while counting them as errors).
+    const allowedButRefused = Boolean(t.expectSelect) && !(sel.status >= 200 && sel.status < 300);
+    record(t.name, 'select', sel.status, !t.expectSelect, null, allowedButRefused);
+    if (allowedButRefused) {
       const entry = { target: t.name, op: 'select', status: sel.status, expected: 'allowed (2xx)', ok: false };
       results.push(entry);
       errors.push(entry);
+      log(`ERROR select ${t.name} -> HTTP ${sel.status} (expected allowed, 2xx)`);
     }
     const ins = await call('POST', rel, { body: pkBody, schema: t.schema, extraHeaders: rollback });
     record(t.name, 'insert', ins.status, true, ins.code);
@@ -232,6 +235,14 @@ export async function main(env = process.env, out = console) {
     out.log(
       `HINT: ${notExposed.length} public api view(s) answered HTTP 406, so the api schema is not in the project's Exposed schemas. ` +
         'In the Supabase dashboard open Project Settings, Data API, Settings, Exposed schemas, add api next to public, save, and run this again.',
+    );
+  }
+  const missing = report.errors.filter((e) => e.op === 'select' && e.status === 404 && e.expected === 'allowed (2xx)');
+  if (missing.length > 0) {
+    out.log(
+      `HINT: ${missing.length} public api view(s) answered HTTP 404 (${missing.map((e) => e.target).join(', ')}): the database does not have them. ` +
+        'Apply the migrations that create them (npm run sql:bundle -- --from <first missing number>, then paste 01-migrations.sql in the SQL editor). ' +
+        "If they are there, the Data API has not reloaded: run notify pgrst, 'reload schema'; in the SQL editor, then run this again.",
     );
   }
   if (report.signups === 'ENABLED') out.log('HINT: new sign-ups are still switched on. In the Supabase dashboard open Authentication, then Sign In / Providers (older screens: Settings), and switch off Allow new users to sign up, then run this again.');
