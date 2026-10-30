@@ -20,7 +20,7 @@ and from the release build itself. Where the records disagree, this list follows
 - [ ] **A3. Hire an Indian lawyer** (data protection plus media or sports), agree a fixed fee, send them `docs/legal/LAWYER_BRIEFING.md` (OT-15). *You, fee unknown.* Blocks G1: the six legal pages cannot go live without their review.
 - [ ] **A4. Lock down your accounts:** a business Google account, two-step sign-in on everything, recovery codes on paper (OT-14). *You, free.* (Not recorded as done.)
 - [ ] **A5. Answer the open plan questions** (in DECISIONS "Decisions awaiting the owner"): yes to Vercel Pro for the live site (#15); which uptime tool, HetrixTools recommended (#6); whether pages may show your rounded, dated figures (#3); the reply-time wording or "no promise" (D-046); an extra front door for the admin page, recommended no for launch (OT-49). *You, free.*
-- [ ] **A6. The domain question:** the records plan `powersmash.in` (OT-07), but the Vercel project currently has **www.elitetournaments.in** attached. Tell Claude which domain is the real one. *You.*
+- [x] **A6. The domain:** **www.elitetournaments.in** (your decision, 2026-10-30, D-106). It is already connected to the Vercel project; `powersmash.in` is not bought.
 
 ## B. Your content (fills the 164 gaps the release build refuses)
 
@@ -35,7 +35,7 @@ and from the release build itself. Where the records disagree, this list follows
 
 ## C. Accounts and services
 
-- [ ] **C1. Buy the domain** and finish the .IN ID check (OT-07). *Records: about Rs 575 first year plus 18% GST at Domain India (list price read 2026-10-20). You pay.*
+- [ ] **C1. Confirm the domain** (OT-07): registered in your real name (matching A1), .IN ID check (KYC) **verified**, registrar lock and two-step sign-in on, renewal date noted, and tell Claude the registrar and who hosts the DNS. *You. Cost: the renewal at your registrar.*
 - [ ] **C2. Production database** `powersmash-prod` in Mumbai (OT-27): Data API exposing `public` and `api`, automatic exposure off, sign-ups off. *You, free.* Then Claude prepares `npm run sql:bundle` (all migrations 0001 to 0016), you paste it and the checks, and Claude runs the anonymous-access test against prod (must be 0 leaks).
 - [ ] **C3. Your admin sign-in on prod** (OT-51): user, owner role, two authenticators, enrolment off. *You.*
 - [ ] **C4. Production spam check** (Turnstile, OT-41): a production widget; the site key to Claude in chat, the secret key typed by you into Vercel. *You, free.*
@@ -47,10 +47,10 @@ and from the release build itself. Where the records disagree, this list follows
 ## D. Wiring (names only; you enter every secret value yourself, never in chat)
 
 - [ ] **D1. Vercel Production settings:** `SUPABASE_SECRET_KEY`, `TURNSTILE_SECRET_KEY`, `HMAC_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TURNSTILE_EXPECTED_HOSTNAMES`, `ADMIN_ALLOWED_ORIGINS`. Never `TURNSTILE_ALLOW_TEST_KEYS` in Production.
-- [ ] **D2. GitHub repository variables for the release build:** `PUBLIC_SITE_URL` (the real address), `PUBLIC_ALLOW_INDEXING` (stays `false` until D5), `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PUBLIC_TURNSTILE_SITE_KEY` (all prod values). `PUBLIC_WHATSAPP_NUMBER` is already set. Optional, with your yes: `PS_LIVE_SOURCE=supabase` (the Live page reads your admin pins).
+- [ ] **D2. GitHub repository variables for the release build:** `PUBLIC_SITE_URL` (`https://www.elitetournaments.in`), `PUBLIC_ALLOW_INDEXING` (stays `false` until D5), `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PUBLIC_TURNSTILE_SITE_KEY` (all prod values). `PUBLIC_WHATSAPP_NUMBER` is already set. Optional, with your yes: `PS_LIVE_SOURCE=supabase` (the Live page reads your admin pins).
 - [ ] **D3. Already done:** the deploy secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (the preview has deployed with them), and the `PREVIEW_*` variables.
-- [ ] **D4. Connect the domain** in Vercel (both `powersmash.in` and `www`, one redirecting to the other) and add the DNS records Vercel shows; then email forwarding for hello@ and the grievance address; then Resend for confirmation emails (OT-40) and `EMAIL_ENABLED=true`. *You; Claude asks before any DNS change.*
-- [ ] **D5. Switch indexing on only at the domain cut-over:** `PUBLIC_ALLOW_INDEXING=true` once `PUBLIC_SITE_URL` is the final domain (the release check refuses indexing on a vercel.app address or with test keys).
+- [ ] **D4. The domain in Vercel:** both addresses are already connected; make `www.elitetournaments.in` the main address and let `elitetournaments.in` redirect to it. Then email forwarding for `hello@elitetournaments.in` and the grievance address, then Resend (sending subdomain `mail.elitetournaments.in`, OT-40) and `EMAIL_ENABLED=true`. *You; Claude asks before any DNS or Vercel change.*
+- [ ] **D5. Switch indexing on only at the domain cut-over:** `PUBLIC_ALLOW_INDEXING=true` once `PUBLIC_SITE_URL` is `https://www.elitetournaments.in` (the release check refuses indexing on a vercel.app address or with test keys).
 
 ## E. Claude's engineering items before G1
 

@@ -452,6 +452,8 @@ Index
 
 ## D-023 Domain purchase path
 
+- **Amended by D-106 (2026-10-30).** The website domain is `www.elitetournaments.in`, already connected to the Vercel project; `powersmash.in` is not bought.
+
 - **Context.** `powersmash.in` and `powersmash.co.in` were unregistered at the registry on 2026-10-20; `powersmash.com` is parked for sale. .IN needs mandatory NIXI KYC; non-compliant domains go to ServerHold (site and email vanish); registrar notices say only Indian registrants are supported; Cloudflare Registrar cannot sell .in.
 - **Decision.** Buy `powersmash.in` at an Indian NIXI-accredited registrar. The owner chooses after seeing the checkout total including GST and the year-2 and year-3 prices; verified list prices on 2026-10-20: Domain India Rs 575 first year and Rs 625 renewal plus 18% GST (free WHOIS privacy); Hostinger Rs 1 first year only with a 3-year term, then Rs 899 a year; GoDaddy India Rs 1 with a 3-year purchase or Rs 99 for new customers, renewal Rs 899. Decline bundled add-ons. Registrant: the owner's real legal name and address matching ID and the Razorpay entity; registrant email: the owner's Gmail (never `hello@`); complete DigiLocker e-KYC in the same sitting; wait for "verified" before moving nameservers to Cloudflare; choose a registrar that states its WHOIS-redaction policy in writing. Do not buy `powersmash.com`. Keep `*.workers.dev` as the fallback with noindex on every non-canonical host, keep Telegram alerts independent of the domain, and record the KYC date, registry contact and renewal date in the RUNBOOK. Buying is a spend: Claude asks first (spec rule 8).
 - **Consequences.** The site can be built and shown on workers.dev before the domain is ready; Email Routing, Resend verification and Razorpay website review wait for a verified domain.
@@ -1495,6 +1497,18 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - One rule module, `src/lib/admin/filming-permission.ts`, is shared by the schema, both stores and the screen: `validatePermission`, `permissionAllows` (fail closed: only `granted` with that scope allows coverage, a live stream or sponsor overlays) and `coverageGap`.
   - Admin: `tournaments.permission` (owner read) and `tournaments.setPermission` (owner write). Each approved tournament shows "Filming permission: <status>" and has a "Filming permission" panel. A tournament marked "Power Smash films this" without `granted` shows the gap on its card and in Details. That is the warning D-019 asks for; it does not block the tick.
 - **Consequences.** Nothing reaches the site. Not built yet, and owner and lawyer questions: whether the gap should BLOCK the covered tick or a publish instead of warning (built: warns); the /live pin is not tied to a tournament, so a live stream cannot be checked against a record yet; the coverage agreement template and the submit-video licence flow of D-019 wait for the lawyer. Tests: `tests/admin/filming-permission.test.ts`, `supabase/checks/0016_assertions.sql` (local PostgreSQL) and the admin browser test "Filming permission".
+
+## D-106 The website domain: www.elitetournaments.in (amends D-023)
+
+- **Context.** D-023 planned to buy `powersmash.in`. On 2026-10-23 the Vercel project was found to have `www.elitetournaments.in` and one more domain attached, and on 2026-10-30 both `https://elitetournaments.in/` and `https://www.elitetournaments.in/` answered from this Vercel project (the Vercel login, HTTP 302), so the domain is registered and already points at the project. The repository has no record of who registered it, with which registrar, its .IN KYC status or its renewal date.
+- **Decision (owner, 2026-10-30).** The public website is **www.elitetournaments.in**. The `www` address is the main one; `elitetournaments.in` redirects to it. `powersmash.in` is not bought (D-023 is replaced on this point).
+- **Consequences.**
+  - No code changes: the site address comes only from the build variable `PUBLIC_SITE_URL` (`https://www.elitetournaments.in` at release), and the canonical links, sitemaps, QR posters and share links follow it.
+  - Owner checks (OT-07, rewritten): the registrant name matches the entity from OT-05, the .IN KYC shows verified (an unverified .IN domain is switched off), the registrar lock and two-step sign-in are on, the renewal date is noted, and which service hosts the DNS. In Vercel, `www` is set as the main address and the bare domain redirects to it.
+  - Email: the planned addresses become `hello@elitetournaments.in` and the grievance address on the same domain (D-022), and the Resend sending subdomain `mail.elitetournaments.in` (OT-40). Free Cloudflare Email Routing needs the DNS on Cloudflare; whether to move the DNS is the owner's choice, asked before any change.
+  - Until G1 the domain stays behind the Vercel login like every other address of the project (Deployment Protection: All Deployments).
+  - Older notes that name `powersmash.in` (BUILD_PLAN, SPEC_AUDIT, VERIFIED_FACTS, the Resend step) are historical; this record replaces them.
+- **Status.** adopted (owner decision 2026-10-30).
 
 ## M2/M3 proposal id map
 
