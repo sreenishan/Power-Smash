@@ -337,3 +337,53 @@ test.describe('Live page pin (D-101)', () => {
     await expect(page.getByRole('alert')).toHaveCount(0);
   });
 });
+
+test.describe('Tournament details (D-102)', () => {
+  test('approve, then correct the venue and dates and feature it from the Approved tab; a bad date order is refused in words', async ({ page }) => {
+    const stray = await open(page, '#/tournaments');
+    const card = page.locator('article').filter({ hasText: 'Demo Open Cup' });
+    await card.getByRole('button', { name: 'Approve' }).click();
+    const approve = page.getByRole('alertdialog', { name: /Approve/ });
+    for (const box of await approve.getByRole('checkbox').all()) await box.check();
+    await approve.getByRole('button', { name: 'Yes' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Approved.' })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Approved (1)' }).click();
+    const approved = page.locator('article').filter({ hasText: 'Demo Open Cup' });
+    await approved.getByRole('button', { name: 'Details' }).click();
+    // the form says plainly that these edits are not on the site yet (archive pages are off)
+    await expect(approved.getByText('Saved in the admin only for now')).toBeVisible();
+    await approved.getByLabel('Venue').fill('Demo Indoor Stadium');
+    await approved.getByLabel('First day').fill('2026-11-16');
+    await approved.getByLabel('Last day').fill('2026-11-14');
+    await approved.getByLabel("Men's singles", { exact: true }).check();
+    await approved.getByLabel(/Feature this tournament/).check();
+    await approved.getByLabel('Featured until').fill('2099-12-31');
+    await approved.getByRole('button', { name: 'Review and save' }).click();
+    await expect(approved.getByRole('alert').filter({ hasText: 'The last day cannot be before the first day.' })).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+    await approved.getByLabel('Last day').fill('2026-11-17');
+    await noHorizontalScroll(page);
+    await axeClean(page);
+    await approved.getByRole('button', { name: 'Review and save' }).click();
+    const save = page.getByRole('alertdialog', { name: /Save the details/ });
+    await expect(save).toContainText('You are changing: venue, first day, last day, categories, featured, featured until');
+    await save.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Saved in the admin.' })).toBeVisible();
+
+    // reopening shows what was saved
+    await approved.getByRole('button', { name: 'Details' }).click();
+    await expect(approved.getByLabel('Venue')).toHaveValue('Demo Indoor Stadium');
+    await expect(approved.getByLabel('Featured until')).toHaveValue('2099-12-31');
+
+    // Hide on an approved tournament shows it is hidden and offers Show again
+    await approved.getByRole('button', { name: 'Hide' }).click();
+    await page.getByRole('alertdialog', { name: /Hide/ }).getByRole('button', { name: 'Yes' }).click();
+    await expect(approved.getByText('Hidden', { exact: true })).toBeVisible();
+    await approved.getByRole('button', { name: 'Show again' }).click();
+    await page.getByRole('alertdialog', { name: /Show again/ }).getByRole('button', { name: 'Yes' }).click();
+    await expect(approved.getByText('Shown on the site', { exact: true })).toBeVisible();
+    expect(stray).toEqual([]);
+  });
+});

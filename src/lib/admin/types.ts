@@ -11,6 +11,7 @@ import type { ProductEditInput, ProductRecord } from '../pricing-admin/product-e
 import type { ReviewAction, VideoSubmission } from './submissions';
 import type { PlayerProfileFields } from './player-profile';
 import type { LiveEditInput, LiveSettings } from '../live/rules';
+import type { TournamentDetails, TournamentDetailField, TournamentEditInput } from './tournament-edit';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -33,6 +34,7 @@ export type AdminErrorCode =
   | 'ALIAS_NOT_OWNED'
   | 'REDIRECT_LOOP'
   | 'UNDO_UNAVAILABLE'
+  | 'STALE'
   | 'INVALID'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
@@ -212,6 +214,14 @@ export type ProductSaveInput = ProductEditInput & { slug: string };
 /** The admin Live screen's save (D-101): what the owner typed, plus a reason for the audit. */
 export type LiveSaveInput = LiveEditInput & { reason: string };
 
+/** The admin's tournament details save (D-102): the tournament id, what the owner typed, and a reason for the audit. */
+export type TournamentUpdateInput = TournamentEditInput & {
+  id: string;
+  reason: string;
+  /** The details as the form showed them: the save is refused (STALE) if the tournament changed since, e.g. the sync added a category. */
+  expected: TournamentDetails;
+};
+
 export interface PosterTarget {
   slug: string;
   title: string;
@@ -325,6 +335,11 @@ export interface AdminStore {
 
   listTournamentCandidates(): Promise<StoreResult<TournamentCandidate[]>>;
   decideTournament(actor: Actor, input: { id: string; decision: 'promote' | 'reject' | 'hide'; reason: string }): Promise<StoreResult<{ id: string }>>;
+  /** Approved tournaments (published or completed), newest first, so their details can be corrected (D-102). */
+  listApprovedTournaments(): Promise<StoreResult<TournamentCandidate[]>>;
+  getTournamentDetails(opts: { id: string }): Promise<StoreResult<TournamentDetails>>;
+  /** Name, level, place, dates, categories, featured and covered (D-102). Audits the changed fields' names; locks name/level/city/district against the sync. */
+  updateTournamentDetails(actor: Actor, input: TournamentUpdateInput): Promise<StoreResult<{ id: string; details: TournamentDetails; fields: TournamentDetailField[] }>>;
 
   listLeads(opts: { limit: number }): Promise<StoreResult<InboxLead[]>>;
   /** Status move, notes, follow-up date and value for one lead. Validated with src/lib/inbox; audited; the audit row never holds the notes text. */

@@ -8,6 +8,9 @@
 import type { AgeStatus } from '../identity/types';
 import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
 import { liveChanges, validateLiveEdit, type LiveSettings } from '../live/rules';
+import { todayIst } from '../dates';
+import { CATEGORIES, type Category } from '../parser/types';
+import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
 import type { PlayerRow, SuppressionKind, VideoRow, AdminRpcArgs, EmergencyHideResult } from '../archive/types';
 import { findPossibleDuplicates, canConfirmAdult, MAX_BULK_CONFIRM, planMerge, type IdAlias, type IdPlayer } from '../identity';
 import { chooseSlug } from '../identity/operations';
@@ -67,7 +70,7 @@ class BackendError extends Error {
 }
 
 // Codes the database raises at the start of an error message ('INVALID: ...', 'FORBIDDEN: ...' come last so a specific code wins).
-const KNOWN: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP', 'INVALID', 'FORBIDDEN'];
+const KNOWN: readonly AdminErrorCode[] = ['NOT_FOUND', 'SAME_PLAYER', 'ALREADY_MERGED', 'SUPPRESSED', 'MINOR_ADULT_MERGE_BLOCKED', 'OVERRIDE_REASON_REQUIRED', 'EMPTY_NAME', 'ALIAS_NOT_OWNED', 'REDIRECT_LOOP', 'STALE', 'INVALID', 'FORBIDDEN'];
 
 const enc = encodeURIComponent;
 const MATCH_COLUMN: Record<ParsedField, string | null> = { tournament: 'tournament_id', category: 'category', age_group: 'age_group', round: 'round', participants: 'participants' };
@@ -174,6 +177,22 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
     return p
       ? { slug: p.slug, group: p.group, record: { name: p.name, summary: p.summary, priceType: p.priceType, pricePaise: p.pricePaise, gstInclusive: p.gstInclusive, deliveryDays: p.deliveryDays, visible: false, sort: 0, inclusions: p.inclusions.map((i) => i.text), inclusionsApproved: p.inclusionsApproved, quoteWordingApproved: p.quoteWordingApproved } satisfies ProductRecord }
       : undefined;
+  };
+
+  type TournamentDetailRow = {
+    name: string; level: TournamentDetails['level']; city: string | null; district: string | null; venue: string | null; start_date: string | null;
+    end_date: string | null; categories: string[]; is_featured: boolean; featured_until: string | null; covered_by_power_smash: boolean;
+  };
+  const TOURNAMENT_DETAIL_COLUMNS = 'name,level,city,district,venue,start_date,end_date,categories,is_featured,featured_until,covered_by_power_smash';
+  // categories in the fixed order (the sync appends new ones at the end), so the same set is never a change; the SQL does the same
+  const detailsOf = (r: TournamentDetailRow): TournamentDetails => ({
+    name: r.name, level: r.level, city: r.city, district: r.district, venue: r.venue, startDate: r.start_date, endDate: r.end_date,
+    categories: CATEGORIES.filter((c): c is Category => r.categories.includes(c)), isFeatured: r.is_featured, featuredUntil: r.featured_until,
+    coveredByPowerSmash: r.covered_by_power_smash,
+  });
+  const loadTournamentDetails = async (id: string): Promise<TournamentDetails | null> => {
+    const [row] = await select<TournamentDetailRow>('tournaments', `select=${TOURNAMENT_DETAIL_COLUMNS}&id=eq.${encodeURIComponent(id)}&limit=1`);
+    return row ? detailsOf(row) : null;
   };
 
   type LivePastRow = { video_id: string; title: string; streamed_on: string | null; position: number };
@@ -667,6 +686,39 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
       guard(async () => {
         await rpc('admin_resolve_profile_request', { p_actor: actor.userId, p_id: input.id, p_decision: input.decision, p_reason: input.reason });
         return okResult({ id: input.id });
+      }),
+
+    // Tournament details (migration 0014, D-102): read with the service role; saved through admin_update_tournament (owner only, audited)
+    listApprovedTournaments: () =>
+      guard(async () => {
+        const rows = await select<{ id: string; name: string; series_key: string; edition_year: number | null; region: TournamentCandidate['region']; is_promoted: boolean; source: TournamentCandidate['source']; visibility: TournamentCandidate['visibility']; status: TournamentCandidate['status']; matches: { count: number }[] | null }>(
+          'tournaments',
+          'select=id,name,series_key,edition_year,region,is_promoted,source,visibility,status,matches(count)&status=in.(published,completed)&order=start_date.desc.nullslast,created_at.desc&limit=200',
+        );
+        return okResult<TournamentCandidate[]>(rows.map((r) => ({ id: r.id, name: r.name, seriesKey: r.series_key, editionYear: r.edition_year, matchCount: r.matches?.[0]?.count ?? 0, region: r.region, isPromoted: r.is_promoted, source: r.source, visibility: r.visibility, status: r.status })));
+      }),
+
+    getTournamentDetails: (o) =>
+      guard(async () => {
+        const d = await loadTournamentDetails(o.id);
+        return d ? okResult(d) : failResult('NOT_FOUND');
+      }),
+
+    updateTournamentDetails: (actor, input) =>
+      guard(async () => {
+        // checked here first: a refused form makes no network call at all
+        const pre = validateTournamentEdit(input, todayIst(now()), input.expected);
+        if (!pre.ok) return failResult('INVALID', pre.errors as Record<string, string>);
+        const before = await loadTournamentDetails(input.id);
+        if (!before) return failResult('NOT_FOUND');
+        // the owner edited what the form showed; if the row changed since (the sync, another tab), refuse instead of undoing it
+        if (!sameTournamentDetails(before, input.expected)) return failResult('STALE');
+        const v = validateTournamentEdit(input, todayIst(now()), before);
+        if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+        const fields = changedTournamentFields(before, v.value);
+        if (fields.length === 0) return okResult({ id: input.id, details: v.value, fields });
+        await rpc('admin_update_tournament', { p_actor: actor.userId, p_id: input.id, p_record: v.value, p_expected: before, p_reason: input.reason });
+        return okResult({ id: input.id, details: v.value, fields });
       }),
 
     decideTournament: (actor, input) =>
