@@ -2,7 +2,8 @@
 // Every action: POST only, JSON body capped at 64 KB, strict zod validation, origin check, then auth (JWT, aal2, role, policy),
 // then the store. Failures return short generic bodies; nothing from the database or GitHub is echoed back on errors.
 import { z } from 'zod';
-import { AGE_STATUSES, SUPPRESSION_KINDS } from '../archive/types';
+import { AGE_STATUSES, SUPPRESSION_KINDS, TOURNAMENT_LEVELS } from '../archive/types';
+import { CATEGORIES } from '../parser/types';
 import { LEAD_STATUSES } from '../inbox/status';
 import { authorizeAdmin, authorizeEnrolCheck, type AuthDeps } from './auth';
 import type { DispatchFn, DispatchKind } from './dispatch';
@@ -63,6 +64,41 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   'profileRequests.resolve': z.object({ id: uuid, decision: z.enum(['resolve', 'reject']), reason }).strict(),
   'tournaments.candidates': empty,
   'tournaments.decide': z.object({ id: uuid, decision: z.enum(['promote', 'reject', 'hide']), reason }).strict(),
+  'tournaments.approved': empty,
+  'tournaments.details': z.object({ id: uuid }).strict(),
+  // generous bounds here; the exact rules (lengths, levels, categories, real dates, featured until today or later) are in validateTournamentEdit
+  'tournaments.update': z
+    .object({
+      id: uuid,
+      name: z.string().max(400),
+      level: z.string().max(40).nullable(),
+      city: z.string().max(200).nullable(),
+      district: z.string().max(200).nullable(),
+      venue: z.string().max(400).nullable(),
+      startDate: z.string().max(20).nullable(),
+      endDate: z.string().max(20).nullable(),
+      categories: z.array(z.string().max(10)).max(20),
+      isFeatured: z.boolean(),
+      featuredUntil: z.string().max(20).nullable(),
+      coveredByPowerSmash: z.boolean(),
+      reason,
+      expected: z
+        .object({
+          name: z.string().max(400),
+          level: z.enum(TOURNAMENT_LEVELS).nullable(),
+          city: z.string().max(200).nullable(),
+          district: z.string().max(200).nullable(),
+          venue: z.string().max(400).nullable(),
+          startDate: z.string().max(20).nullable(),
+          endDate: z.string().max(20).nullable(),
+          categories: z.array(z.enum(CATEGORIES)).max(20),
+          isFeatured: z.boolean(),
+          featuredUntil: z.string().max(20).nullable(),
+          coveredByPowerSmash: z.boolean(),
+        })
+        .strict(),
+    })
+    .strict(),
   'leads.list': z.object({ limit: z.number().int().min(1).max(500).default(200) }).strict(),
   'leads.update': z
     .object({
@@ -183,6 +219,7 @@ const STATUS: Record<AdminErrorCode, number> = {
   ALIAS_NOT_OWNED: 422,
   REDIRECT_LOOP: 409,
   UNDO_UNAVAILABLE: 409,
+  STALE: 409,
   INVALID: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
@@ -294,6 +331,9 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'profileRequests.resolve': return fromStore(await s.resolveProfileRequest(actor, input), cors);
     case 'tournaments.candidates': return fromStore(await s.listTournamentCandidates(), cors);
     case 'tournaments.decide': return fromStore(await s.decideTournament(actor, input), cors);
+    case 'tournaments.approved': return fromStore(await s.listApprovedTournaments(), cors);
+    case 'tournaments.details': return fromStore(await s.getTournamentDetails(input), cors);
+    case 'tournaments.update': return fromStore(await s.updateTournamentDetails(actor, input), cors);
     case 'settings.get': return fromStore(await s.getProtectedModes(), cors);
     case 'settings.setProtectedMode': return fromStore(await s.setProtectedMode(actor, input), cors);
     case 'emergency.release': return fromStore(await s.releaseSuppression(actor, input), cors);

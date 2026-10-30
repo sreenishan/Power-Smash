@@ -3,6 +3,8 @@
 // Seed data is FICTIONAL (invented names, `fake-` video ids). Nothing here touches the network.
 import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
 import { liveChanges, NO_LIVE, validateLiveEdit, type LiveSettings } from '../live/rules';
+import { todayIst } from '../dates';
+import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
 import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
@@ -33,6 +35,7 @@ import {
   type PlacementCreateInput,
   type ProductSaveInput,
   type LiveSaveInput,
+  type TournamentUpdateInput,
   type ProfileRequest,
   type ProtectedMatchMode,
   type PlacementsData,
@@ -89,6 +92,8 @@ export interface MemoryState {
   playerProfiles?: Record<string, PlayerProfileFields>;
   /** The /live pin and past streams (D-101). Absent = nothing pinned, no list. */
   live?: LiveSettings;
+  /** Tournament details by id (D-102). Absent = only the name is known. */
+  tournamentDetails?: Record<string, TournamentDetails>;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -427,6 +432,39 @@ export class MemoryAdminStore implements AdminClient {
   async listProfileRequests(): Promise<StoreResult<ProfileRequest[]>> {
     return okResult(this.state.profileRequests.map((r) => ({ ...r })));
   }
+  async listApprovedTournaments(): Promise<StoreResult<TournamentCandidate[]>> {
+    return okResult(this.state.tournaments.filter((t) => t.status === 'published' || t.status === 'completed').map((t) => ({ ...t })));
+  }
+
+  private tournamentDetailsOf(t: TournamentCandidate): TournamentDetails {
+    const d = this.state.tournamentDetails?.[t.id];
+    return d ? { ...d, categories: [...d.categories] } : { name: t.name, level: null, city: null, district: null, venue: null, startDate: null, endDate: null, categories: [], isFeatured: false, featuredUntil: null, coveredByPowerSmash: false };
+  }
+
+  async getTournamentDetails(opts: { id: string }): Promise<StoreResult<TournamentDetails>> {
+    const t = this.state.tournaments.find((x) => x.id === opts.id);
+    return t ? okResult(this.tournamentDetailsOf(t)) : failResult('NOT_FOUND');
+  }
+
+  async updateTournamentDetails(actor: Actor, input: TournamentUpdateInput) {
+    const t = this.state.tournaments.find((x) => x.id === input.id);
+    if (!t) return failResult('NOT_FOUND');
+    const before = this.tournamentDetailsOf(t);
+    const v = validateTournamentEdit(input, todayIst(this.now()), before);
+    if (!v.ok) return failResult('INVALID', v.errors as Record<string, string>);
+    // refuse instead of undoing a change made since the form was opened (the SQL checks the same, under a row lock)
+    if (!sameTournamentDetails(before, input.expected)) return failResult('STALE');
+    // D-014: a suppressed tournament stays as it is (the SQL refuses too)
+    if (this.state.suppressions.some((s) => s.releasedAt === null && (s.affectedTournamentIds.includes(t.id) || (s.kind === 'tournament_id' && s.key === t.id)))) return failResult('SUPPRESSED');
+    const fields = changedTournamentFields(before, v.value);
+    if (fields.length === 0) return okResult({ id: t.id, details: v.value, fields });
+    (this.state.tournamentDetails ??= {})[t.id] = v.value;
+    t.name = v.value.name;
+    this.audit(actor, 'tournament.update', 'tournament', t.id, fields.join(', ')); // field names only, like the SQL audit
+    this.markDirty();
+    return okResult({ id: t.id, details: v.value, fields });
+  }
+
   async listTournamentCandidates(): Promise<StoreResult<TournamentCandidate[]>> {
     return okResult(this.state.tournaments.map((t) => ({ ...t })));
   }
