@@ -33,6 +33,7 @@ import { todayIst } from '../../lib/dates';
 import { loadPublicArchive } from '../../lib/archive/model';
 import { currentFeatured, featuredFilterKeys } from '../../lib/archive/featured';
 import { TOURNAMENT_PAGES_BUILT } from '../../lib/archive/provider';
+import { archiveInBuild } from '../../lib/archive/in-build';
 import { PAGE_META, titleWithBrand } from '../../lib/seo';
 import { ROUTES } from '../../lib/urls';
 
@@ -42,9 +43,11 @@ const today = todayIst();
 const { upcoming, past } = splitTournaments(tournaments, today);
 const { now, featured, months } = upcomingSections(tournaments, today);
 const archive = await loadPublicArchive();
-const fromVideos = TOURNAMENT_PAGES_BUILT ? archive.tournaments : [];
+// the release build leaves the archive out until its legal switch is on (D-107): the loader is empty then, and no archive link is made
+const archivePagesBuilt = TOURNAMENT_PAGES_BUILT && archiveInBuild();
+const fromVideos = archivePagesBuilt ? archive.tournaments : [];
 // the owner's pins from the database; a link only to a page that is built
-const pinned = currentFeatured(archive.featured, today).map((t) => (TOURNAMENT_PAGES_BUILT ? t : { ...t, pageSlug: null }));
+const pinned = currentFeatured(archive.featured, today).map((t) => (archivePagesBuilt ? t : { ...t, pageSlug: null }));
 const isEmpty = upcoming.length === 0 && past.length === 0 && fromVideos.length === 0 && pinned.length === 0;
 const options = tournamentFilterOptions(tournaments);
 const filterFields = [

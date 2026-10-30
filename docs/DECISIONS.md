@@ -1510,6 +1510,15 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - Older notes that name `powersmash.in` (BUILD_PLAN, SPEC_AUDIT, VERIFIED_FACTS, the Resend step) are historical; this record replaces them.
 - **Status.** adopted (owner decision 2026-10-30).
 
+## D-107 The first public release leaves the video archive out
+
+- **Context.** The strict release build refuses every archive page (players, matches, tournament pages made from videos, the "From our videos" and featured-from-database sections) while `features.archivePages` is off (`ArchiveSeedNotice`, D-034, D-065). That switch waits for the owner and the lawyer to approve the protected-player rules (D-012), a G2 item, so G1 could not be released with the archive in it.
+- **Decision (owner, 2026-10-30).** G1 leaves the archive out; it comes back at G2 when `features.archivePages` is turned on, with no code change.
+  - One switch, `src/lib/archive/in-build.ts` `archiveInBuild()`: the strict release build (`PS_STRICT=1`, the only build `deploy.yml` runs) carries the archive only when `features.archivePages` is true. Every other build (developer, private preview, CI, tests) keeps the sample archive with its notice, so it can still be built and tested.
+  - When it says no: `loadPublicArchive()` returns an empty archive without reading the provider, so no player, match or archive-tournament page is generated and the tournaments page shows no archive section or link; the sitemaps list neither the archive lists nor the archive sitemaps; `write-archive-redirects.mjs` writes no rules; and `scripts/prune-archive.mjs` (run after `astro build` in both build scripts, a no-op otherwise) removes the files Astro writes for the archive's fixed routes (`ARCHIVE_OUTPUT_PATHS`: the match and player lists, `/matches/gone/`, the search index and the archive sitemaps). The menu and robots.txt already followed the switch.
+  - Owner-entered tournaments (`src/content/tournaments.ts`) are not archive and are always built.
+- **Consequences.** Checked with a release-settings build (`PS_STRICT=1 node scripts/build.mjs`): 25 pages instead of 78, no archive file, 0 archive redirect routes, no archive notice, and the owner-input count fell from 164 markers on 77 pages to 111 on 24 pages (all owner content); the link and hidden-section tests pass on that output. The normal build is unchanged. Tests: `tests/archive/in-build.test.ts`.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

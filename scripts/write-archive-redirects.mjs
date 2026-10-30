@@ -16,6 +16,15 @@ const { selectArchiveProvider } = await jiti.import(pathToFileURL(resolve('src/l
 const { buildPublicArchive } = await jiti.import(pathToFileURL(resolve('src/lib/archive/model.ts')).href);
 const { buildRedirects } = await jiti.import(pathToFileURL(resolve('src/lib/archive/redirects.ts')).href);
 
+const { archiveInBuild } = await jiti.import(pathToFileURL(resolve('src/lib/archive/in-build.ts')).href);
+if (!archiveInBuild(process.env)) {
+  // the release build leaves the archive out until its legal switch is on (D-107): no archive page, so no archive redirect
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, '[]\n', 'utf8');
+  console.log(`write-archive-redirects: the archive is left out of this build (D-107); 0 rules written to ${out}.`);
+  process.exit(0);
+}
+
 const provider = selectArchiveProvider();
 const raw = await provider.load();
 const archive = buildPublicArchive(raw, { source: provider.id });

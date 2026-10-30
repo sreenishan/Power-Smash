@@ -508,10 +508,20 @@ export function matchListPageCount(total: number, size: number = PAGE_SIZE): num
 
 let cached: Promise<PublicArchive> | null = null;
 
-/** The one snapshot of the public archive for this build. Provider chosen in select.ts. */
+/** An archive with nothing in it: what a build that leaves the archive out reads (D-107). */
+export function emptyArchive(generatedAt: string = new Date(0).toISOString()): PublicArchive {
+  return { source: 'supabase', generatedAt, matches: [], grid: [], players: [], minimalPlayers: [], tournaments: [], featured: [], superseded: [], dropped: { hiddenMatches: 0, protectedPlayers: 0, thinPlayers: 0, tournamentSlugConflicts: 0 } };
+}
+
+/**
+ * The one snapshot of the public archive for this build. Provider chosen in select.ts. A build that leaves the archive out (the release
+ * build while features.archivePages is off, D-107, in-build.ts) gets an empty archive and never reads the provider.
+ */
 export function loadPublicArchive(): Promise<PublicArchive> {
   if (!cached) {
     cached = (async () => {
+      const { archiveInBuild } = await import('./in-build');
+      if (!archiveInBuild()) return emptyArchive();
       const { selectArchiveProvider } = await import('./select');
       const provider: ArchiveProvider = selectArchiveProvider();
       const archive = buildPublicArchive(await provider.load(), { source: provider.id });

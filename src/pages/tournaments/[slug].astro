@@ -12,13 +12,14 @@ import ArchiveTournamentPage from '../../components/archive/ArchiveTournamentPag
 import { assertValidTournaments, tournaments, type TournamentRecord } from '../../content/tournaments';
 import { loadPublicArchive, type ArchiveMatch, type ArchiveTournament } from '../../lib/archive/model';
 import { TOURNAMENT_PAGES_BUILT } from '../../lib/archive/provider';
+import { archiveInBuild } from '../../lib/archive/in-build';
 import { tournamentRoutes } from '../../lib/archive/tournament-page';
 
 export const getStaticPaths = (async () => {
   assertValidTournaments();
   const archive = await loadPublicArchive();
   const bySlug = new Map(archive.matches.map((m) => [m.slug, m]));
-  return tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT).map((route) => {
+  return tournamentRoutes(tournaments, archive.tournaments, TOURNAMENT_PAGES_BUILT && archiveInBuild()).map((route) => {
     if (route.kind === 'owner') {
       return { params: { slug: route.slug }, props: { kind: 'owner' as const, tournament: tournaments[route.index] as TournamentRecord } };
     }

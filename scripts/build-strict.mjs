@@ -28,6 +28,7 @@ const astroBin = join(dirname(require.resolve('astro/package.json')), 'bin', 'as
 
 if (!run('1/7 release check (build variables)', ['scripts/check-release.ts', '--env-only'])) process.exit(1);
 if (!run('2/7 astro build', [astroBin, 'build'])) process.exit(1);
+if (!run('2a leave the archive out until its legal switch is on (D-107)', ['scripts/prune-archive.mjs', '--static', STATIC_DIR])) process.exit(1);
 if (!run('2b archive redirects (route list)', ['scripts/write-archive-redirects.mjs', '--out', REDIRECTS_JSON])) process.exit(1);
 if (!run('3/7 finalize headers', ['scripts/finalize-headers.ts', '--static', STATIC_DIR, '--config', CONFIG_PATH, '--redirects', REDIRECTS_JSON])) process.exit(1);
 

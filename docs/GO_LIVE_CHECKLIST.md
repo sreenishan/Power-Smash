@@ -8,7 +8,7 @@ and from the release build itself. Where the records disagree, this list follows
 **Where things stand today**
 
 - The private preview works (behind your Vercel login), and the dev database is up to date (migrations 0001 to 0016, all checks pass, anonymous-access test 0 leaks).
-- Nothing is public. The release build refuses, on purpose, while **164 owner inputs on 77 pages** are missing (see section B), and every deploy so far has been skipped (`DEPLOY_ENABLED` is off).
+- Nothing is public. The first release leaves the video archive out (D-107), so the release build refuses, on purpose, while **111 owner inputs on 24 pages** are missing (see section B; it was 164 on 77 pages with the archive), and every deploy so far has been skipped (`DEPLOY_ENABLED` is off).
 - G1 is the public site: services, booking, contact, tournaments you list, legal pages. The public video archive (players, matches, tournament pages from videos) is **G2**, later.
 
 ---
@@ -22,7 +22,7 @@ and from the release build itself. Where the records disagree, this list follows
 - [ ] **A5. Answer the open plan questions** (in DECISIONS "Decisions awaiting the owner"): yes to Vercel Pro for the live site (#15); which uptime tool, HetrixTools recommended (#6); whether pages may show your rounded, dated figures (#3); the reply-time wording or "no promise" (D-046); an extra front door for the admin page, recommended no for launch (OT-49). *You, free.*
 - [x] **A6. The domain:** **www.elitetournaments.in** (your decision, 2026-10-30, D-106). It is already connected to the Vercel project; `powersmash.in` is not bought.
 
-## B. Your content (fills the 164 gaps the release build refuses)
+## B. Your content (fills the 111 gaps the release build refuses)
 
 - [ ] **B1. Business details (OT-19):** postal address to publish, grievance officer's name and email. (Legal name, phone, email and the WhatsApp number are already in.) *75 pages wait on this (the footer).*
 - [ ] **B2. Prices (OT-20):** a price or "on quote" for each of the 17 products and partner packages (Essential, Pro, Broadcast, Season pack, Highlight reel, HD match file, Custom edit, Extra court, Extra match day, Travel outside the home district, Tournament promotion, Title, Coverage, Court and Rally Partner, and the rest), whether prices include GST (confirm with the CA), the delivery time for each product, and how long after the event videos are published. Use the price worksheet (OT-13). *Claude never sets a price.*
@@ -54,7 +54,7 @@ and from the release build itself. Where the records disagree, this list follows
 
 ## E. Claude's engineering items before G1
 
-- [ ] **E1. Leave the video archive out of the G1 build.** The release build refuses every archive page (players, matches, tournament pages from videos, and the "From our videos" and featured-from-database sections) while the archive switch is off, and that switch waits for you and the lawyer to approve the protected-player rules (D-012, a G2 item). Either the G1 build leaves those pages out, or the archive is approved first. *Claude, with your choice.*
+- [x] **E1. Leave the video archive out of the G1 build** (your decision 2026-10-30, D-107; done: the release build now leaves it out until the archive switch is on, and the owner inputs fell to 111 on 24 pages). The release build refuses every archive page (players, matches, tournament pages from videos, and the "From our videos" and featured-from-database sections) while the archive switch is off, and that switch waits for you and the lawyer to approve the protected-player rules (D-012, a G2 item). Either the G1 build leaves those pages out, or the archive is approved first. *Claude, with your choice.*
 - [ ] **E2. The real publish step** in the deploy workflow, and the G1 re-read of every built legal page against what is actually live (`docs/legal/G1_REREAD_CHECKLIST.md`).
 - [ ] **E3. Open safety items:** flood protection on `/api/event` (R-45), the retention job running (R-31), a release-gate check of the live `/api/health`, and the function timing on a preview.
 - [ ] **E4. One real test enquiry end to end** on a preview: form, database, Telegram alert, spam check. Only the access test has been done so far.
