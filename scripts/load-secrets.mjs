@@ -33,7 +33,19 @@ import { parseSecretsText, printableName, realGit, secretsFileProblem } from './
 import { VERCEL_MISSING_TEXT, resolveLockedVercel } from './lib/vercel-cli.mjs';
 
 /** The Vercel CLI version this project uses everywhere (deploy.yml and preview.yml pin the same one). */
-export const VERCEL_CLI_VERSION = '64.5.0';
+export const VERCEL_CLI_VERSION = '65.2.0';
+
+/**
+ * The line that explains a failed send. A tool may print warnings first (the Vercel CLI warns that the bare environment argument and
+ * --target are deprecated since 64.6.0), and the owner must see the real cause (not logged in, not linked, name exists), not the warning.
+ * The first non-empty line that is not a warning; the first non-empty line if every line is one.
+ * @param {string} text
+ */
+export function failureDetail(text) {
+  const lines = String(text).split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  const warning = (/** @type {string} */ l) => /^(?:warn(?:ing)?\b|[!>]?\s*deprecat)/i.test(l) || /\bis deprecated\b|\bdeprecation\b/i.test(l);
+  return lines.find((l) => !warning(l)) ?? lines[0] ?? 'no message';
+}
 
 /** Where each value goes. `vercel` = Vercel project env (Production), `github-secret`, `github-variable` (public, not secret). */
 const T = { vercel: 'vercel', ghSecret: 'github-secret', ghVar: 'github-variable' };
@@ -270,7 +282,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         log(`  OK    ${name}  ->  ${DESTINATION_TEXT[target]}`);
       } else {
         failed++;
-        const detail = redact(result.error ?? (result.stderr || result.stdout), values).split(/\r?\n/).find((l) => l.trim() !== '') ?? 'no message';
+        const detail = failureDetail(redact(result.error ?? (result.stderr || result.stdout), values));
         err(`  FAIL  ${name}  ->  ${DESTINATION_TEXT[target]}: ${detail.slice(0, 200)}`);
       }
     }
