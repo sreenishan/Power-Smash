@@ -7,6 +7,7 @@
 import '../styles/global.css';
 import Analytics from '../components/site/Analytics.astro';
 import SiteHeader from '../components/site/SiteHeader.astro';
+import SiteNoticeBanner from '../components/site/notices/SiteNoticeBanner.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import JsonLd from '../components/ui/JsonLd.astro';
 import { env } from '../config/env';
@@ -97,6 +98,7 @@ const jsonLdBlocks: object[] = [
   <body>
     <a class="ps-skip-link" href="#main">Skip to content</a>
     <SiteHeader />
+    <SiteNoticeBanner />
     <main id="main"><slot /></main>
     <SiteFooter />
     <Analytics />

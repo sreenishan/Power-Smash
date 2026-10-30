@@ -54,8 +54,12 @@ export const NO_STORE = 'no-store';
 
 /** Paths served by functions, never indexed, never cached (D-029). `admin` has no trailing slash: `/admin` and `/admin/...`. */
 const API_PATHS = '^/(?:api|go|cdn-cgi)(?:/.*)?$';
-/** Same, except /api/placements: its handler sets its own public `s-maxage` (src/lib/placements/api-handler.ts), so it must not be forced to no-store. */
-const NO_STORE_PATHS = '^/(?:api(?!/placements/?$)|go|cdn-cgi)(?:/.*)?$';
+/**
+ * Same, except /api/placements and /api/live-scores/<event-id>: their handlers set their own public `s-maxage` (src/lib/placements/api-handler.ts,
+ * src/lib/live-scores/handler.ts: about a minute; errors set no-store themselves), so they must not be forced to no-store. Without the
+ * live-scores exception every visitor's poll would reach the function and the database (D-113).
+ */
+const NO_STORE_PATHS = '^/(?:api(?!/placements/?$)(?!/live-scores/[^/]+/?$)|go|cdn-cgi)(?:/.*)?$';
 const NOINDEX_PATHS = '^/(?:api|go|admin|cdn-cgi)(?:/.*)?$';
 const PAGE_PATHS = '^/(?!(?:api|go|cdn-cgi)(?:/|$))(.*)$';
 

@@ -10,6 +10,10 @@ import { LINKS } from './meta';
 import { field, grievance, ifOn, link, p, section, strong, table, todo, ul, type Inline, type LegalDoc, type LegalSection } from './model';
 import { features, type LegalFeatures } from './status';
 
+/** The competition paragraph; with organizerAccounts on too, ENTERED_BY_US is replaced by privacyFuture.organizerAccounts.enteredBy. */
+const ENTERED_BY_US = 'Results on these pages are entered by Power Smash.';
+const competitionText = `Our competition pages (draws, order of play and results) name a player only when the player is an adult whose age we have confirmed. A player who is under 18 or whose age we have not confirmed, and every player in a junior event or at a school or college event, is shown there as "Protected player". A player who is under 18 or whose age we have not confirmed is left out of our local rankings, and the places of the other players are renumbered. Results from junior events and from school or college events do not count towards our local rankings. ${ENTERED_BY_US} Our local rankings are not official BWF rankings.`;
+
 // --------------------------------------------------------------------------------------------------------------------
 // FUTURE WORDING. NOT rendered until the flag named in each key is true (src/content/legal/status.ts).
 // --------------------------------------------------------------------------------------------------------------------
@@ -42,9 +46,73 @@ export const privacyFuture = {
 
   /** Platform wave 3. Public competition pages (/competitions/) entered by Power Smash in the owner-only admin; protected players never named (D-012, D-109). */
   competitionPages: {
-    protectedPlayers: p(
-      'Our competition pages (draws, order of play and results) name a player only when the player is an adult whose age we have confirmed. A player who is under 18 or whose age we have not confirmed, and every player in a junior event or at a school or college event, is shown there as "Protected player". A player who is under 18 or whose age we have not confirmed is left out of our local rankings, and the places of the other players are renumbered. Results from junior events and from school or college events do not count towards our local rankings. Results on these pages are entered by Power Smash. Our local rankings are not official BWF rankings.',
+    protectedPlayers: p(competitionText),
+  },
+
+  /**
+   * Platform wave 4 (D-108). Organizer and scorer accounts by the owner's invitation. With competitionPages on as well, the
+   * "entered by Power Smash" sentence of the competition paragraph is replaced by `enteredBy`.
+   */
+  organizerAccounts: {
+    collectRow: [
+      'Help run a tournament at our invitation',
+      'Your email address, which we use to send the invitation and to let you sign in (it is held by our sign-in provider, Supabase), a name you are known by, your role and the tournaments you can work on. We record which changes you make.',
+      'To let you work on those tournaments only. When your access ends we keep the record of the changes you made.',
+    ] as const,
+    enteredBy:
+      "Entries, draws and results on these pages are entered by Power Smash or by tournament organizers and scorers whom Power Smash has invited and given access to that tournament only. Results are shown only after Power Smash or the tournament's organizer has confirmed them.",
+    /** What invited organizers and scorers see of the players (D-109): shown whenever organizerAccounts is on. */
+    playersSeen: p(
+      'Organisers we invite for a tournament can see the names of all the players entered in it, including players we do not name on the website. Scorers we invite see a name only when we have confirmed that the player is an adult, and never in junior events.',
     ),
+  },
+
+  /** Platform wave 5 (D-111). Registration for an event on our website; payment outside the website, checked by hand. */
+  registrations: {
+    collectRow: [
+      'Register a player for an event',
+      "The player's name (and a partner's name for doubles), a mobile number, an email address if you give one, and the payment reference if you type one.",
+      'To handle the registration and to contact you about that event. Power Smash handles registrations itself; we share them only with the service providers that run this website.',
+    ] as const,
+    paragraph: p(
+      'Every player registered on our website must be 18 or over; we do not take registrations for players under 18 here. When you register a player for an event on our website, we do not ask for a date of birth or an age, and we never ask for card details, a UPI PIN or a password. The fee is paid outside our website, and we check payments by hand. The phone number, email address and payment reference are never shown on the website. A registered player is named on our competition pages only after we have confirmed that the player is an adult; until then, and always in junior events, the player is not named there. Junior events do not take registrations on our website.',
+    ),
+    retentionRow: ['Event registrations', todo('how long we keep a registration before deleting its contact details (D-111)')] as const,
+  },
+
+  /** Platform wave 5 (D-113). Near-live scores on event pages. `byScorers` only while organizerAccounts is on as well. */
+  liveScores: {
+    nearLive:
+      'While a match is being scored, its event page shows the score as it stands, refreshed often while the match is played. We record which account entered each point and when. Players are named on live scores under the same rule as on our competition pages; everyone else is shown without a name. A live score is not a result: results count only once they are confirmed.',
+    byScorers: ' The score is entered point by point by Power Smash or by a scorer we have invited for that tournament.',
+  },
+
+  /** Platform wave 5 (D-112). International events listed with one link to the official page. */
+  internationalLinks: {
+    paragraph: p(
+      "Links to other websites. Our International events page lists badminton events run by others, with a link to each event's official page (for example the Badminton World Federation's site). We do not copy results, draws, rankings or player details from those sites. When you follow a link you leave our website: the other site's own terms and privacy policy apply. Our links tell your browser not to send that site the address of our page.",
+    ),
+  },
+
+  /** Platform wave 5 (D-114). The email updates list: double opt-in, one-click unsubscribe, sent through Resend. */
+  emailNotifications: {
+    collectRow: [
+      'Sign up for email updates',
+      'Your email address, the time you signed up and confirmed, and the version of the notice you saw.',
+      'To send the updates you asked for after you confirm your address, and to show that you asked for them. Every email has a one-click unsubscribe link.',
+    ] as const,
+    paragraph: p(
+      'Email updates. If you sign up for Power Smash updates by email, we first send one email with a link to confirm the address; nothing else is sent until you open that link, and an unconfirmed sign-up is never used. You must be 18 or over to sign up. We use the address only to send the updates you asked for. Every email has a link that stops the emails at once, with one click. We never show your address on the website, never put it in our alerts to ourselves, and share it only with the service that sends our emails (Resend) and the service that holds our database (Supabase).',
+    ),
+    retentionRow: ['Email updates list', todo('how long we keep an email address after you unsubscribe or never confirm (D-114)')] as const,
+  },
+
+  /** Platform wave 5 (D-114). Owner notices on the website and the WhatsApp Channel button. Notices hold no personal data. */
+  siteNotices: {
+    channelBullet: [
+      strong('WhatsApp Channel. '),
+      'Our "Stay updated" block has a button to our WhatsApp Channel. Following the channel happens in WhatsApp; you do not share your number with us. Short notices on our pages are written by us and hold no contact details.',
+    ] as Inline[],
   },
 
   /** M2a. The site calls the YouTube API (Developer Policies III.A.1 and III.A.2: the privacy policy must say so and link both policies). */
@@ -198,7 +266,10 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
         'To keep the site secure, fix faults and see which pages, buttons and forms are useful.',
       ],
       ...ifOn(f.emailAlerts, [...fut.emailAlerts.collectRow]),
+      ...ifOn(f.emailNotifications, [...fut.emailNotifications.collectRow]),
       ...ifOn(f.videoSubmissions, [...fut.videoSubmissions.collectRow]),
+      ...ifOn(f.registrations, [...fut.registrations.collectRow]),
+      ...ifOn(f.organizerAccounts, [...fut.organizerAccounts.collectRow]),
     ],
   );
 
@@ -257,7 +328,9 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
       ...ifOn(f.paymentRecords, [...fut.paymentRecords.retentionRow]),
       ['Security and access logs', 'Kept by our hosting and database providers for the period their service sets, and then deleted by them.'],
       ...ifOn(f.emailAlerts, [...fut.emailAlerts.retentionRow]),
+      ...ifOn(f.emailNotifications, [...fut.emailNotifications.retentionRow]),
       ...ifOn(f.videoSubmissions, [...fut.videoSubmissions.retentionRow]),
+      ...ifOn(f.registrations, [...fut.registrations.retentionRow]),
       [
         'Encrypted backups',
         `For about two months, and then they are deleted automatically. A record you ask us to erase can stay in a backup until that backup expires.${f.erasureLog ? fut.erasureLog.backupSentence : ''}`,
@@ -280,6 +353,8 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
     section('what-we-collect', 'What we collect', [
       p('We collect only what each form or request needs. This table shows what we collect, and why.'),
       collectTable,
+      ...ifOn(f.registrations, fut.registrations.paragraph),
+      ...ifOn(f.emailNotifications, fut.emailNotifications.paragraph),
       p('We do not ask for sensitive information such as passwords, health details or card numbers. Please do not type them into any message box.'),
     ]),
 
@@ -349,7 +424,12 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
           `Our forms and services are for adults: organisers, businesses, coaches, parents, and players aged 18 or over. If you are under 18, please ask a parent or guardian to contact us for you. We do not market to anyone under 18.${f.emailAlerts ? fut.emailAlerts.adultsOnly : ''}`,
         ),
         ...ifOn(f.archivePages, ...fut.archivePages.protectedPlayers),
-        ...ifOn(f.competitionPages, fut.competitionPages.protectedPlayers),
+        ...ifOn(
+          f.competitionPages,
+          f.organizerAccounts ? p(competitionText.replace(ENTERED_BY_US, fut.organizerAccounts.enteredBy)) : fut.competitionPages.protectedPlayers,
+        ),
+        ...ifOn(f.organizerAccounts, fut.organizerAccounts.playersSeen),
+        ...ifOn(f.liveScores, p(`${fut.liveScores.nearLive}${f.organizerAccounts ? fut.liveScores.byScorers : ''}`)),
         p(
           'A parent or guardian can ask us at any time to hide a child\'s name or to remove a video, a page or a listing. See our ',
           link('/content-removal', 'Content Removal and Takedown Policy'),
@@ -373,6 +453,7 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
           ' explains what it collects.',
         ],
         ...ifOn(f.youtubeEmbeds, fut.youtubeEmbeds.cookiesBullet),
+        ...ifOn(f.siteNotices, fut.siteNotices.channelBullet),
         [
           strong('Other websites. '),
           'When you tap a link to YouTube, Instagram, Facebook or WhatsApp, you leave this website. That service\'s own policy then applies, and it may use cookies.',
@@ -382,6 +463,7 @@ export function buildPrivacyDoc(f: LegalFeatures = features, facts: LegalFacts =
           'We do not let other companies show advertisements on this website. Sponsor and partner logos and banners are images that we place ourselves, and we label them clearly.',
         ],
       ),
+      ...ifOn(f.internationalLinks, fut.internationalLinks.paragraph),
     ]),
 
     ...ifOn(f.youtubeApiData, {

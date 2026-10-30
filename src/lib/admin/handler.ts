@@ -5,13 +5,27 @@ import { z } from 'zod';
 import { AGE_STATUSES, SUPPRESSION_KINDS, TOURNAMENT_LEVELS } from '../archive/types';
 import { CATEGORIES } from '../parser/types';
 import { LEAD_STATUSES } from '../inbox/status';
-import { authorizeAdmin, authorizeEnrolCheck, type AuthDeps } from './auth';
+import { authorizeEnrolCheckPlatform, authorizePlatform, authorizeSessionRole, type PlatformAuthDeps } from './auth';
+import { isStaffWideAction } from './accounts/access';
+import { ACCOUNT_SCHEMAS } from './accounts/schemas';
+import { createScopedCompetitionStore, createScopedLiveScoringStore, type ScopeDeps } from './accounts/scoped-store';
+import { isScopedRole } from './accounts/types';
+import { INTERNATIONAL_ACTION_SCHEMAS } from './international/schemas';
+import { LIVE_SCORING_SCHEMAS } from './live-scoring/schemas';
+import { NOTICES_ACTION_SCHEMAS } from './notices/schemas';
+import { REGISTRATION_ACTION_SCHEMAS } from './registration/schemas';
 import type { DispatchFn, DispatchKind } from './dispatch';
-import { ADMIN_ACTIONS, ENROL_CHECK_ACTION, isAdminAction, type AdminActionName } from './policy';
+import { ADMIN_ACTIONS, ENROL_CHECK_ACTION, isAdminAction, SESSION_ROLE_ACTION, type AdminActionName } from './policy';
 import { PARSED_FIELDS, PROTECTED_MODE_KEYS, type Actor, type AdminErrorCode, type AdminStore, type StoreResult } from './types';
 
 export interface AdminHandlerDeps {
-  auth: AuthDeps;
+  /** `organizerAccountsEnabled` = ORGANIZER_ACCOUNTS_ENABLED exactly 'true' (D-108); absent = off: only the owner (and editors, when on). */
+  auth: Omit<PlatformAuthDeps, 'organizerAccountsEnabled'> & { organizerAccountsEnabled?: boolean };
+  /**
+   * The per-tournament check BEFORE the store for organizers and scorers (accounts/scoped-store.ts): their active assignments and the
+   * tournament of each record, read fresh per request. null or absent = an organizer or scorer is refused every competition action.
+   */
+  scope?: ScopeDeps | null;
   store: AdminStore;
   /** null = REBUILD_DISPATCH_TOKEN etc. not configured: dispatching answers `not_configured`, never silently succeeds. */
   dispatch: DispatchFn | null;
@@ -124,6 +138,12 @@ const COMPETITION_SCHEMAS = {
 
 const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   ...COMPETITION_SCHEMAS,
+  // platform waves 4 and 5: each area exports its own strict schemas (src/lib/admin/<area>/schemas.ts)
+  ...LIVE_SCORING_SCHEMAS,
+  ...ACCOUNT_SCHEMAS,
+  ...REGISTRATION_ACTION_SCHEMAS,
+  ...INTERNATIONAL_ACTION_SCHEMAS,
+  ...NOTICES_ACTION_SCHEMAS,
   'dashboard': empty,
   'review.list': page,
   'review.resolve': z
@@ -364,9 +384,10 @@ export function createAdminHandler(deps: AdminHandlerDeps) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...BASE_HEADERS, ...cors.headers } });
     if (request.method !== 'POST') return json({ ok: false, code: 'method' }, 405, { allow: 'POST, OPTIONS' });
     if (actionName === ENROL_CHECK_ACTION) return enrolCheck(request, deps, cors.headers);
+    if (actionName === SESSION_ROLE_ACTION) return sessionRole(request, deps, cors.headers);
     if (!isAdminAction(actionName)) return json({ ok: false, code: 'not_found' }, 404, cors.headers);
 
-    const decision = await authorizeAdmin(request, actionName, deps.auth);
+    const decision = await authorizePlatform(request, actionName, platformAuth(deps));
     if (!decision.ok) return json({ ok: false, code: decision.code }, decision.status, cors.headers);
 
     let raw: string;
@@ -391,8 +412,17 @@ export function createAdminHandler(deps: AdminHandlerDeps) {
 }
 
 /** S2-8: a session may enrol a factor only when the owner profile exists AND no factor exists yet. Never adds a second factor from aal1. */
+const platformAuth = (deps: AdminHandlerDeps): PlatformAuthDeps => ({ ...deps.auth, organizerAccountsEnabled: deps.auth.organizerAccountsEnabled === true });
+
+/** The admin app asks once after sign-in which role the session has (to show the right areas). aal2 only; nothing else is revealed. */
+async function sessionRole(request: Request, deps: AdminHandlerDeps, cors: Record<string, string>): Promise<Response> {
+  const d = await authorizeSessionRole(request, platformAuth(deps));
+  if (!d.ok) return json({ ok: false, code: d.code }, d.status, cors);
+  return json({ ok: true, data: { role: d.actor.role } }, 200, cors);
+}
+
 async function enrolCheck(request: Request, deps: AdminHandlerDeps, cors: Record<string, string>): Promise<Response> {
-  const d = await authorizeEnrolCheck(request, deps.auth);
+  const d = await authorizeEnrolCheckPlatform(request, platformAuth(deps));
   if (!d.ok) return json({ ok: false, code: d.code }, d.status, cors);
   if (!deps.factorCount) return json({ ok: true, data: { allowed: false } }, 200, cors);
   let count: number;
@@ -406,7 +436,8 @@ async function enrolCheck(request: Request, deps: AdminHandlerDeps, cors: Record
 
 // The cast below is safe: SCHEMAS[action] validated the exact input shape the store method takes.
 async function run(action: AdminActionName, actor: Actor, input: any, deps: AdminHandlerDeps, cors: Record<string, string>): Promise<Response> {
-  const s = deps.store;
+  const s = storeFor(action, actor, deps);
+  if (s === null) return json({ ok: false, code: 'forbidden' }, 403, cors);
   switch (action) {
     case 'dashboard': return fromStore(await s.getDashboard(), cors);
     case 'review.list': return fromStore(await s.listReviewQueue(input), cors);
@@ -474,6 +505,38 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'competition.saveVenue': return fromStore(await s.competitionSaveVenue(actor, input), cors);
     case 'competition.saveCourt': return fromStore(await s.competitionSaveCourt(actor, input), cors);
     case 'competition.approvePointsTable': return fromStore(await s.competitionApprovePointsTable(actor, input), cors);
+    case 'competition.liveMatches': return fromStore(await s.liveScoringMatches(actor), cors);
+    case 'competition.liveMatch': return fromStore(await s.liveScoringMatch(input, actor), cors);
+    case 'competition.liveSettings': return fromStore(await s.liveScoringSettings(), cors);
+    case 'competition.liveScore': return fromStore(await s.liveScoringScore(actor, input), cors);
+    case 'competition.liveStatus': return fromStore(await s.liveScoringStatus(actor, input), cors);
+    case 'competition.saveLiveSettings': return fromStore(await s.liveScoringSaveSettings(actor, input), cors);
+    case 'accounts.list': return fromStore(await s.accountsList(), cors);
+    case 'accounts.invite': return fromStore(await s.accountsInvite(actor, input), cors);
+    case 'accounts.assign': return fromStore(await s.accountsAssign(actor, input), cors);
+    case 'accounts.revokeAssignment': return fromStore(await s.accountsRevokeAssignment(actor, input), cors);
+    case 'accounts.disable': return fromStore(await s.accountsDisable(actor, input), cors);
+    case 'accounts.setAccess': return fromStore(await s.accountsSetAccess(actor, input), cors);
+    case 'registrations.settings': return fromStore(await s.registrationSettings(), cors);
+    case 'registrations.events': return fromStore(await s.registrationEvents(), cors);
+    case 'registrations.list': return fromStore(await s.registrationList(input), cors);
+    case 'registrations.saveSettings': return fromStore(await s.registrationSaveSettings(actor, input), cors);
+    case 'registrations.setEvent': return fromStore(await s.registrationSetEvent(actor, input), cors);
+    case 'registrations.verifyPayment': return fromStore(await s.registrationVerifyPayment(actor, input), cors);
+    case 'registrations.convert': return fromStore(await s.registrationConvert(actor, input), cors);
+    case 'registrations.reject': return fromStore(await s.registrationReject(actor, input), cors);
+    case 'international.list': return fromStore(await s.internationalList(), cors);
+    case 'international.save': return fromStore(await s.internationalSave(actor, input), cors);
+    case 'international.setPublished': return fromStore(await s.internationalSetPublished(actor, input), cors);
+    case 'international.saveHosts': return fromStore(await s.internationalSaveHosts(actor, input), cors);
+    case 'notices.list': return fromStore(await s.noticesList(), cors);
+    case 'notices.staff': return fromStore(await s.noticesStaff(), cors);
+    case 'notices.save': return fromStore(await s.noticesSave(actor, input), cors);
+    case 'notices.publish': return fromStore(await s.noticesPublish(actor, input), cors);
+    case 'notify.summary': return fromStore(await s.notifySummary(actor), cors);
+    case 'notify.saveSettings': return fromStore(await s.notifySaveSettings(actor, input), cors);
+    case 'notify.queueAnnouncement': return fromStore(await s.notifyQueueAnnouncement(actor, input), cors);
+    case 'notify.dispatch': return fromStore(await s.notifyDispatch(actor), cors);
     case 'site.syncNow': return dispatchAction('sync', actor, deps, cors);
     case 'site.publishNow': return dispatchAction('publish', actor, deps, cors);
     case 'emergency.hide': {
@@ -485,6 +548,21 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
       return json({ ok: true, data: { ...r.data, deploy } }, 200, cors);
     }
   }
+}
+
+/**
+ * The store this caller may use for this action. The owner (and an editor) get the store unchanged. An organizer or scorer gets ONLY
+ * the per-tournament checked competition and live scoring methods (accounts/scoped-store.ts) and the staff notices; anything else is
+ * refused here as well as by the policy (null = 403). Without scope deps a scoped role gets no competition action at all.
+ */
+function storeFor(action: AdminActionName, actor: Actor, deps: AdminHandlerDeps): AdminStore | null {
+  if (!isScopedRole(actor.role)) return deps.store;
+  if (isStaffWideAction(action)) return { noticesStaff: () => deps.store.noticesStaff() } as unknown as AdminStore;
+  if (!action.startsWith('competition.') || !deps.scope) return null;
+  return {
+    ...createScopedCompetitionStore(deps.store, actor, deps.scope),
+    ...createScopedLiveScoringStore(deps.store, actor, deps.scope),
+  } as unknown as AdminStore;
 }
 
 async function dispatchAction(kind: DispatchKind, actor: Actor, deps: AdminHandlerDeps, cors: Record<string, string>): Promise<Response> {

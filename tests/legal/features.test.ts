@@ -25,6 +25,12 @@ const PROBES: Record<FeatureName, RegExp[]> = {
   youtubeEmbeds: [/loads from YouTube only after you tap to play/, /through YouTube's player/, /Video thumbnails come from YouTube/],
   archivePages: [/profile page/, /\bprotected\b/, /Match details by Power Smash/, /player, match and tournament pages/],
   competitionPages: [/"Protected player"/, /draws, order of play and results/, /not official BWF rankings/, /do not count towards our local rankings/, /entered by Power Smash/],
+  organizerAccounts: [/Help run a tournament at our invitation/, /held by our sign-in provider, Supabase/, /including players we do not name on the website/],
+  registrations: [/Register a player for an event/, /a UPI PIN/, /Junior events do not take registrations on our website/, /Every player registered on our website must be 18 or over/],
+  liveScores: [/While a match is being scored/, /A live score is not a result/],
+  internationalLinks: [/Our International events page lists/, /We do not copy results, draws, rankings or player details/],
+  emailNotifications: [/Sign up for email updates/, /one-click unsubscribe/, /an unconfirmed sign-up is never used/],
+  siteNotices: [/WhatsApp Channel/],
   requestVerification: [/one-time code/],
   ageProofChecks: [/age proof/i],
   emailAlerts: [/email alerts/i, /18 or older/],
@@ -183,6 +189,36 @@ describe('the owner alert sentence is true for the default (R-TELEGRAM-PHONE, S-
 
   it('the flag is off in the repository', () => {
     expect(features.telegramPhoneLink).toBe(false);
+  });
+});
+
+describe('who enters competition results follows the organizer accounts flag (D-108)', () => {
+  const privacy = (f: LegalFeatures) => docWording(buildLegalDocs(f).privacy).join('\n');
+  it('competition pages alone say Power Smash enters the results', () => {
+    const t = privacy(only('competitionPages'));
+    expect(t).toMatch(/Results on these pages are entered by Power Smash\./);
+    expect(t).not.toMatch(/organizers and scorers whom Power Smash has invited/);
+  });
+  it('with organizer accounts on as well, the sentence names the invited organizers and scorers instead', () => {
+    const t = privacy({ ...ALL_OFF, competitionPages: true, organizerAccounts: true });
+    expect(t).not.toMatch(/Results on these pages are entered by Power Smash\./);
+    expect(t).toMatch(/entered by Power Smash or by tournament organizers and scorers whom Power Smash has invited/);
+  });
+  it('registration wording promises no organiser sharing (organizers cannot see registrations) and only adult registrations', () => {
+    const t = privacy(only('registrations'));
+    expect(t).toMatch(/Power Smash handles registrations itself/);
+    expect(t).not.toMatch(/share them only with the event's organiser/);
+  });
+  it('organizer accounts tell players that invited organisers see every entrant name', () => {
+    expect(privacy(only('organizerAccounts'))).toMatch(/Organisers we invite for a tournament can see the names of all the players entered in it/);
+    expect(privacy(ALL_OFF)).not.toMatch(/Organisers we invite/);
+  });
+  it('the email updates wording names the database host as well as the sender', () => {
+    expect(privacy(only('emailNotifications'))).toMatch(/\(Resend\) and the service that holds our database \(Supabase\)/);
+  });
+  it('live scores name invited scorers only while organizer accounts are on', () => {
+    expect(privacy(only('liveScores'))).not.toMatch(/a scorer we have invited/);
+    expect(privacy({ ...ALL_OFF, liveScores: true, organizerAccounts: true })).toMatch(/a scorer we have invited for that tournament/);
   });
 });
 

@@ -1,0 +1,11 @@
+---
+// /international/ (D-112): major international badminton events the owner lists by hand, each with ONE link to its official page.
+// One static route so a build without the page writes nothing: internationalPaths() returns no path in the strict release build while
+// features.internationalLinks is off. The page body lives in _parts/ (not routed).
+import type { GetStaticPaths } from 'astro';
+import InternationalPage from './_parts/InternationalPage.astro';
+import { internationalPaths } from '../../lib/international/in-build';
+
+export const getStaticPaths = (() => internationalPaths()) satisfies GetStaticPaths;
+---
+<InternationalPage />

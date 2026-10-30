@@ -75,8 +75,16 @@ describe('competition page sources', () => {
     expect(src).toMatch(/canonicalPath=\{/);
   });
 
-  it('the event page never claims a live score', () => {
-    const src = read(join(DIR, '[tournament]', '[event].astro'));
+  it('the event page never claims a live score itself; the only live element is the gated LiveScores component (D-113)', () => {
+    const full = read(join(DIR, '[tournament]', '[event].astro'));
+    // the gated component: imported once from components/competition/live/ and placed once with the event id
+    expect(full).toContain("import LiveScores from '../../../components/competition/live/LiveScores.astro';");
+    expect(full.match(/<LiveScores\b[^>]*\/>/g)).toEqual(['<LiveScores eventId={e.id} />']);
+    // everything else on the page: confirmed results only, never "live"
+    const src = full
+      .split('\n')
+      .filter((l) => !/import LiveScores from|<LiveScores eventId=\{e\.id\} \/>/.test(l))
+      .join('\n');
     expect(src).toContain('live={false}');
     expect(src).not.toMatch(/live=\{true\}|\blive\b(?!=)/);
   });

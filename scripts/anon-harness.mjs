@@ -102,6 +102,24 @@ export const MANIFEST = [
   { name: 'public_competition_matches', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
   { name: 'public_competition_match_games', pk: 'match_id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
   { name: 'public_competition_rankings', pk: 'snapshot_id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  // 0019_competition_accounts.sql (D-108): no new table or view (profiles and organizer_assignments are listed above)
+  // 0020_registrations.sql (D-111): the registrations table is denied; the two api views allow select only
+  { name: 'event_registrations', pk: 'id', pkSample: NIL_UUID },
+  { name: 'public_registration_events', pk: 'event_id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  { name: 'public_registration_payment', pk: 'payee_name', pkSample: '__no_such_payee__', schema: 'api', expectSelect: true },
+  // 0021_live_scores.sql (D-113): the live state is denied; the live api view allows select only
+  { name: 'match_live_state', pk: 'match_id', pkSample: NIL_UUID },
+  { name: 'public_competition_live', pk: 'match_id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  // 0022_international_links.sql (D-112): both tables denied; the api view allows select only
+  { name: 'international_events', pk: 'id', pkSample: NIL_UUID },
+  { name: 'international_settings', pk: 'id', pkSample: '0' },
+  { name: 'public_international_events', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  // 0023_notifications.sql (D-114): subscribers, switches and notices are denied; the two api views allow select only
+  { name: 'notify_subscribers', pk: 'id', pkSample: NIL_UUID },
+  { name: 'notify_settings', pk: 'id', pkSample: '0' },
+  { name: 'site_notices', pk: 'id', pkSample: NIL_UUID },
+  { name: 'public_site_notices', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
+  { name: 'public_notify_settings', pk: 'email_subscribe_open', pkSample: 'false', schema: 'api', expectSelect: true },
   // Later milestones add their tables here, for example:
   //   { name: 'players', pk: 'id', pkSample: NIL_UUID }                                  (base table: must be denied)
   //   { name: 'public_players', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true }  (api view: select allowed, writes denied)

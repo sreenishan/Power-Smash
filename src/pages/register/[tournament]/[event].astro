@@ -1,0 +1,93 @@
+---
+// /register/<tournament-slug>/<event-code>/: register for one event (D-111). The event code and tournament slug are those of the
+// competition pages (D-115), but the route is a SIBLING family, not /competitions/.../register/, on purpose:
+//  - it is switched on its own (features.registrations) and can be pruned on its own (output folder "register"), without touching
+//    the competition page family, whose route list and page rules are pinned by tests/competition-public/pages-source.test.ts;
+//  - it is a form page with a React island; the competition pages stay static, without client JavaScript.
+// Built only when registrationInBuild() (the strict release build needs features.competitionPages AND features.registrations), and
+// only for events that take registrations now (api.public_registration_events: public, open, registration_open, NOT junior, and
+// the owner's switch on). Always noindex: a form page has nothing to index.
+// The fee and the payment details are the owner's settings (integer paise, D-020): nothing is shown when they are not set, and
+// nothing is charged on the site. The form never asks for card or UPI credentials, or for an age.
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import FormSection from '../../../components/forms/FormSection.astro';
+import RegistrationForm from '../../../components/registration/RegistrationForm';
+import PaymentDetails from '../../../components/registration/PaymentDetails.astro';
+import CompetitionSampleNotice from '../../competitions/_parts/CompetitionSampleNotice.astro';
+import { loadRegistrationSite } from '../../../lib/registration/public/load';
+import type { RegistrationPage } from '../../../lib/registration/public/model';
+import { REGISTRATION_CONSENT } from '../../../lib/registration/consent';
+import { formPageConfig } from '../../../lib/forms/page-config';
+import { formatDateRange } from '../../../lib/dates';
+import { COMPETITION_ROUTES } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const site = await loadRegistrationSite();
+  return site.pages.map((p) => ({ params: { tournament: p.tournamentSlug, event: p.eventCode }, props: { p, source: site.source } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  p: RegistrationPage;
+  source: 'seed' | 'supabase';
+}
+const { p, source } = Astro.props;
+const cfg = formPageConfig();
+const when = p.startDate ? formatDateRange(p.startDate, p.endDate) : null;
+---
+<BaseLayout
+  title={titleWithBrand(`Register: ${p.eventTitle}, ${p.tournamentName}`)}
+  description={`Register for ${p.eventTitle} at ${p.tournamentName}.`}
+  canonicalPath={p.path}
+  noindex
+>
+  <CompetitionSampleNotice source={source} />
+  <PageHero
+    tone="dark"
+    eyebrow={p.tournamentName}
+    title={`Register: ${p.eventTitle}`}
+    lead={when ?? undefined}
+    crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: p.tournamentName, href: p.tournamentPath }, { name: p.eventTitle, href: p.eventPath }, { name: 'Register' }]}
+  />
+
+  <Section compact labelledBy="how-title">
+    <h2 id="how-title" class="text-h3">How it works</h2>
+    <ol class="mt-3 flex max-w-3xl list-decimal flex-col gap-2 pl-5 text-body" data-registration-steps>
+      <li>Send the form below. You get a reference number straight away.</li>
+      {p.feeText ? <li>Pay the entry fee of <strong class="ps-num" data-fee>{p.feeText}</strong> outside this website, as shown below, and type the payment reference in the form (or send it later on WhatsApp with your reference number).</li> : null}
+      <li>The organiser checks each registration by hand{p.feeText ? ' and the payment' : ''}, then adds confirmed players to the entry list.</li>
+    </ol>
+    <p class="mt-3 max-w-3xl text-small text-fg-muted">Nothing is charged on this website, and we never ask for card details, a UPI PIN or a password.</p>
+  </Section>
+
+  {p.payment && (
+    <Section compact tone="surface" labelledBy="pay-title">
+      <PaymentDetails headingId="pay-title" feeText={p.feeText} payment={p.payment} />
+    </Section>
+  )}
+
+  <FormSection id="register" title="Registration form" route={p.path} blocked={cfg.turnstileMode === 'blocked'}>
+    <RegistrationForm
+      client:visible
+      eventId={p.eventId}
+      eventTitle={p.eventTitle}
+      playersNeeded={p.playersNeeded}
+      feeText={p.feeText}
+      notice={REGISTRATION_CONSENT}
+      privacyHref={cfg.privacyHref}
+      turnstileMode={cfg.turnstileMode}
+      turnstileSiteKey={cfg.turnstileSiteKey}
+    />
+    <Fragment slot="aside">
+      <h2 class="text-h4 normal-case">Good to know</h2>
+      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+        <li>{p.playersNeeded === 2 ? 'This is a doubles event: give both players’ names.' : 'This is a singles event: one player per registration.'}</li>
+        <li>Your phone number and email are never shown on the website.</li>
+        <li>Junior events do not take registrations on this website.</li>
+      </ul>
+    </Fragment>
+  </FormSection>
+</BaseLayout>

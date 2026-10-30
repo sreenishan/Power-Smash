@@ -1,0 +1,45 @@
+---
+// "Stay updated" block (D-114): the WhatsApp Channel button (ONLY a link to the owner's channel, from site.whatsappChannelUrl, no
+// number, no API) and the email sign-up with double opt-in. Each part hides on its own:
+//  - the Channel button needs features.siteNotices AND a setting that is a real Channel link (src/lib/notices/channel.ts);
+//  - the email form needs features.emailNotifications (the endpoint also needs NOTIFY_SUBSCRIBE_ENABLED, EMAIL_ENABLED and the
+//    owner's switch, and answers "not open yet" otherwise).
+// When neither part shows, nothing is rendered. Suggested places: /alerts/ (replacing its current blocks) and the footer.
+import Button from '../../ui/Button.astro';
+import SubscribeForm from './SubscribeForm';
+import { site } from '../../../content/site';
+import { whatsappChannelLink } from '../../../lib/notices/channel';
+import { SUBSCRIBE_CONSENT } from '../../../lib/notices/constants';
+import { emailNotificationsFlag, siteNoticesFlag } from '../../../lib/notices/switches';
+import { formPageConfig } from '../../../lib/forms/page-config';
+
+interface Props {
+  /** Tests and previews: override the switches and the channel setting. */
+  showChannel?: boolean;
+  showEmail?: boolean;
+  channelUrl?: string | null;
+  headingLevel?: 'h2' | 'h3';
+}
+const { headingLevel = 'h2' } = Astro.props;
+const channel = whatsappChannelLink(Astro.props.channelUrl === undefined ? site.whatsappChannelUrl : Astro.props.channelUrl);
+const showChannel = (Astro.props.showChannel ?? siteNoticesFlag()) && channel !== null;
+const showEmail = Astro.props.showEmail ?? emailNotificationsFlag();
+const cfg = formPageConfig();
+const H = headingLevel;
+---
+{(showChannel || showEmail) && (
+  <section aria-labelledby="stay-updated-title" class="flex flex-col gap-6" data-stay-updated>
+    <H id="stay-updated-title" class="text-h3">Stay updated</H>
+    {showChannel && channel && (
+      <div class="flex flex-col gap-3" data-channel>
+        <p>Follow the Power Smash WhatsApp Channel. You do not share your number with us.</p>
+        <div><Button href={channel} variant="primary" external>Follow on the WhatsApp Channel</Button></div>
+      </div>
+    )}
+    {showEmail && (
+      <div data-email-signup>
+        <SubscribeForm client:visible notice={SUBSCRIBE_CONSENT} privacyHref={cfg.privacyHref} turnstileMode={cfg.turnstileMode} turnstileSiteKey={cfg.turnstileSiteKey} />
+      </div>
+    )}
+  </section>
+)}

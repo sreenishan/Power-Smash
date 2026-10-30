@@ -101,6 +101,11 @@ export interface Recipient {
   consent: Partial<Record<Channel, ChannelConsent>>;
   /** Kinds the recipient turned off (honoured for every kind). */
   mutedKinds?: readonly NotificationKind[];
+  /**
+   * 'subscriber' = someone on the double-opt-in EMAIL LIST (D-114, migration 0023), not a player or a registration contact. A subscriber
+   * gets only announcements, only by email, and only with a confirmed email consent (consent.ts). Default 'participant'.
+   */
+  audience?: 'participant' | 'subscriber';
 }
 
 export type RecordStatus = 'queued' | 'sending' | 'sent' | 'failed' | 'skipped';

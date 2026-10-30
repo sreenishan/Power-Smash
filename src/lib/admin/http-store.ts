@@ -35,6 +35,22 @@ export async function canEnrolTotp(opts: { baseUrl?: string; token: string; fetc
   }
 }
 
+/**
+ * D-108: which role this (aal2) session has, so the app shows the right areas. null = no usable role (or no answer): the app then signs
+ * out. The server decides every action again; this only chooses what to show.
+ */
+export async function sessionRole(opts: { baseUrl?: string; token: string; fetch: typeof fetch }): Promise<'owner' | 'editor' | 'organizer' | 'scorer' | null> {
+  try {
+    const res = await opts.fetch(`${(opts.baseUrl ?? '/api/admin').replace(/\/+$/, '')}/session.role`, { method: 'POST', headers: { authorization: `Bearer ${opts.token}`, 'content-type': 'application/json' }, body: '{}' });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { ok?: boolean; data?: { role?: unknown } };
+    const role = json.ok === true ? json.data?.role : undefined;
+    return role === 'owner' || role === 'editor' || role === 'organizer' || role === 'scorer' ? role : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
   const base = (opts.baseUrl ?? '/api/admin').replace(/\/+$/, '');
   async function post<T>(action: string, body: object = {}): Promise<StoreResult<T>> {
@@ -130,6 +146,43 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     competitionSaveVenue: noActor('competition.saveVenue'),
     competitionSaveCourt: noActor('competition.saveCourt'),
     competitionApprovePointsTable: noActor('competition.approvePointsTable'),
+    // live scoring (D-113): a network failure comes back as BACKEND_ERROR with no errors.form, which the console treats as "send again"
+    liveScoringMatches: () => post('competition.liveMatches'),
+    liveScoringMatch: (o) => post('competition.liveMatch', o),
+    liveScoringSettings: () => post('competition.liveSettings'),
+    liveScoringScore: noActor('competition.liveScore'),
+    liveScoringStatus: noActor('competition.liveStatus'),
+    liveScoringSaveSettings: noActor('competition.saveLiveSettings'),
+    // organizer and scorer accounts (D-108)
+    accountsList: () => post('accounts.list'),
+    accountsInvite: noActor('accounts.invite'),
+    accountsAssign: noActor('accounts.assign'),
+    accountsRevokeAssignment: noActor('accounts.revokeAssignment'),
+    accountsDisable: noActor('accounts.disable'),
+    accountsSetAccess: noActor('accounts.setAccess'),
+    // registrations (D-111)
+    registrationSettings: () => post('registrations.settings'),
+    registrationEvents: () => post('registrations.events'),
+    registrationList: (o) => post('registrations.list', o),
+    registrationSaveSettings: noActor('registrations.saveSettings'),
+    registrationSetEvent: noActor('registrations.setEvent'),
+    registrationVerifyPayment: noActor('registrations.verifyPayment'),
+    registrationConvert: noActor('registrations.convert'),
+    registrationReject: noActor('registrations.reject'),
+    // international events (D-112)
+    internationalList: () => post('international.list'),
+    internationalSave: noActor('international.save'),
+    internationalSetPublished: noActor('international.setPublished'),
+    internationalSaveHosts: noActor('international.saveHosts'),
+    // site notices and the email updates list (D-114)
+    noticesList: () => post('notices.list'),
+    noticesStaff: () => post('notices.staff'),
+    noticesSave: noActor('notices.save'),
+    noticesPublish: noActor('notices.publish'),
+    notifySummary: () => post('notify.summary'),
+    notifySaveSettings: noActor('notify.saveSettings'),
+    notifyQueueAnnouncement: noActor('notify.queueAnnouncement'),
+    notifyDispatch: () => post('notify.dispatch'),
     syncNow: () => post('site.syncNow'),
     publishNow: () => post('site.publishNow'),
   };

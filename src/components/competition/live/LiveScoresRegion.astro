@@ -1,0 +1,48 @@
+---
+// The live region itself (only through LiveScores.astro). Hidden until the script finds a live or paused match; with JavaScript off
+// it stays hidden and the page is the plain static snapshot (which never says "Live").
+// The endpoint is an /api address: no trailing slash and not through path() (CLAUDE.md, endpoints keep no slash).
+interface Props {
+  eventId: string;
+}
+const { eventId } = Astro.props;
+const endpoint = `/api/live-scores/${eventId.toLowerCase()}`;
+---
+<section class="py-8" aria-labelledby="live-scores-title" data-live-scores data-endpoint={endpoint} hidden>
+  <div class="ps-container">
+    <h2 id="live-scores-title" class="text-h3">Live scores</h2>
+    <p class="mt-2 font-bold" aria-live="polite" data-live-summary></p>
+    <p class="mt-1 text-small text-fg-muted" data-live-checked></p>
+    <ul class="mt-4 grid gap-4 lg:grid-cols-2" data-live-list></ul>
+  </div>
+</section>
+<script>
+  import { startLiveScores } from './client';
+  startLiveScores();
+</script>
+<style>
+  /* The cards are made by the script, so these rules reach them through :global (the same look as MatchScoreboard.astro). */
+  [data-live-scores] :global(.ps-scoretable) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--ps-text-body);
+  }
+  [data-live-scores] :global(.ps-scoretable th),
+  [data-live-scores] :global(.ps-scoretable td) {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: center;
+  }
+  [data-live-scores] :global(.ps-scoretable thead th) {
+    font-size: var(--ps-text-caption);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-fg-muted);
+  }
+  [data-live-scores] :global(.ps-scoretable tbody th) {
+    text-align: left;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+</style>

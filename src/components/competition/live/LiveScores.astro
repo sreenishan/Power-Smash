@@ -1,0 +1,15 @@
+---
+// The near-live region of an event page (D-113). Renders NOTHING (no markup, no script) unless features.liveScores is true; the
+// region and its small script live in LiveScoresRegion.astro, so a page built with the switch off carries no extra JavaScript.
+// Include it once on /competitions/<tournament>/<event>/ with the event's id.
+import { liveScoresInBuild } from '../../../lib/live-scores/in-build';
+import { isUuid } from '../../../lib/live-scores/rules';
+import LiveScoresRegion from './LiveScoresRegion.astro';
+
+interface Props {
+  eventId: string;
+}
+const { eventId } = Astro.props;
+const show = liveScoresInBuild() && isUuid(eventId);
+---
+{show && <LiveScoresRegion eventId={eventId} />}

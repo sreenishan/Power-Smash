@@ -38,6 +38,12 @@ export interface RuntimeEnv {
   LEAD_GLOBAL_HOURLY_CAP?: string;
   /** Optional whole number: stored enquiries per 24 hours across all visitors before the daily breaker refuses new ones (N-3). Default in src/lib/security/ratelimit.ts. */
   LEAD_GLOBAL_DAILY_CAP?: string;
+  /** Exactly `true` opens /api/register (D-111, wave 5). Anything else = closed (409), the body is not read. */
+  REGISTRATION_ENABLED?: string;
+  /** Exactly `true` lets /api/live-scores/<event-id> answer scores (D-113, wave 5; with features.liveScores). Anything else = {live:false}. */
+  LIVE_SCORES_ENABLED?: string;
+  /** Exactly `true` opens the email updates sign-up and confirm endpoints (D-114, wave 5). Unsubscribe never reads it. */
+  NOTIFY_SUBSCRIBE_ENABLED?: string;
   /** Optional rate-limiter binding. Not available on Vercel (always undefined); kept so tests and handlers share one contract. */
   LEAD_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   EVENT_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
@@ -64,6 +70,9 @@ const NAMES = [
   'SUPABASE_ALLOW_LOCAL_URL',
   'LEAD_GLOBAL_HOURLY_CAP',
   'LEAD_GLOBAL_DAILY_CAP',
+  'REGISTRATION_ENABLED',
+  'LIVE_SCORES_ENABLED',
+  'NOTIFY_SUBSCRIBE_ENABLED',
 ] as const;
 
 const BINDINGS = ['LEAD_RATE_LIMITER', 'EVENT_RATE_LIMITER'] as const;

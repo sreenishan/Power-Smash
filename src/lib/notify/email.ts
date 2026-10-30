@@ -24,6 +24,27 @@ export interface EmailMessage {
   replyTo?: string;
   /** Resend `Idempotency-Key`: the lead reference plus a suffix, so a retry never sends twice. */
   idempotencyKey?: string;
+  /**
+   * Extra mail headers (Resend's `headers` object, "Custom headers to add to the email", checked 2026-10-31). ONLY the names in
+   * ALLOWED_MAIL_HEADERS (the one-click unsubscribe pair of RFC 2369 and RFC 8058). Any other name, or a value with a line break,
+   * makes the message invalid and nothing is sent.
+   */
+  headers?: Readonly<Record<string, string>>;
+}
+
+/** The only extra headers a message may carry. */
+export const ALLOWED_MAIL_HEADERS = ['List-Unsubscribe', 'List-Unsubscribe-Post'] as const;
+
+/** undefined = no extra headers; null = refused (an unknown name or a bad value). Uses NO_BREAKS below (hoisted at call time). */
+function safeHeaders(h: Readonly<Record<string, string>> | undefined): Record<string, string> | null | undefined {
+  if (h === undefined) return undefined;
+  const out: Record<string, string> = {};
+  for (const [name, value] of Object.entries(h)) {
+    if (!(ALLOWED_MAIL_HEADERS as readonly string[]).includes(name)) return null;
+    if (typeof value !== 'string' || value.length === 0 || value.length > 500 || NO_BREAKS.test(value)) return null;
+    out[name] = value;
+  }
+  return out;
 }
 
 const NO_BREAKS = /[\u0000-\u001F\u007F-\u009F\u2028\u2029]/;
@@ -53,7 +74,8 @@ export async function sendEmail(o: SendEmailOptions): Promise<EmailResult> {
   const to = safeMailbox(o.message.to);
   const replyTo = o.message.replyTo === undefined ? undefined : safeMailbox(o.message.replyTo);
   const subject = o.message.subject;
-  if (!from || !to || replyTo === null || NO_BREAKS.test(subject) || subject.length > 200 || NO_BREAKS.test(o.message.idempotencyKey ?? '')) {
+  const extra = safeHeaders(o.message.headers);
+  if (!from || !to || replyTo === null || extra === null || NO_BREAKS.test(subject) || subject.length > 200 || NO_BREAKS.test(o.message.idempotencyKey ?? '')) {
     return { ok: false, reason: 'invalid' };
   }
   const headers: Record<string, string> = {
@@ -67,7 +89,7 @@ export async function sendEmail(o: SendEmailOptions): Promise<EmailResult> {
     const res = await o.fetch(RESEND_URL, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ from, to, subject, text: o.message.text, ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from, to, subject, text: o.message.text, ...(replyTo ? { reply_to: replyTo } : {}), ...(extra && Object.keys(extra).length > 0 ? { headers: extra } : {}) }),
       signal,
     });
     if (res.ok || res.status === 409) return { ok: true }; // 409: the same idempotency key was already accepted

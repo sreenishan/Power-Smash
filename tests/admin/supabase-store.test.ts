@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAdminDeps, pickAdminEnv } from '../../src/lib/admin/config';
+import { adminDepsCacheKey, buildAdminDeps, organizerAccessServerOn, pickAdminEnv } from '../../src/lib/admin/config';
 import { createSupabaseAdminStore, parsedFromResult } from '../../src/lib/admin/supabase-store';
 
 const URL_OK = 'https://fakeref.supabase.co';
@@ -192,7 +192,7 @@ describe('buildAdminDeps / pickAdminEnv', () => {
     expect(b.allowedOrigins).toEqual(['https://a.test', 'https://b.test']);
     expect(buildAdminDeps({ ...base, ADMIN_EDITORS_ENABLED: 'true' }, { fetch, now: () => new Date() })!.auth.editorsEnabled).toBe(true);
   });
-  it('the profiles lookup reads only the role and accepts only owner or editor', async () => {
+  it('the profiles lookup reads only the role and the end date, and accepts only a known role (0019)', async () => {
     const seen: string[] = [];
     const f = (async (url: string, init: RequestInit) => {
       seen.push(url);
@@ -201,7 +201,25 @@ describe('buildAdminDeps / pickAdminEnv', () => {
     }) as unknown as typeof fetch;
     const deps = buildAdminDeps({ SUPABASE_URL: URL_OK, SUPABASE_SECRET_KEY: SECRET }, { fetch: f, now: () => new Date() })!;
     expect(await deps.auth.roles(P1)).toBeNull();
-    expect(seen[0]).toBe(`${URL_OK}/rest/v1/profiles?select=role&id=eq.${P1}&limit=1`);
+    expect(seen[0]).toBe(`${URL_OK}/rest/v1/profiles?select=role,disabled_at&id=eq.${P1}&limit=1`);
+  });
+  it('organizer access needs ORGANIZER_ACCOUNTS_ENABLED exactly "true" AND the legal flag organizerAccounts', () => {
+    const base = { SUPABASE_URL: URL_OK, SUPABASE_SECRET_KEY: SECRET, ORGANIZER_ACCOUNTS_ENABLED: 'true' };
+    const off = buildAdminDeps(base, { fetch, now: () => new Date(), flags: { organizerAccounts: false } })!;
+    expect(off.auth.organizerAccountsEnabled).toBe(false);
+    expect(off.scope).toBeNull();
+    const on = buildAdminDeps(base, { fetch, now: () => new Date(), flags: { organizerAccounts: true } })!;
+    expect(on.auth.organizerAccountsEnabled).toBe(true);
+    expect(on.scope).not.toBeNull();
+    // the real flags (all false today) keep organizers out even with the variable set
+    expect(buildAdminDeps(base, { fetch, now: () => new Date() })!.auth.organizerAccountsEnabled).toBe(false);
+    expect(organizerAccessServerOn('true', { organizerAccounts: 'true' })).toBe(false);
+    expect(organizerAccessServerOn('TRUE', { organizerAccounts: true })).toBe(false);
+  });
+  it('the cached admin dependencies are rebuilt when the email settings change, not only the admin settings', () => {
+    const env = { SUPABASE_URL: URL_OK };
+    expect(adminDepsCacheKey(env, { emailEnabled: true })).not.toBe(adminDepsCacheKey(env, { emailEnabled: false }));
+    expect(adminDepsCacheKey(env, { emailEnabled: true })).toBe(adminDepsCacheKey({ SUPABASE_URL: URL_OK }, { emailEnabled: true }));
   });
   it('a failing profiles lookup throws (the guard turns it into 503)', async () => {
     const deps = buildAdminDeps({ SUPABASE_URL: URL_OK, SUPABASE_SECRET_KEY: SECRET }, { fetch: (async () => new Response('x', { status: 500 })) as unknown as typeof fetch, now: () => new Date() })!;

@@ -74,3 +74,18 @@ not exported from `src/lib/providers/index.ts`; `isolation.test.ts` checks this 
 - A schedule or trigger (owner-approved; same parking rules as the YouTube sync).
 - Any public display: protected players (D-012) and the YouTube/legal switches apply; international rankings must be labelled as the
   provider's, with the provider's required attribution (unverified until a licence exists).
+
+## Link-out listings (wave 5, D-112, 2026-10-31)
+
+Separate from the adapter layer above and needing no licence: the owner types in major international events (name, level text, dates,
+city, country) with ONE link to the official page. Nothing is fetched, scraped or copied from the linked site (no results, draws,
+rankings, logos or player data); the page says "Details and results on the official site".
+
+- Rules: `src/lib/international/link-rules.ts` (shared by the admin form, the service and the page model; mirrored by
+  `app.international_link_problem` in `supabase/migrations/0022_international_links.sql`). Allowed websites: `bwfbadminton.com`,
+  `tournamentsoftware.com`, `bwf.tournamentsoftware.com` (with or without `www.`), plus hosts the owner adds in the admin. http(s) only;
+  user names, ports, punycode, IP addresses and link shorteners refused; tracking parameters and the `#` part removed before storing.
+- Note F4 above: BWF announced the closure of `bwf.tournamentsoftware.com` from 2025-01-07 (content unverified). The host stays on the
+  default list because the brief names it; a link to a closed site is the owner's choice and can be edited or hidden.
+- Public view `api.public_international_events` (published rows on an allowed website only), page `/international/` behind
+  `features.internationalLinks`, admin screen "International events". Integration notes: `docs/m5/integration/international.md`.

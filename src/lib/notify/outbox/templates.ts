@@ -125,7 +125,7 @@ export function renderMessage(event: DomainEvent, recipient: Pick<Recipient, 'gr
       const ref = one(event.registrationRef, 40);
       subject = `Payment check - ${ref}`;
       if (event.outcome === 'verified') {
-        lines.push(`The organiser has checked your payment for ${where(event)} by hand and marked it as verified.`);
+        lines.push(`Power Smash has checked your payment for ${where(event)} by hand and marked it as verified.`);
       } else {
         lines.push(`The organiser could not verify your payment for ${where(event)} yet. Please contact the organiser and quote your reference.`);
       }

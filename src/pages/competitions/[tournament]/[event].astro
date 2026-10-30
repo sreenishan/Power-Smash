@@ -1,9 +1,13 @@
 ---
 // /competitions/<tournament-slug>/<event-code>/: one event's entries, draw (bracket or groups), order of play and results.
-// Static, no client JavaScript. Everything comes from the page model (src/lib/competition/public/model.ts); names only through
-// protect.ts (anyone not a confirmed adult, and everyone in a junior event, reads "Protected player", D-012, D-109).
-// Never "Live" on this page (D-113): the scoreboards only get confirmed results, and `now` is the snapshot time. The page is a
-// once-per-build snapshot, so it prints when that snapshot was taken next to the order of play (updatedText).
+// Static. Everything comes from the page model (src/lib/competition/public/model.ts); names only through protect.ts (anyone not a
+// confirmed adult, and everyone in a junior event, reads "Protected player", D-012, D-109). The scoreboards only get confirmed
+// results, and `now` is the snapshot time: they never say "Live". The page is a once-per-build snapshot, so it prints when that
+// snapshot was taken next to the order of play (updatedText).
+// Near-current scores (D-113) come ONLY through the gated LiveScores component: with features.liveScores off (today) it renders
+// nothing and the page has no client JavaScript; with it on, a small script fills its own region, and the word "Live" appears only
+// there, only for a point younger than the owner's window.
+// Registration (D-111): a link to /register/<tournament>/<event>/ shows only when this build carries that page (registrationInBuild).
 // Group events show the entries once, in their group tables (no second flat list). The draw band is a plain wrapper: BracketView
 // names its own section, so there is no second, nested "Draw" region.
 import type { GetStaticPaths } from 'astro';
@@ -15,7 +19,9 @@ import EntryList from '../../../components/competition/EntryList.astro';
 import MatchScoreboard from '../../../components/competition/MatchScoreboard.astro';
 import ScheduleTable from '../../../components/competition/ScheduleTable.astro';
 import CompetitionSampleNotice from '../_parts/CompetitionSampleNotice.astro';
+import LiveScores from '../../../components/competition/live/LiveScores.astro';
 import { loadCompetitionSite } from '../../../lib/competition/public/load';
+import { loadRegistrationSite } from '../../../lib/registration/public/load';
 import { tournamentWhen, updatedText, type CompetitionEventPage, type CompetitionTournamentPage } from '../../../lib/competition/public/model';
 import type { CompetitionSource } from '../../../lib/competition/public/provider';
 import { COMPETITION_ROUTES } from '../../../lib/urls';
@@ -38,6 +44,7 @@ const { t, e, source, generatedAt } = Astro.props;
 const now = new Date(generatedAt);
 const updated = updatedText(generatedAt);
 const showFlatEntries = e.groups.length === 0;
+const registration = (await loadRegistrationSite()).pages.find((p) => p.eventId === e.id) ?? null;
 ---
 <BaseLayout
   title={titleWithBrand(`${e.title}: ${t.name}`)}
@@ -58,6 +65,14 @@ const showFlatEntries = e.groups.length === 0;
     <Section compact>
       <p class="max-w-3xl rounded-md border-2 border-line-strong bg-surface p-3 text-small" role="note" data-junior-note>
         This is a junior event. To protect young players, no player is named on this page.
+      </p>
+    </Section>
+  )}
+
+  {registration && (
+    <Section compact>
+      <p data-registration-link>
+        <a class="font-semibold underline underline-offset-2" href={registration.path}>Register for this event</a>
       </p>
     </Section>
   )}
@@ -89,6 +104,8 @@ const showFlatEntries = e.groups.length === 0;
       <BracketView title={e.format === 'groups_knockout' ? 'Knockout stage' : 'Draw'} rounds={e.bracket ?? []} id="draw" />
     </Section>
   )}
+
+  <LiveScores eventId={e.id} />
 
   <Section tone="surface" labelledBy="schedule-title">
     <h2 id="schedule-title" class="text-h3">Order of play</h2>

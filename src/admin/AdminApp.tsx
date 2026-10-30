@@ -5,13 +5,14 @@
 // Tokens live in memory only (a reload signs you out): nothing sensitive is written to browser storage.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { env } from '../config/env';
-import { createGoTrue, type AuthSession } from '../lib/admin/gotrue';
-import { canEnrolTotp, createHttpAdminStore, type AdminClient } from '../lib/admin/http-store';
+import { createGoTrue, parseInviteRedirect, setInvitedPassword, type AuthSession, type InviteRedirect } from '../lib/admin/gotrue';
+import { canEnrolTotp, createHttpAdminStore, sessionRole, type AdminClient } from '../lib/admin/http-store';
+import { navAreasFor } from '../lib/admin/accounts/access';
 import { MemoryAdminStore } from '../lib/admin/memory-store';
 import type { Actor, UndoDescriptor } from '../lib/admin/types';
 import './admin.css';
 import { Login, type LoginApi } from './Login';
-import { hashFor, messageFor, parseHash, ROUTE_TITLE, TAB_LABEL, TAB_ROUTES, tabFor, type AdminRoute } from './messages';
+import { hashFor, messageFor, parseHash, ROUTE_TITLE, ROUTES_ADMIN, TAB_LABEL, TAB_ROUTES, tabFor, type AdminRoute } from './messages';
 import { AdminContext, Button, cx, type AdminCtx } from './ui';
 
 // Every area is its own lazy chunk: the owner phone downloads only the area it opens (admin JS budget).
@@ -27,9 +28,26 @@ const SCREENS: Record<AdminRoute, ComponentType> = {
   posters: lazy(() => import('./screens/Posters').then((m) => ({ default: m.Posters }))),
   live: lazy(() => import('./screens/Live').then((m) => ({ default: m.Live }))),
   competitions: lazy(() => import('./screens/Competitions').then((m) => ({ default: m.Competitions }))),
+  scoring: lazy(() => import('./screens/ScoringArea').then((m) => ({ default: m.Scoring }))),
+  registrations: lazy(() => import('./screens/RegistrationsArea').then((m) => ({ default: m.Registrations }))),
+  international: lazy(() => import('./screens/InternationalArea').then((m) => ({ default: m.International }))),
+  notices: lazy(() => import('./screens/NoticesArea').then((m) => ({ default: m.Notices }))),
+  accounts: lazy(() => import('./screens/AccountsArea').then((m) => ({ default: m.Accounts }))),
   settings: lazy(() => import('./screens/Settings').then((m) => ({ default: m.Settings }))),
   more: lazy(() => import('./screens/More').then((m) => ({ default: m.More }))),
 };
+
+// Shown before sign-in when the page was opened from an invitation email (D-108); its own lazy chunk.
+const AcceptInvite = lazy(() => import('./screens/accounts/AcceptInvite').then((m) => ({ default: m.AcceptInvite })));
+// The published staff notices on an organizer's or scorer's home (D-114); its own lazy chunk.
+const StaffNotices = lazy(() => import('./screens/notices/Notices').then((m) => ({ default: m.StaffNoticesPanel })));
+
+/** The areas an actor may open, in tab order: every tab for the owner; organizers and scorers only their areas (accounts/access.ts). */
+export function tabsFor(role: Actor['role']): readonly AdminRoute[] {
+  const areas = navAreasFor(role);
+  if (areas === null) return TAB_ROUTES;
+  return areas.filter((a): a is AdminRoute => (ROUTES_ADMIN as readonly string[]).includes(a));
+}
 
 function useRoute(): AdminRoute {
   const [route, setRoute] = useState<AdminRoute>(() => parseHash(typeof location === 'undefined' ? '' : location.hash));
@@ -54,8 +72,18 @@ function PreviewApp() {
 }
 
 function LiveApp() {
-  const goTrue = useMemo(() => createGoTrue({ url: env.supabaseUrl!, publishableKey: env.supabasePublishableKey!, fetch: window.fetch.bind(window) }), []);
+  const goTrueCfg = useMemo(() => ({ url: env.supabaseUrl!, publishableKey: env.supabasePublishableKey!, fetch: window.fetch.bind(window) }), []);
+  const goTrue = useMemo(() => createGoTrue(goTrueCfg), [goTrueCfg]);
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [role, setRole] = useState<Actor['role'] | null>(null);
+  const [roleRefused, setRoleRefused] = useState(false);
+  // An invitation link (D-108) carries a one-time sign-in in the address fragment: read it once, then clear it from the address at once.
+  const [invite, setInvite] = useState<InviteRedirect | null>(() => {
+    if (typeof location === 'undefined') return null;
+    const found = parseInviteRedirect(location.hash);
+    if (found) history.replaceState(null, '', location.pathname + location.search);
+    return found;
+  });
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
 
@@ -92,10 +120,52 @@ function LiveApp() {
   }, [session, goTrue]);
 
   const client = useMemo(() => createHttpAdminStore({ getToken: () => sessionRef.current?.accessToken ?? null, fetch: window.fetch.bind(window) }), []);
-  const signOut = useCallback(() => setSession(null), []);
+  const signOut = useCallback(() => {
+    setSession(null);
+    setRole(null);
+  }, []);
 
-  if (!session) return <Login api={api} onSignedIn={setSession} />;
-  return <Shell client={client} actor={{ userId: session.userId, role: 'owner' }} mode="live" signOut={signOut} />;
+  // the server says which role this session has (D-108); nothing is shown until it answers, and no answer means sign in again
+  const userId = session?.userId ?? null;
+  useEffect(() => {
+    if (!userId || !sessionRef.current) return;
+    let live = true;
+    void sessionRole({ token: sessionRef.current.accessToken, fetch: window.fetch.bind(window) }).then((r) => {
+      if (!live) return;
+      if (r === null) {
+        setRoleRefused(true);
+        setSession(null);
+      } else {
+        setRoleRefused(false);
+        setRole(r);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+
+  if (invite) {
+    return (
+      <Suspense fallback={<p className="p-4 text-fg-muted">Loading...</p>}>
+        <AcceptInvite setPassword={(pw) => setInvitedPassword(goTrueCfg, invite.accessToken, pw)} onDone={() => setInvite(null)} />
+      </Suspense>
+    );
+  }
+  if (!session) {
+    return (
+      <>
+        {roleRefused ? (
+          <p role="alert" className="mx-auto max-w-xl p-4 text-ps-ink">
+            This account cannot use the admin right now. If Power Smash invited you, ask the owner to check your access.
+          </p>
+        ) : null}
+        <Login api={api} onSignedIn={setSession} />
+      </>
+    );
+  }
+  if (!role) return <p className="p-4 text-fg-muted">Loading...</p>;
+  return <Shell client={client} actor={{ userId: session.userId, role }} mode="live" signOut={signOut} />;
 }
 
 function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: Actor; mode: 'preview' | 'live'; signOut: () => void }) {
@@ -123,7 +193,11 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
     [client, actor, mode, signOut, version, bump],
   );
 
-  const Screen = SCREENS[route];
+  // organizers and scorers see only their areas (the server refuses everything else anyway); an unknown or other area falls back to the first
+  const tabs = tabsFor(actor.role);
+  const owner = actor.role === 'owner';
+  const shown: AdminRoute = owner || tabs.includes(route) ? route : (tabs[0] ?? 'dashboard');
+  const Screen = SCREENS[shown];
   const undo = async () => {
     if (!notice?.undo) return;
     const r = await client.undo(actor, notice.undo);
@@ -140,13 +214,22 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
           </p>
         ) : null}
         <header className="ps-surface-dark flex items-center justify-between gap-3 border-b-4 border-ps-volt bg-ps-ink px-4 py-3">
-          <h1 className="text-h3 font-bold text-ps-white">{ROUTE_TITLE[route]}</h1>
+          <h1 className="text-h3 font-bold text-ps-white">{ROUTE_TITLE[shown]}</h1>
           {mode === 'live' ? <Button small onClick={signOut}>Sign out</Button> : null}
         </header>
         <main className="flex-1 px-4 pt-5" id="admin-main">
-          <Suspense fallback={<p className="text-fg-muted">Loading...</p>}>
-            <Screen />
-          </Suspense>
+          {!owner && tabs.length > 0 ? (
+            <Suspense fallback={null}>
+              <StaffNotices store={client} />
+            </Suspense>
+          ) : null}
+          {!owner && tabs.length === 0 ? (
+            <p className="text-fg-muted">This account has no admin areas.</p>
+          ) : (
+            <Suspense fallback={<p className="text-fg-muted">Loading...</p>}>
+              <Screen />
+            </Suspense>
+          )}
         </main>
 
         {/* Sticky, not fixed: it shows where it always did (80 px up, above the tabs) but takes its own room after the screen, so the last row
@@ -164,9 +247,9 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
 
         <nav aria-label="Admin sections" className="fixed inset-x-0 bottom-0 z-10 border-t border-ps-ink-soft bg-ps-ink shadow-overlay">
           <ul className="mx-auto flex max-w-2xl">
-            {TAB_ROUTES.map((r) => (
+            {tabs.map((r) => (
               <li key={r} className="flex-1">
-                <a href={hashFor(r)} aria-current={tabFor(route) === r ? 'page' : undefined} className={cx('flex min-h-tap items-center justify-center px-1 py-3 text-center text-small font-bold no-underline', tabFor(route) === r ? 'border-t-4 border-ps-volt bg-ps-ink-soft text-ps-volt' : 'border-t-4 border-transparent text-ps-mist')}>
+                <a href={hashFor(r)} aria-current={(owner ? tabFor(shown) : shown) === r ? 'page' : undefined} className={cx('flex min-h-tap items-center justify-center px-1 py-3 text-center text-small font-bold no-underline', (owner ? tabFor(shown) : shown) === r ? 'border-t-4 border-ps-volt bg-ps-ink-soft text-ps-volt' : 'border-t-4 border-transparent text-ps-mist')}>
                   {TAB_LABEL[r]}
                 </a>
               </li>

@@ -117,7 +117,7 @@ export function PublicSwitchNote() {
 }
 
 /** A text box whose error sentence (an ErrorText whose id is the box id plus "-error") is tied to it for screen readers. */
-export function Input(props: { id: string; value: string; onChange: (v: string) => void; error?: string | null; inputMode?: 'numeric' | 'text'; maxLength?: number; placeholder?: string; type?: string; errorId?: string }) {
+export function Input(props: { id: string; value: string; onChange: (v: string) => void; error?: string | null; inputMode?: 'numeric' | 'decimal' | 'text'; maxLength?: number; placeholder?: string; type?: string; errorId?: string }) {
   return (
     <input
       id={props.id}

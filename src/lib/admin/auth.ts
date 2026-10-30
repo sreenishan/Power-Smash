@@ -5,7 +5,9 @@
 //   3. Role comes ONLY from the `profiles` lookup (injected), never from JWT metadata. Editors are disabled by D-007.
 //   4. Failures return generic bodies: 401 `unauthorized`, 403 `forbidden`; the reason is never revealed to the caller.
 import { importJWK, jwtVerify, type JWK, type JWTVerifyGetKey, type CryptoKey, type KeyObject } from 'jose';
-import { isActionAllowed, type AdminActionName } from './policy';
+import { isActionAllowed, isAdminAction, type AdminActionName } from './policy';
+import { ACCOUNT_ACTIONS, isAccountAction, isStaffWideAction, scopedNeed } from './accounts/access';
+import { isScopedRole, type PlatformActor, type PlatformRole } from './accounts/types';
 import type { Actor, AdminRole } from './types';
 
 export type KeySource = JWTVerifyGetKey | CryptoKey | KeyObject;
@@ -147,4 +149,87 @@ export function createJwksKeySource(opts: JwksOptions): JWTVerifyGetKey {
     const key = await importJWK({ ...jwk, alg: header.alg ?? jwk.alg }, header.alg);
     return key as CryptoKey;
   };
+}
+
+// ----------------------------------------------------------------------------- organizer and scorer accounts (D-108, wave 4)
+//
+// The same guard, widened to the four roles of migration 0019. The owner and editors are decided exactly as by authorizeAdmin; an
+// organizer or scorer passes ONLY when ORGANIZER_ACCOUNTS_ENABLED is exactly 'true' AND the action is in their role-to-action map
+// (accounts/access.ts). Which tournament they may touch is the next step (accounts/scoped-store.ts, before the store), and the database
+// checks it a third time (app.require_competition_access). aal2 stays required for every role. Until the integrator switches the
+// handler to this function, only the owner can sign in, as today.
+
+export type PlatformRoleLookup = (userId: string) => Promise<PlatformRole | null>;
+
+export interface PlatformAuthDeps {
+  jwt: JwtConfig;
+  /** profiles.role, null for no row, an unknown role or an ended account (accounts/access.ts roleFromProfileRow). */
+  roles: PlatformRoleLookup;
+  editorsEnabled: boolean;
+  /** ORGANIZER_ACCOUNTS_ENABLED exactly 'true' (runtime-env). false = organizers and scorers are refused everywhere, at aal1 too. */
+  organizerAccountsEnabled: boolean;
+}
+
+export type PlatformAuthDecision = { ok: true; actor: PlatformActor } | { ok: false; status: 401 | 403 | 503; code: 'unauthorized' | 'forbidden' | 'unavailable' };
+
+/** May this role call this action at all (before any tournament check)? Pure; the account actions are owner only. */
+export function isPlatformActionAllowed(role: PlatformRole | null, action: string, opts: { editorsEnabled: boolean; organizerAccountsEnabled: boolean }): boolean {
+  if (role === null) return false;
+  if (isScopedRole(role)) return opts.organizerAccountsEnabled && (scopedNeed(role, action) !== null || isStaffWideAction(action));
+  if (isAccountAction(action)) return (ACCOUNT_ACTIONS[action].roles as readonly string[]).includes(role) && (role !== 'editor' || opts.editorsEnabled);
+  return isAdminAction(action) && isActionAllowed(role, action, { editorsEnabled: opts.editorsEnabled });
+}
+
+/** The whole guard for one privileged action, any role. Order: token, aal2, role lookup, policy. Fails closed with generic bodies. */
+export async function authorizePlatform(request: Request, action: string, deps: PlatformAuthDeps): Promise<PlatformAuthDecision> {
+  const verified = await verifyAdminJwt(bearerToken(request), deps.jwt);
+  if (!verified.ok) return { ok: false, status: 401, code: 'unauthorized' };
+  if (verified.aal !== 'aal2') return { ok: false, status: 403, code: 'forbidden' };
+  let role: PlatformRole | null;
+  try {
+    role = await deps.roles(verified.userId);
+  } catch {
+    return { ok: false, status: 503, code: 'unavailable' };
+  }
+  if (!isPlatformActionAllowed(role, action, { editorsEnabled: deps.editorsEnabled, organizerAccountsEnabled: deps.organizerAccountsEnabled })) {
+    return { ok: false, status: 403, code: 'forbidden' };
+  }
+  return { ok: true, actor: { userId: verified.userId, role: role as PlatformRole } };
+}
+
+/**
+ * S2-8 for the wider roles: "may this aal1 session enrol a first TOTP factor?". The owner as before; an organizer or scorer only while
+ * ORGANIZER_ACCOUNTS_ENABLED is exactly 'true' (an invited person must set up two-step sign-in before anything else). Editors never.
+ */
+export async function authorizeEnrolCheckPlatform(request: Request, deps: PlatformAuthDeps): Promise<PlatformAuthDecision> {
+  const verified = await verifyAdminJwt(bearerToken(request), deps.jwt);
+  if (!verified.ok) return { ok: false, status: 401, code: 'unauthorized' };
+  let role: PlatformRole | null;
+  try {
+    role = await deps.roles(verified.userId);
+  } catch {
+    return { ok: false, status: 503, code: 'unavailable' };
+  }
+  if (role === 'owner' || (isScopedRole(role) && deps.organizerAccountsEnabled)) return { ok: true, actor: { userId: verified.userId, role } };
+  return { ok: false, status: 403, code: 'forbidden' };
+}
+
+/**
+ * "Which role does this aal2 session have?" (the admin app asks once after sign-in, to show the right areas). Answers only for a role
+ * that may use the admin at all: the owner, an editor while editors are on, or an organizer or scorer while ORGANIZER_ACCOUNTS_ENABLED
+ * is exactly 'true'. Reveals nothing else; the server decides every action again on its own.
+ */
+export async function authorizeSessionRole(request: Request, deps: PlatformAuthDeps): Promise<PlatformAuthDecision> {
+  const verified = await verifyAdminJwt(bearerToken(request), deps.jwt);
+  if (!verified.ok) return { ok: false, status: 401, code: 'unauthorized' };
+  if (verified.aal !== 'aal2') return { ok: false, status: 403, code: 'forbidden' };
+  let role: PlatformRole | null;
+  try {
+    role = await deps.roles(verified.userId);
+  } catch {
+    return { ok: false, status: 503, code: 'unavailable' };
+  }
+  const usable = role === 'owner' || (role === 'editor' && deps.editorsEnabled) || (isScopedRole(role) && deps.organizerAccountsEnabled);
+  if (!usable || role === null) return { ok: false, status: 403, code: 'forbidden' };
+  return { ok: true, actor: { userId: verified.userId, role } };
 }

@@ -51,6 +51,25 @@ export interface LegalFeatures {
    * "Protected player" and left out of rankings. Competition pages never link to player pages (D-012, D-109).
    */
   readonly competitionPages: boolean;
+  /**
+   * Platform wave 4 (D-108). Organizer and scorer accounts by the owner's invitation: their email and name are held by Supabase
+   * Auth, and results may be entered by invited organizers and scorers for their own tournaments. Switch on together with the
+   * server setting ORGANIZER_ACCOUNTS_ENABLED and the owner's database switch.
+   */
+  readonly organizerAccounts: boolean;
+  /**
+   * Platform wave 5 (D-111). Registration pages (/register/<tournament>/<event>/): a player registers for an open adult event; the
+   * fee is paid outside the website and checked by hand. Junior events never take registrations. Needs REGISTRATION_ENABLED too.
+   */
+  readonly registrations: boolean;
+  /** Platform wave 5 (D-113). Near-live scores on event pages, refreshed about every minute while a match is scored. Needs LIVE_SCORES_ENABLED too. */
+  readonly liveScores: boolean;
+  /** Platform wave 5 (D-112). The /international/ page in the release build: international events listed with ONE link to the official page. */
+  readonly internationalLinks: boolean;
+  /** Platform wave 5 (D-114). The email updates sign-up (double opt-in, one-click unsubscribe) and announcement emails. Needs NOTIFY_SUBSCRIBE_ENABLED too. */
+  readonly emailNotifications: boolean;
+  /** Platform wave 5 (D-114). Short notices from the owner in a banner on the website, and the WhatsApp Channel button in "Stay updated". */
+  readonly siteNotices: boolean;
   /** M2d. A one-time code (or similar) to check that a requester controls the phone or email. */
   readonly requestVerification: boolean;
   /** M2d. Age proof viewed privately and deleted (D-015, still PROPOSED). */
@@ -98,6 +117,12 @@ export const features: LegalFeatures = {
   youtubeEmbeds: false,
   archivePages: false,
   competitionPages: false,
+  organizerAccounts: false,
+  registrations: false,
+  liveScores: false,
+  internationalLinks: false,
+  emailNotifications: false,
+  siteNotices: false,
   requestVerification: false,
   ageProofChecks: false,
   emailAlerts: false,
@@ -123,6 +148,12 @@ export const FEATURE_INFO: Record<FeatureName, { readonly arrives: string; reado
   youtubeEmbeds: { arrives: 'M2c', unlocks: 'the click-to-load video player and thumbnails: cookie and provider wording' },
   archivePages: { arrives: 'M2c', unlocks: 'player, match and tournament pages: protected-player rules (D-012), "Match details by Power Smash"' },
   competitionPages: { arrives: 'platform wave 3 (owner + lawyer)', unlocks: 'the /competitions/ pages in the release build: entry lists, draws, order of play, results and local rankings (not official BWF rankings), with "Protected player" for anyone not confirmed adult' },
+  organizerAccounts: { arrives: 'platform wave 4 (owner + lawyer)', unlocks: 'organizer and scorer accounts by invitation: their email and name held by Supabase Auth, results entered by invited organizers and scorers' },
+  registrations: { arrives: 'platform wave 5 (owner + lawyer)', unlocks: 'registration pages on the website (/register/<tournament>/<event>/): players register for an open adult event, with the owner\'s fee and payment texts; payment is made outside the website and checked by hand by the owner; junior events never take registrations' },
+  liveScores: { arrives: 'platform wave 5 (owner + lawyer)', unlocks: 'near-live scores on event pages (refreshed about every minute while a match is scored), "Live" only while points are arriving; names follow the competition rule (Protected player)' },
+  internationalLinks: { arrives: 'platform wave 5 (owner + lawyer)', unlocks: 'the /international/ page in the release build: owner-listed international events (name, level, dates, place) with one link to the official site; nothing copied from those sites' },
+  emailNotifications: { arrives: 'platform wave 5 (owner + lawyer, after the sending domain, OT-40)', unlocks: 'the email updates sign-up with double opt-in (email address only, 18 or older, a confirmation link, one-click unsubscribe in every email) and announcement emails from the admin' },
+  siteNotices: { arrives: 'platform wave 5 (owner)', unlocks: 'short notices from the owner in a banner on the website pages, and the WhatsApp Channel button in the "Stay updated" block' },
   requestVerification: { arrives: 'M2d', unlocks: 'one-time code to check who is making a request' },
   ageProofChecks: { arrives: 'M2d', unlocks: 'age proof viewed privately and deleted (D-015)' },
   emailAlerts: { arrives: 'M3', unlocks: 'email alerts sign-up wording and the 18+ confirmation' },

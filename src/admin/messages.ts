@@ -47,7 +47,7 @@ export const MODE_LABEL = {
 
 // ----------------------------------------------------------------------------- hash router
 
-export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'competitions', 'settings', 'more'] as const;
+export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'competitions', 'scoring', 'registrations', 'international', 'notices', 'accounts', 'settings', 'more'] as const;
 export type AdminRoute = (typeof ROUTES_ADMIN)[number];
 
 export const ROUTE_TITLE: Record<AdminRoute, string> = {
@@ -62,6 +62,11 @@ export const ROUTE_TITLE: Record<AdminRoute, string> = {
   posters: 'QR posters',
   live: 'Live page',
   competitions: 'Competitions',
+  scoring: 'Live scoring',
+  registrations: 'Registrations',
+  international: 'International events',
+  notices: 'Notices and email',
+  accounts: 'Accounts',
   settings: 'Settings',
   more: 'More',
 };
@@ -78,13 +83,18 @@ export const ROUTE_NOTE: Record<AdminRoute, string> = {
   posters: 'Get the QR link for a printed poster.',
   live: 'Pin the stream on the Live page and list past streams.',
   competitions: 'Events, entries, draws, order of play, results and local rankings.',
+  scoring: 'Score a match point by point from your phone, and choose whether the website shows live scores.',
+  registrations: 'People who registered for events on the website: check payments, add them as entries.',
+  international: 'List big international events with one link to the official page.',
+  notices: 'Short notices on the website, and update emails to people who signed up.',
+  accounts: 'Invite organizers and scorers, and choose their tournaments.',
   settings: 'What the public sees for players who are not confirmed adults.',
   more: 'All areas.',
 };
 
 /** The five tabs of the bottom bar, in order; the rest live under More. */
 export const TAB_ROUTES: readonly AdminRoute[] = ['dashboard', 'inbox', 'videos', 'players', 'more'];
-export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', live: 'Live', competitions: 'Competitions', settings: 'Settings' };
+export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', live: 'Live', competitions: 'Competitions', scoring: 'Scoring', registrations: 'Registrations', international: 'International', notices: 'Notices', accounts: 'Accounts', settings: 'Settings' };
 /** Which tab to highlight for a route. */
 export const tabFor = (r: AdminRoute): AdminRoute => (TAB_ROUTES.includes(r) ? r : 'more');
 

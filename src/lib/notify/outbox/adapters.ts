@@ -2,7 +2,8 @@
 // collaborator are missing, and NEVER claims `sent` without a positive answer from the thing that delivers.
 //
 //  - in-app: writes into an injected inbox store (idempotent by key). No store = not configured.
-//  - email: reuses sendEmail (Resend, src/lib/notify/email.ts, vendor facts checked there). Needs EMAIL_ENABLED exactly true
+//  - email: reuses sendEmail (Resend, src/lib/notify/email.ts, vendor facts checked there). A list email (a 'subscriber:' recipient)
+//    also needs its one-click unsubscribe link (footer and List-Unsubscribe headers), or it is not sent. Needs EMAIL_ENABLED exactly true
 //    (the caller passes the parsed boolean), the API key, a From address and an address lookup. The address is looked up by the
 //    opaque recipient id at send time; it is never stored in the outbox and never put in an error code.
 //  - push, whatsapp: vendor UNVERIFIED (no provider, endpoint, price or terms checked in this wave). They are a transport
@@ -73,6 +74,17 @@ export interface EmailAdapterConfig {
   fetch: typeof fetch;
   /** Looks the address up by the opaque recipient id; null when there is none. */
   resolveAddress: ((recipientId: string) => Promise<string | null>) | null;
+  /**
+   * The one-click unsubscribe link for a recipient on the email LIST ('subscriber:<uuid>', D-114), made by the server at send time
+   * (src/lib/notices/tokens.ts). A list email is NEVER sent without one: no resolver, or null, = not configured. Other recipients
+   * ignore it.
+   */
+  unsubscribeUrl?: ((recipientId: string) => Promise<string | null>) | null;
+}
+
+/** The footer every list email ends with (plain text). */
+export function listFooter(unsubscribeUrl: string): string {
+  return `You get this email because you signed up for Power Smash updates. To stop them, open this link: ${unsubscribeUrl}`;
 }
 
 export function emailAdapter(config: EmailAdapterConfig | null | undefined): ChannelAdapter {
@@ -87,7 +99,20 @@ export function emailAdapter(config: EmailAdapterConfig | null | undefined): Cha
         return { status: 'failed', retryable: true, code: 'address_lookup_failed' };
       }
       if (!to) return { status: 'skipped', reason: 'no_address' };
-      const r = await sendEmail({ fetch: config.fetch, apiKey: config.apiKey, message: { from: config.from, to, subject: m.subject, text: m.body, idempotencyKey: m.key } });
+      let text = m.body;
+      let headers: Record<string, string> | undefined;
+      if (m.recipientId.startsWith('subscriber:')) {
+        let link: string | null;
+        try {
+          link = config.unsubscribeUrl ? await config.unsubscribeUrl(m.recipientId) : null;
+        } catch {
+          return { status: 'failed', retryable: true, code: 'unsubscribe_link_failed' };
+        }
+        if (!link || !/^https:\/\/[^\s<>]+$/.test(link)) return { status: 'not_configured' };
+        text = `${m.body}\n\n--\n${listFooter(link)}`;
+        headers = { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+      }
+      const r = await sendEmail({ fetch: config.fetch, apiKey: config.apiKey, message: { from: config.from, to, subject: m.subject, text, idempotencyKey: m.key, ...(headers ? { headers } : {}) } });
       if (r.ok) return { status: 'sent' };
       switch (r.reason) {
         case 'unconfigured':

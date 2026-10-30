@@ -1,0 +1,67 @@
+---
+// The /international/ page body (D-112): owner-entered international events, upcoming (and running now) and recent, with India dates.
+// Each event has ONE link to its official page, on an allowed website only (src/lib/international/link-rules.ts and the api view).
+// Nothing is copied from those sites: no results, draws, rankings, logos or player data. The link opens in a new tab with
+// rel="noopener noreferrer nofollow" and says where it goes. Static, no client JavaScript; noindex while the data is the sample seed.
+import ExternalLink from '@lucide/astro/icons/external-link';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageHero from '../../../components/ui/PageHero.astro';
+import Section from '../../../components/ui/Section.astro';
+import EmptyState from '../../../components/ui/EmptyState.astro';
+import InternationalSampleNotice from './InternationalSampleNotice.astro';
+import { loadInternationalPage } from '../../../lib/international/public/load';
+import { INTERNATIONAL_PATH } from '../../../lib/international/in-build';
+import { RECENT_DAYS, type InternationalItem } from '../../../lib/international/public/model';
+import { EXTERNAL_LINK_REL, linkLabel, OFFICIAL_SITE_NOTE } from '../../../lib/international/public/text';
+import { path } from '../../../lib/urls';
+import { titleWithBrand } from '../../../lib/seo';
+
+const page = await loadInternationalPage();
+const sections: Array<{ id: string; title: string; items: InternationalItem[]; empty: string }> = [
+  { id: 'international-upcoming', title: 'Upcoming and running now', items: page.upcoming, empty: 'No upcoming international events are listed yet.' },
+  { id: 'international-recent', title: 'Recent', items: page.recent, empty: `No international events finished in the last ${RECENT_DAYS} days.` },
+];
+---
+<BaseLayout
+  title={titleWithBrand('International events')}
+  description="Major international badminton events, with dates in India time and a link to each event's official page."
+  canonicalPath={path(INTERNATIONAL_PATH)}
+  noindex={page.source === 'seed'}
+>
+  <InternationalSampleNotice source={page.source} />
+  <PageHero tone="dark" title="International events" lead={OFFICIAL_SITE_NOTE} crumbs={[{ name: 'International events' }]} />
+
+  {sections.map((s) => (
+    <Section labelledBy={`${s.id}-title`}>
+      <h2 id={`${s.id}-title`} class="text-h3">{s.title}</h2>
+      {s.items.length === 0 ? (
+        <EmptyState title={s.empty} class="mt-4">
+          <p>Events appear here when Power Smash lists them.</p>
+        </EmptyState>
+      ) : (
+        <ul class="mt-4 grid gap-3 sm:grid-cols-2" data-international-list={s.id}>
+          {s.items.map((e) => (
+            <li class="rounded-lg border border-line bg-surface p-4" data-international-event>
+              <p class="font-bold text-heading">{e.name}</p>
+              {e.level && <p class="text-small text-fg-muted">{e.level}</p>}
+              <p class="mt-1 text-small ps-num">{e.when}{e.ongoing && <span class="font-semibold"> (running now)</span>}</p>
+              <p class="text-small text-fg-muted">{e.place}</p>
+              <p class="mt-2">
+                <a href={e.url} target="_blank" rel={EXTERNAL_LINK_REL} class="inline-flex min-h-tap items-center gap-1 font-bold" data-official-link>
+                  {linkLabel(e.host)}
+                  <ExternalLink size={16} aria-hidden="true" />
+                  <span class="sr-only"> (opens the official site in a new tab)</span>
+                </a>
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  ))}
+
+  <Section labelledBy="international-about-title">
+    <h2 id="international-about-title" class="text-h3">About this list</h2>
+    <p class="mt-2">Dates are shown as calendar dates in India time, as Power Smash entered them. Details and results on the official site: Power Smash does not copy results, draws, rankings, logos or player details from other websites.</p>
+  </Section>
+</BaseLayout>

@@ -26,6 +26,18 @@ import { validateProductEdit, type ProductRecord } from '../pricing-admin/produc
 import { isAcceptableSupabaseUrl } from '../supabase/rest';
 import { createCompetitionService } from './competition/service';
 import { createSupabaseCompetitionBackend } from './competition/supabase-backend';
+import { createAccountsService, type AccountsServiceOptions } from './accounts/service';
+import { ACCOUNT_RPCS, createSupabaseAccountsBackend } from './accounts/supabase-backend';
+import { createLiveScoringService } from './live-scoring/service';
+import { createSupabaseLiveScoringBackend, LIVE_SCORING_RPCS } from './live-scoring/supabase-backend';
+import { createRegistrationService } from './registration/service';
+import { createSupabaseRegistrationBackend } from './registration/supabase-backend';
+import { createInternationalService } from './international/service';
+import { createSupabaseInternationalBackend } from './international/supabase-backend';
+import { INTERNATIONAL_RPCS } from './international/schemas';
+import { createNoticesService } from './notices/service';
+import { createSupabaseNoticesBackend, NOTICES_DETAIL_RPCS } from './notices/supabase-backend';
+import type { DispatchSummary } from '../notify/outbox/dispatcher';
 import type { PaymentRecord } from '../pricing-admin/mark-paid';
 import { applyLeadUpdate, checkStatusChange, prepareMarkPaid, prepareNewPlacement, prepareProductSave } from './ops';
 import { leadMove, submissionFromLead, validateReview, type VideoSubmission } from './submissions';
@@ -65,6 +77,10 @@ export interface SupabaseStoreConfig {
   timeoutMs?: number;
   /** Injected clock (IST dates for follow-ups). Default: the system clock. */
   now?: () => Date;
+  /** Organizer and scorer accounts (D-108): the invitation sender and the server switch. Absent = no invitation, organizers off. */
+  accounts?: AccountsServiceOptions;
+  /** The email updates list (D-114): whether sending is set up, and one dispatcher run. Absent = sending is "not set up". */
+  notices?: { emailReady: () => boolean; dispatch: () => Promise<DispatchSummary | null> };
 }
 
 class BackendError extends Error {
@@ -78,7 +94,15 @@ class BackendError extends Error {
 }
 
 /** The competition RPCs (0017, 0018) raise only sentences we wrote ('INVALID: the event is full ...'); those may reach the owner. */
-const COMPETITION_DETAIL_RPCS = new Set(['admin_save_event', 'admin_add_entry', 'admin_withdraw_entry', 'admin_set_entry', 'admin_save_draw', 'admin_publish_draw', 'admin_save_match', 'admin_record_result', 'admin_confirm_result', 'admin_save_ranking_snapshot', 'admin_publish_ranking_snapshot', 'admin_save_venue', 'admin_save_court', 'admin_set_ranking_points']);
+const COMPETITION_DETAIL_RPCS = new Set<string>([
+  'admin_save_event', 'admin_add_entry', 'admin_withdraw_entry', 'admin_set_entry', 'admin_save_draw', 'admin_publish_draw', 'admin_save_match', 'admin_record_result', 'admin_confirm_result', 'admin_save_ranking_snapshot', 'admin_publish_ranking_snapshot', 'admin_save_venue', 'admin_save_court', 'admin_set_ranking_points',
+  // platform waves 4 and 5: their RPCs also raise only our own sentences (0019 accounts, 0020 registrations, 0021 live scores, 0022 international, 0023 notices)
+  ...ACCOUNT_RPCS,
+  'admin_set_registration_settings', 'admin_set_event_registration', 'admin_verify_registration_payment', 'admin_convert_registration', 'admin_reject_registration',
+  ...LIVE_SCORING_RPCS,
+  ...INTERNATIONAL_RPCS,
+  ...NOTICES_DETAIL_RPCS,
+]);
 const DETAIL_PREFIX = /^(INVALID|STALE|NOT_FOUND): (.{1,300})/;
 
 /** The sentence of a competition RPC error, or undefined. Control characters are dropped; only our own prefixed raises qualify. */
@@ -302,9 +326,20 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
 
   // competitions (D-108 to D-114): the shared service over the 0017/0018 owner RPCs
   const competition = createCompetitionService(createSupabaseCompetitionBackend({ select, rpc }), { now });
+  // platform waves 4 and 5 (D-108, D-111 to D-114): each area's own service over its Supabase backend (owner RPCs, explicit columns)
+  const accounts = createAccountsService(createSupabaseAccountsBackend({ select, rpc }), cfg.accounts ?? { invites: null, organizerAccountsEnabled: false });
+  const liveScoring = createLiveScoringService(createSupabaseLiveScoringBackend({ select, rpc }));
+  const registration = createRegistrationService(createSupabaseRegistrationBackend({ select, rpc }));
+  const international = createInternationalService(createSupabaseInternationalBackend({ select, rpc }));
+  const notices = createNoticesService(createSupabaseNoticesBackend({ select, rpc, ...(cfg.notices ?? {}) }), { now });
 
   return {
     ...competition,
+    ...accounts,
+    ...liveScoring,
+    ...registration,
+    ...international,
+    ...notices,
     // ------------------------------------------------------------------ reads
     getDashboard: () =>
       guard(async () => {

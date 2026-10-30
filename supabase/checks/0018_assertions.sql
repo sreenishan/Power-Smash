@@ -32,6 +32,13 @@ do $$
 declare
   rpcs text[] := array['public.admin_set_entry(text,uuid,jsonb,text)', 'public.admin_save_venue(text,uuid,jsonb,text)',
     'public.admin_save_court(text,uuid,jsonb,text)', 'public.admin_set_ranking_points(text,jsonb,text)'];
+  -- the 10 RPCs 0019 (D-108) scopes to an assigned tournament; no other RPC may use app.require_competition_access
+  scoped text[] := array['public.admin_save_event(text,uuid,jsonb,text)', 'public.admin_add_entry(text,uuid,jsonb,text)',
+    'public.admin_withdraw_entry(text,uuid,text)', 'public.admin_set_entry(text,uuid,jsonb,text)', 'public.admin_save_draw(text,uuid,jsonb,text)',
+    'public.admin_publish_draw(text,uuid,text)', 'public.admin_save_match(text,uuid,jsonb,integer,text)',
+    'public.admin_record_result(text,uuid,jsonb,integer,text)', 'public.admin_confirm_result(text,uuid,integer,text)',
+    'public.admin_save_court(text,uuid,jsonb,text)'];
+  check_re text;
   fn text;
   c text;
 begin
@@ -41,10 +48,14 @@ begin
     end if;
     if has_function_privilege('anon', fn, 'EXECUTE') or has_function_privilege('authenticated', fn, 'EXECUTE') then raise exception 'ASSERT FAIL: anon or authenticated can run %', fn; end if;
     if not has_function_privilege('service_role', fn, 'EXECUTE') then raise exception 'ASSERT FAIL: service_role cannot run %', fn; end if;
-    if position('perform app.require_owner(p_actor);' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) = 0
-       or position('perform app.require_owner(p_actor);' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure))
-          > position('perform app.competition_reason' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) then
-      raise exception 'ASSERT FAIL: % does not call app.require_owner first', fn;
+    -- only the RPCs 0019 scopes may use the per-tournament check; every other one keeps exactly app.require_owner(p_actor)
+    check_re := case when fn = any (scoped) then 'perform app\.require_(owner\(p_actor\);|competition_access\(p_actor, )'
+                     else 'perform app\.require_owner\(p_actor\);' end;
+    if regexp_instr((select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure), check_re) = 0
+       or regexp_instr((select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure), check_re)
+          > position('perform app.competition_reason' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure))
+       or (not fn = any (scoped) and position('require_competition_access' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) > 0) then
+      raise exception 'ASSERT FAIL: % does not call the right access check first (owner only, or one of the 10 RPCs 0019 scopes)', fn;
     end if;
   end loop;
   -- the read RPC (no reason, so require_owner is simply its first statement) and the replaced publish RPCs
@@ -56,8 +67,10 @@ begin
     if has_function_privilege('anon', fn, 'EXECUTE') or has_function_privilege('authenticated', fn, 'EXECUTE') or not has_function_privilege('service_role', fn, 'EXECUTE') then
       raise exception 'ASSERT FAIL: the privileges of % are wrong', fn;
     end if;
-    if (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure) !~ '\mbegin\s+perform app\.require_owner\(p_actor\);' then
-      raise exception 'ASSERT FAIL: % does not call app.require_owner first', fn;
+    if (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure) !~ (case when fn = any (scoped)
+         then '\mbegin\s+perform app\.require_(owner\(p_actor\);|competition_access\(p_actor, )'
+         else '\mbegin\s+perform app\.require_owner\(p_actor\);' end) then
+      raise exception 'ASSERT FAIL: % does not call the right access check first (owner only, or one of the 10 RPCs 0019 scopes)', fn;
     end if;
   end loop;
   if position('competition_named_players' in pg_get_viewdef('api.public_competition_rankings'::regclass)) = 0

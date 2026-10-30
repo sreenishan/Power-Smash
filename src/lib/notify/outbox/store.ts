@@ -1,6 +1,6 @@
-// The outbox store interface and a fictional in-memory implementation (tests and the preview). A real store (a Supabase table
-// with a UNIQUE key column, RLS on, no public grant, written only by a SECURITY DEFINER function) is NOT part of this wave:
-// TODO(lead): add the migration and a supabase-backed store when the owner switches notifications on.
+// The outbox store interface and a fictional in-memory implementation (tests and the preview). The real store is
+// SupabaseOutboxStore (./supabase-store.ts, migration 0023): public.notification_outbox with a UNIQUE key column, RLS on, no public
+// grant, written only by the SECURITY DEFINER functions notify_outbox_enqueue and notify_outbox_cas. Both stores keep the same rules.
 import type { OutboxRecord, RecordStatus } from './types';
 
 export interface EnqueueResult {

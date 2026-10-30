@@ -55,7 +55,10 @@ describe('header routes in config.json', () => {
     const re = new RegExp(ROUTE_SRC.noStore);
     expect(re.test('/api/placements')).toBe(false);
     expect(re.test('/api/placements/')).toBe(false);
-    for (const p of ['/api/lead', '/api/health', '/api/placementsx', '/api/placements/x', '/go/sponsor', '/cdn-cgi/x']) expect(re.test(p)).toBe(true);
+    // /api/live-scores/<event-id> keeps its own short public cache too (D-113); the bare folder and deeper paths stay no-store
+    expect(re.test('/api/live-scores/0c000000-0000-4000-8000-000000000001')).toBe(false);
+    expect(re.test('/api/live-scores/0c000000-0000-4000-8000-000000000001/')).toBe(false);
+    for (const p of ['/api/lead', '/api/health', '/api/placementsx', '/api/placements/x', '/api/live-scores', '/api/live-scores/', '/api/live-scores/a/b', '/api/register', '/api/notify/subscribe', '/go/sponsor', '/cdn-cgi/x']) expect(re.test(p), p).toBe(true);
     expect(routeHeader(managed(c), ROUTE_SRC.astro, 'Cache-Control')).toBe('public, max-age=31536000, immutable');
     expect(all(c, 'Cache-Control')).toBeNull();
   });

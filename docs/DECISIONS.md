@@ -1617,6 +1617,98 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - A published draw cannot be changed, and a winner moves on only after a confirmed result.
 - **Status.** built (wave 3, migration 0018).
 
+## D-117 Organizer and scorer accounts: how access is checked (extends D-108)
+
+- **Context.** Wave 4 builds the accounts the owner invites (migration 0019). Several choices were made in the build; the integration (2026-10-31) wired them into the admin.
+- **Decision (lead, 2026-10-31; proposed, the owner confirms).**
+  - **Two switches, both off:** the owner's database switch (`competition_settings.organizer_roles_enabled`, admin Accounts screen) AND the server setting `ORGANIZER_ACCOUNTS_ENABLED` exactly `true`. Turning the admin switch off stops everyone at once, without a deployment.
+  - **Three checks:** the admin function's role-to-action map (`src/lib/admin/accounts/access.ts`), the per-tournament check before the store (`accounts/scoped-store.ts`, assignments read fresh per request), and the database check `app.require_competition_access` as the first statement of every scoped RPC (0019; and in 0021 for `admin_live_score` and `admin_live_match_status`). Rankings, venues, the points table and the live switch stay owner only.
+  - **What a scorer sees:** "Protected player" for anyone who is not `adult_confirmed`, and for everyone in a junior event (from the stored age status, not the public naming rule).
+  - **What an organizer sees:** names as the owner does, but the "On the site" badges show everyone as protected (the naming preview asks an owner-only RPC; fail closed).
+  - **No player search for organizers yet:** `players.search` stays owner only, so adding a new entry needs the owner. A scoped search is a follow-up.
+  - **Ending an account is final;** the owner invites a different address to work with the person again.
+  - **The admin app asks the server for the session's role** (`session.role`, aal2 only, like `session.enrolCheck` outside `ADMIN_ACTIONS`) and shows organizers and scorers only Competitions and Live scoring, with the published staff notices on top.
+- **Status.** built (wave 4, migration 0019), switched off. Unverified against a live project: the invite and ban endpoints, the invitation link format and Supabase's invitation email text (`docs/m5/integration/accounts.md`).
+
+## D-118 Registration details (extends D-111)
+
+- **Decision (lead, 2026-10-31; proposed).**
+  - The registration page lives at `/register/<tournament>/<event>/` (always noindex, its own switch `features.registrations`), not under `/competitions/`; the event page links to it only when the build carries it.
+  - **Junior events never take registrations on the site** (a child's details need a parental-consent flow the lawyer has not approved). The public view leaves them out and both database functions refuse them.
+  - A payment reference is 8 to 30 letters and digits with at least 6 digits; a card-like number (Luhn) or text containing PIN, password, OTP or CVV is refused and never stored.
+  - The owner alert never carries the phone, even with `TELEGRAM_ALERT_PHONE_LINK` on.
+  - Active registrations count towards an event's capacity. A registration made under a fee must have its payment checked before it becomes an entry; an amount of 0 means the fee was waived.
+  - A new player record from a registration starts provisional, hidden and of unknown age, so it is never named.
+  - Retention: no purge yet; the lawyer sets the period first.
+- **Status.** built (wave 5, migration 0020), switched off (four switches).
+
+## D-119 Near-live scores: details (extends D-113)
+
+- **Decision (lead, 2026-10-31; proposed).**
+  - Three switches, all off: `features.liveScores`, `LIVE_SCORES_ENABLED`, and the owner's live switch in the admin (instant off).
+  - "Live" shows only while the last point is younger than the owner's window (5 minutes by default, 1 to 60); a point more than a minute in the future is never "Live".
+  - Rallies are audited by the append-only rally log (who and when per tap), not one `audit_log` row per tap; undos, the first server, status changes and the switch are in `audit_log`.
+  - Ending a match from the console records an **unconfirmed** result; confirming stays a separate step. No walkover from the console.
+  - The endpoint is addressed by the event id; its answer is cached about a minute (`/api/live-scores/` is exempt from the forced `no-store` route rule). How Vercel's cache treats it is unverified until a preview.
+  - Taps waiting to be sent are kept in memory only (the privacy policy says the site stores nothing in the browser).
+- **Status.** built (wave 5, migration 0021), switched off.
+
+## D-120 Email updates, notices and the outbox text (extends D-114; deviates from a 0017 comment)
+
+- **Decision (lead, 2026-10-31; proposed).**
+  - The outbox stores the rendered subject and body (0017's comment said message text is never stored). Addresses are still never stored; the text is checked by `app.notify_text_ok` (no email address, no run of 9 or more digits, no `wa.me`, `tel:` or `api.whatsapp.com` link). The payload holds `{event, revision}` only.
+  - The email list: double opt-in (a token hash, a 48-hour link), one answer to every sign-up, a link opened by GET never changes anything, one-click unsubscribe (RFC 8058 headers) that no switch can block. 18 or over; nothing is lifted from that answer.
+  - Sending is manual from the admin, over subscriber records only; there is no schedule.
+  - Notices hold no contact data, link only to site pages or the brand's own accounts, and show after the next site update. The WhatsApp Channel is a link only.
+  - Rotating `HMAC_KEY` breaks older unsubscribe links unless the old key id is kept for unsubscribe checks (RUNBOOK section 7).
+- **Status.** built (wave 5, migration 0023), switched off.
+
+## D-121 International events listed with links only: details (extends D-112)
+
+- **Decision (lead, 2026-10-31; proposed).** One official link per event, on an allowed website (`bwfbadminton.com`, `tournamentsoftware.com`, `bwf.tournamentsoftware.com`, or one the owner adds); lookalike hosts, user names, ports, punycode, IP addresses and link shorteners are refused; tracking parameters are removed. Removing a website from the list drops its events from the page at once. Nothing is copied from the linked sites. Note: `bwf.tournamentsoftware.com` may have closed (unverified, `docs/m5/international-data.md` F4).
+- **Status.** built (wave 5, migration 0022), switched off (`features.internationalLinks`).
+
+## D-122 Review fixes for waves 4 and 5: switches, access checks and cost guards (amends D-117 to D-121)
+
+- **Context.** A three-lens review (security, privacy, correctness) of waves 4 and 5 after integration (2026-10-31).
+- **Decision (lead, 2026-10-31; proposed, the owner confirms).**
+  - **A server switch never opens personal-data collection on its own.** `/api/register` needs `REGISTRATION_ENABLED` exactly `true` AND `features.registrations`; `/api/notify/subscribe` and `/api/notify/confirm` need `NOTIFY_SUBSCRIBE_ENABLED` AND `features.emailNotifications` (unsubscribe stays ungated); organizer and scorer access needs `ORGANIZER_ACCOUNTS_ENABLED` AND `features.organizerAccounts` (`organizerAccessServerOn` in `src/lib/admin/config.ts`), so organizer-entered results never go public while the privacy page still says Power Smash entered them. Live scores already worked this way.
+  - **Access checks are pinned per function.** The 0017 and 0018 checks accept `app.require_competition_access` only for the 10 RPCs 0019 scopes and require exactly `app.require_owner(p_actor)` everywhere else; 0021 pins `admin_set_live_scores` to the owner check and probes an assigned organizer (may score, may not switch).
+  - **Registration counters fail closed** (degraded, with the WhatsApp fallback), unlike the lead endpoint: registrations hold personal data.
+  - **"Already registered" stays a distinct answer (accepted risk).** It tells the caller that this exact player name and phone are registered for this event. Learning it needs both values already, a Turnstile pass and stays inside the per-connection and per-phone limits; junior events never take registrations. A fake success would hand the visitor a reference that does not exist. Revisit if the lawyer asks.
+  - **Live scores cost guards:** a query string is refused (400, no-store) so it cannot bypass the edge cache, and each function instance counts requests per connection (30 a minute, from `client-ip.ts`, memory only, 429 no-store). A Vercel firewall rate rule is the stronger option once on Pro; check the cache key on a preview before `LIVE_SCORES_ENABLED`.
+  - **Notice links to YouTube** are limited to a handle (or one of its tabs), a video, a playlist, a channel id, a short or a live page; `/redirect` and `/attribution_link` are refused (SQL and TypeScript, same pattern).
+  - **Previews never show real notices** while `features.siteNotices` is off, even with `PS_NOTICES_SOURCE=supabase` (a preview is a publication).
+  - **The admin dependency cache** is keyed on the lead email settings as well, so a changed `EMAIL_ENABLED` never keeps an old dispatcher.
+  - **International links: the api view's host filter is the only gate** (accepted). The build cannot know the owner's extra websites without a new public view; the page re-checks the link's form (http(s), no user name, port, `#` or tracking parameter). The 0022 checks prove the view drops a removed website at once.
+- **Status.** built, switched off.
+
+## D-123 Registration: adults only, consent checked on the server, names never picked by themselves (amends D-118)
+
+- **Decision (lead, 2026-10-31; proposed; the lawyer re-reads the wording).**
+  - **Only adults are registered on the website** until the lawyer approves a parental-consent flow (DPDP verifiable parental consent): the notice (`registration-notice`, version `2026-10-31-draft2`) says "I am 18 or over, and every player I register is 18 or over"; the under-18 / parent-or-guardian sentence is gone. The privacy paragraph says the same.
+  - **Consent is checked on the server:** the request carries `consent.given`, and anything but `true` is `consent_required` (as the lead contract, D-028).
+  - **No organiser sharing is promised:** organizers cannot see registrations, so the notice and the privacy row say Power Smash handles registrations itself; a name is shown only after Power Smash confirms the player is an adult.
+  - **Converting never picks an existing player record by itself.** Every typed name starts as a new record of unknown age; a same-name record is a suggestion the owner ticks on purpose, with a warning and a second question when that record is a confirmed adult (it would be named publicly). A typed name is a self-claim (D-012).
+  - **Owner texts hold no contact details:** the public payment instructions and the reject reason (stored in the audit log) refuse email addresses, phone-like digit runs and `wa.me`/`tel:` links; a UPI id whose name part holds 9 or more digits (a phone number) is refused. Same rule in SQL (`app.registration_contact_free`, `app.registration_upi_is_phone`, 0020) and TypeScript (`src/lib/admin/registration/rules.ts`).
+  - **Less than the fee asks first:** recording an amount below the fee needs a second tap; the amount boxes use a decimal keypad.
+  - **A fee change shows after the next site update** (the page is static): the fee hint says to press "Publish now". The record keeps the fee at the time of submission, and the underpayment question surfaces a mismatch.
+- **Status.** built, switched off.
+
+## D-124 Near-live scores: shorter cache, slow idle polling, scorer view (amends D-117, D-119)
+
+- **Decision (lead, 2026-10-31; proposed).**
+  - A good answer is cached `public, s-maxage=30, stale-while-revalidate=15`: a player the owner protects or removes mid-match can stay named in a cached answer for at most about 45 seconds. Accepted; the RUNBOOK says so.
+  - While nothing is live, a visible event page looks again every 5 minutes (every minute while a match is live or paused), so a visitor at the venue sees a match start without reloading. A match that has started with no point yet shows "Starting", not "Score may be out of date".
+  - The scorer console tells a revoked or ended scorer "You no longer have access to this match" (not "sign in again"), and the signed-out text no longer promises the waiting taps survive a sign-in (they live in memory only).
+  - A scorer's view of an event masks every player in a `school_college` tournament too (the same junior rule as the live console), and a masked player carries no age status (`unknown`).
+- **Status.** built, switched off.
+
+## D-125 Notice times apply at the next site update (amends D-120)
+
+- **Decision (lead, 2026-10-31; proposed).** Pages are static and nothing publishes the site on a schedule yet, so a notice's start and end times take effect at the first site update after them. The notice form says so and tells the owner to press "Publish now" just after a start or end time; the RUNBOOK repeats it. A scheduled rebuild is a later option (it needs the deploy workflow live).
+- **Status.** built, switched off.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

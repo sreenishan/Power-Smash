@@ -15,15 +15,24 @@ import type { TournamentDetails, TournamentDetailField, TournamentEditInput } fr
 import type { SubmissionPreview } from './submission-candidate';
 import type { FilmingPermission, PermissionInput, PermissionStatus } from './filming-permission';
 import type { CompetitionAdminStore } from './competition/types';
+import type { AccountsStore } from './accounts/types';
+import type { LiveScoringAdminStore } from './live-scoring/types';
+import type { RegistrationAdminStore } from './registration/types';
+import type { InternationalAdminStore } from './international/types';
+import type { NoticesAdminStore } from './notices/types';
 
 export type { AgeStatus, ProtectedMatchMode };
 
 export type AdminRole = 'owner' | 'editor';
 
-/** The verified caller, built by auth.ts from a verified JWT and a profiles lookup. Never from a request body. */
+/**
+ * The verified caller, built by auth.ts from a verified JWT and a profiles lookup. Never from a request body. Since 0019 (D-108) an
+ * invited organizer or scorer can be the caller too (only while ORGANIZER_ACCOUNTS_ENABLED is exactly 'true'); they reach only
+ * the competition actions of their tournaments (accounts/access.ts, accounts/scoped-store.ts) and the staff notices.
+ */
 export interface Actor {
   userId: string;
-  role: AdminRole;
+  role: AdminRole | 'organizer' | 'scorer';
 }
 
 export type AdminErrorCode =
@@ -322,7 +331,13 @@ export type ProtectedModeKey = (typeof PROTECTED_MODE_KEYS)[number];
 // ----------------------------------------------------------------------------- the store
 
 /** The competition actions (D-108 to D-114) are in ./competition/types.ts; every store implements them through ./competition/service.ts. */
-export interface AdminStore extends CompetitionAdminStore {
+export interface AdminStore
+  extends CompetitionAdminStore,
+    AccountsStore,
+    LiveScoringAdminStore,
+    RegistrationAdminStore,
+    InternationalAdminStore,
+    NoticesAdminStore {
   getDashboard(): Promise<StoreResult<DashboardData>>;
   listReviewQueue(opts: { limit: number; offset: number }): Promise<StoreResult<ReviewVideo[]>>;
   resolveReview(actor: Actor, input: ReviewResolveInput): Promise<StoreResult<{ videoId: string }>>;

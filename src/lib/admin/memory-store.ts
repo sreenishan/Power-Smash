@@ -23,6 +23,22 @@ import type { AdminClient } from './http-store';
 import { createCompetitionService } from './competition/service';
 import { COMP_SEED, createCompetitionSeed, createMemoryCompetitionBackend, emptyCompetitionState, type MemoryCompetitionState } from './competition/memory-backend';
 import { COMPETITION_STORE_METHODS, type CompetitionAdminStore } from './competition/types';
+import { createAccountsService } from './accounts/service';
+import { createMemoryAccountsBackend, createMemoryScopeDeps, emptyAccountsState, type MemoryAccountsState } from './accounts/memory-backend';
+import type { ScopeDeps } from './accounts/scoped-store';
+import { ACCOUNTS_STORE_METHODS, type AccountsBackend, type AccountsStore } from './accounts/types';
+import { createLiveScoringService } from './live-scoring/service';
+import { createMemoryLiveScoringBackend, emptyLiveState, type MemoryLiveState } from './live-scoring/memory-backend';
+import { LIVE_SCORING_STORE_METHODS, type LiveScoringAdminStore } from './live-scoring/types';
+import { createRegistrationService } from './registration/service';
+import { createMemoryRegistrationBackend } from './registration/memory-backend';
+import type { RegistrationAdminStore } from './registration/types';
+import { createInternationalService } from './international/service';
+import { createMemoryInternationalBackend } from './international/memory-backend';
+import type { InternationalAdminStore } from './international/types';
+import { createNoticesService } from './notices/service';
+import { createMemoryNoticesBackend } from './notices/memory-backend';
+import type { NoticesAdminStore } from './notices/types';
 import {
   failResult,
   okResult,
@@ -109,6 +125,10 @@ export interface MemoryState {
   filmingPermissions?: Record<string, FilmingPermission>;
   /** Competitions (D-108 to D-114): events, entries, draws, matches, courts, rankings. Absent = none. */
   competition?: MemoryCompetitionState;
+  /** Organizer and scorer accounts (D-108): fictional accounts and assignments. Absent = none, organizer access off. */
+  accounts?: MemoryAccountsState;
+  /** Live scoring (D-113): the rally log and the owner's live switch. Absent = nothing scored, switch off. */
+  liveScoring?: MemoryLiveState;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -268,6 +288,13 @@ export function createSeedState(): MemoryState {
 
 const rnd = (): string => crypto.randomUUID();
 
+/** The owner id the memory accounts backend knows by default (the preview signs in as this owner). */
+export const MEMORY_PREVIEW_OWNER_ID = 'preview-owner';
+
+// The wave 4 and 5 areas are plain services delegated in the constructor (like the competition methods); this merges their method
+// types into the class.
+export interface MemoryAdminStore extends AccountsStore, LiveScoringAdminStore, RegistrationAdminStore, InternationalAdminStore, NoticesAdminStore {}
+
 export class MemoryAdminStore implements AdminClient {
   readonly state: MemoryState;
   private readonly now: () => Date;
@@ -279,9 +306,10 @@ export class MemoryAdminStore implements AdminClient {
     this.state = opts.state ?? createSeedState();
     this.now = opts.now ?? (() => new Date());
     this.newId = opts.newId ?? rnd;
+    const compState = () => (this.state.competition ??= emptyCompetitionState());
     const service = createCompetitionService(
       createMemoryCompetitionBackend({
-        state: () => (this.state.competition ??= emptyCompetitionState()),
+        state: compState,
         players: () =>
           this.state.identity.players
             .filter((p) => p.mergedInto === null)
@@ -314,6 +342,77 @@ export class MemoryAdminStore implements AdminClient {
       { now: () => this.now(), ...(opts.randomSeed ? { randomSeed: opts.randomSeed } : {}) },
     );
     for (const k of COMPETITION_STORE_METHODS) Object.defineProperty(this, k, { value: service[k], enumerable: false, writable: false });
+    this.wireWaves(compState);
+  }
+
+  /** The per-tournament scope over this store's accounts and competition state (for the handler with an organizer or scorer). */
+  scopeDeps(): ScopeDeps {
+    return createMemoryScopeDeps(() => (this.state.accounts ??= emptyAccountsState(MEMORY_PREVIEW_OWNER_ID)), () => (this.state.competition ??= emptyCompetitionState()));
+  }
+
+  // Platform waves 4 and 5 (D-108, D-111 to D-114): each area's own service over its memory backend, fictional data only. The memory
+  // store never sends an invitation or an email (the screens then say so).
+  private wireWaves(compState: () => MemoryCompetitionState): void {
+    const audit = (actor: Actor, action: string, entity: string, entityId: string | null, reason: string | null) => this.audit(actor, action, entity, entityId, reason);
+    const compTournaments = () =>
+      this.state.tournaments
+        .filter((t) => t.status !== 'rejected')
+        .map((t) => {
+          const d = this.state.tournamentDetails?.[t.id];
+          const minorSignal = t.isMinorSignal === true || d?.level === 'school_college';
+          return { id: t.id, name: d?.name ?? t.name, level: d?.level ?? null, startDate: d?.startDate ?? null, endDate: d?.endDate ?? null, minorSignal, status: t.status };
+        });
+    const compPlayers = () =>
+      this.state.identity.players
+        .filter((p) => p.mergedInto === null)
+        .map((p) => ({ id: p.id, displayName: p.displayName, ageStatus: p.ageStatus, academy: p.ageStatus === 'adult_confirmed' ? (this.state.playerProfiles?.[p.id]?.academy ?? null) : null }));
+
+    // accounts: the backend checks the owner against its staff list; an owner actor of this store is always put on it first
+    const accountsState = () => (this.state.accounts ??= emptyAccountsState(MEMORY_PREVIEW_OWNER_ID));
+    const accountsBackend = createMemoryAccountsBackend({
+      state: accountsState,
+      tournaments: () => compTournaments().filter((t) => t.status === 'published').map((t) => ({ id: t.id, name: t.name, startDate: t.startDate })),
+      audit: (actor, action, entity, entityId, reason) => audit(actor, action, entity, entityId, reason),
+      now: () => this.now(),
+      newId: () => this.newId(),
+    });
+    const knownOwner = (actor: Actor): void => {
+      const st = accountsState();
+      if (actor.role === 'owner' && !st.staff.some((x) => x.id === actor.userId)) st.staff.push({ id: actor.userId, role: 'owner' });
+    };
+    const ownerFirst: AccountsBackend = {
+      ...accountsBackend,
+      createAccount: (actor, ...rest) => (knownOwner(actor), accountsBackend.createAccount(actor, ...rest)),
+      assignTournament: (actor, ...rest) => (knownOwner(actor), accountsBackend.assignTournament(actor, ...rest)),
+      revokeAssignment: (actor, ...rest) => (knownOwner(actor), accountsBackend.revokeAssignment(actor, ...rest)),
+      disableAccount: (actor, ...rest) => (knownOwner(actor), accountsBackend.disableAccount(actor, ...rest)),
+      setOrganizerAccess: (actor, ...rest) => (knownOwner(actor), accountsBackend.setOrganizerAccess(actor, ...rest)),
+    };
+    const accounts = createAccountsService(ownerFirst, { invites: null, organizerAccountsEnabled: false });
+
+    const liveScoring = createLiveScoringService(
+      createMemoryLiveScoringBackend({
+        competition: compState,
+        live: () => (this.state.liveScoring ??= emptyLiveState()),
+        tournaments: compTournaments,
+        players: compPlayers,
+        audit,
+        markDirty: () => this.markDirty(),
+        now: () => this.now(),
+      }),
+    );
+    const registration = createRegistrationService(createMemoryRegistrationBackend(undefined, { now: () => this.now(), newId: () => this.newId() }));
+    const international = createInternationalService(createMemoryInternationalBackend({ now: () => this.now(), newId: () => this.newId() }));
+    const notices = createNoticesService(createMemoryNoticesBackend({ now: () => this.now(), newId: () => this.newId() }), { now: () => this.now() });
+
+    const define = (svc: object): void => {
+      for (const k of Object.keys(svc)) Object.defineProperty(this, k, { value: (svc as Record<string, unknown>)[k], enumerable: false, writable: false });
+    };
+    for (const k of ACCOUNTS_STORE_METHODS) Object.defineProperty(this, k, { value: accounts[k], enumerable: false, writable: false });
+    for (const k of LIVE_SCORING_STORE_METHODS) Object.defineProperty(this, k, { value: liveScoring[k], enumerable: false, writable: false });
+    define(registration);
+    define(international);
+    define(notices);
   }
 
   // competitions (D-108 to D-114): set in the constructor from the shared service over the memory backend

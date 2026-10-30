@@ -54,6 +54,13 @@ declare
     'public.admin_save_draw(text,uuid,jsonb,text)', 'public.admin_publish_draw(text,uuid,text)', 'public.admin_save_match(text,uuid,jsonb,integer,text)',
     'public.admin_record_result(text,uuid,jsonb,integer,text)', 'public.admin_confirm_result(text,uuid,integer,text)',
     'public.admin_save_ranking_snapshot(text,jsonb,text)', 'public.admin_publish_ranking_snapshot(text,uuid,text)'];
+  -- the 10 RPCs 0019 (D-108) scopes to an assigned tournament; no other RPC may use app.require_competition_access
+  scoped text[] := array['public.admin_save_event(text,uuid,jsonb,text)', 'public.admin_add_entry(text,uuid,jsonb,text)',
+    'public.admin_withdraw_entry(text,uuid,text)', 'public.admin_set_entry(text,uuid,jsonb,text)', 'public.admin_save_draw(text,uuid,jsonb,text)',
+    'public.admin_publish_draw(text,uuid,text)', 'public.admin_save_match(text,uuid,jsonb,integer,text)',
+    'public.admin_record_result(text,uuid,jsonb,integer,text)', 'public.admin_confirm_result(text,uuid,integer,text)',
+    'public.admin_save_court(text,uuid,jsonb,text)'];
+  check_re text;
   helpers text[] := array['app.competition_ruleset_problem(jsonb)', 'app.competition_game_over(integer,integer,jsonb)',
     'app.competition_game_problem(integer,integer,jsonb,boolean)', 'app.competition_result_winner(jsonb,jsonb,text,text,text)',
     'app.competition_default_ruleset()', 'app.enqueue_notification(text,uuid,uuid,text,jsonb)', 'app.competition_uuid(jsonb,text)',
@@ -127,10 +134,14 @@ begin
     if has_function_privilege('anon', fn, 'EXECUTE') or has_function_privilege('authenticated', fn, 'EXECUTE') then raise exception 'ASSERT FAIL: anon or authenticated can run %', fn; end if;
     if not has_function_privilege('service_role', fn, 'EXECUTE') then raise exception 'ASSERT FAIL: service_role cannot run %', fn; end if;
     -- the owner check comes first
-    if position('perform app.require_owner(p_actor);' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) = 0
-       or position('perform app.require_owner(p_actor);' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure))
-          > position('perform app.competition_reason' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) then
-      raise exception 'ASSERT FAIL: % does not call app.require_owner first', fn;
+    -- only the RPCs 0019 scopes may use the per-tournament check; every other one keeps exactly app.require_owner(p_actor)
+    check_re := case when fn = any (scoped) then 'perform app\.require_(owner\(p_actor\);|competition_access\(p_actor, )'
+                     else 'perform app\.require_owner\(p_actor\);' end;
+    if regexp_instr((select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure), check_re) = 0
+       or regexp_instr((select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure), check_re)
+          > position('perform app.competition_reason' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure))
+       or (not fn = any (scoped) and position('require_competition_access' in (select pr.prosrc from pg_proc pr where pr.oid = fn::regprocedure)) > 0) then
+      raise exception 'ASSERT FAIL: % does not call the right access check first (owner only, or one of the 10 RPCs 0019 scopes)', fn;
     end if;
   end loop;
   foreach fn in array helpers loop
@@ -149,8 +160,9 @@ begin
     raise exception 'ASSERT FAIL: the migration seeded providers, assignments or notifications';
   end if;
   if exists (select 1 from pg_constraint where conrelid = 'public.profiles'::regclass and conname = 'profiles_role_check'
-             and pg_get_constraintdef(oid) ~ 'organizer|scorer|player') then
-    raise exception 'ASSERT FAIL: profiles accepts a new role: the roles must stay disabled in this wave';
+             and pg_get_constraintdef(oid) ~ 'player') then
+    -- 0019 (wave 4, D-108) adds organizer and scorer on purpose; a player role is still not allowed
+    raise exception 'ASSERT FAIL: profiles accepts a player role';
   end if;
 end
 $$;

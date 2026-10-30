@@ -53,10 +53,11 @@ begin
       if c.column_name = any (forbidden) then raise exception 'ASSERT FAIL: api.% exposes the private column %', v, c.column_name; end if;
     end loop;
   end loop;
-  -- nothing else lives in schema api, except the views later migrations add by name (0011 public_products, 0013 public_live_settings and public_live_past_streams, 0017 the six public_competition_* views, each checked in its own file)
+  -- nothing else lives in schema api, except the views later migrations add by name (0011 public_products, 0013 public_live_settings and public_live_past_streams, 0017 the six public_competition_* views, 0020 public_registration_events and public_registration_payment, 0021 public_competition_live, 0022 public_international_events, 0023 public_site_notices and public_notify_settings, each checked in its own file)
   if exists (select 1 from pg_class cl join pg_namespace n on n.oid = cl.relnamespace where n.nspname = 'api' and cl.relkind in ('r', 'v', 'm', 'f', 'p') and cl.relname <> all (views || array['public_products', 'public_live_settings', 'public_live_past_streams',
     'public_competition_events', 'public_competition_draws', 'public_competition_draw_slots', 'public_competition_matches',
-    'public_competition_match_games', 'public_competition_rankings'])) then
+    'public_competition_match_games', 'public_competition_rankings', 'public_registration_events', 'public_registration_payment', 'public_competition_live',
+    'public_international_events', 'public_site_notices', 'public_notify_settings'])) then
     raise exception 'ASSERT FAIL: schema api holds an object that is not one of the seven archive views or a named later view';
   end if;
   if exists (select 1 from pg_proc pr join pg_namespace n on n.oid = pr.pronamespace where n.nspname = 'api') then

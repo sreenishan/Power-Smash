@@ -1,0 +1,31 @@
+---
+// Shown on /international/ while the data is not the real, approved data (like CompetitionSampleNotice.astro).
+//  - Source is the FICTIONAL seed: a visible "sample data" banner; in the STRICT release build also a <Todo>, so the release gate
+//    refuses to publish made-up events (D-034).
+//  - Real data but the legal switch features.internationalLinks is still off: the same Todo in the strict build only (the strict build
+//    normally builds no international page at all then; this is the second line of defence).
+import Todo from '../../../components/site/Todo.astro';
+import { internationalLinksFlag } from '../../../lib/international/in-build';
+import type { InternationalSource } from '../../../lib/international/public/provider';
+
+interface Props {
+  source: InternationalSource;
+}
+const { source } = Astro.props;
+const strict = process.env.PS_STRICT === '1';
+const isSeed = source === 'seed';
+const legalOff = !internationalLinksFlag();
+---
+{isSeed && (
+  <div class="border-b-2 border-ps-live bg-ps-live-tint" role="note" data-international-sample>
+    <p class="ps-container py-2 text-small font-semibold text-ps-ink">
+      Sample data: the events on this page are made up for testing. They are not real tournaments.
+    </p>
+  </div>
+)}
+{strict && (isSeed || legalOff) && (
+  <div class="ps-container py-2">
+    {isSeed && <Todo what="connect the real international events list: this page is built from fictional sample data" />}
+    {legalOff && <Todo what="approve the international events page (features.internationalLinks in src/content/legal/status.ts) after the owner and the lawyer confirm listing events with links only (D-112)" />}
+  </div>
+)}

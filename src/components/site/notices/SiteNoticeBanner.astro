@@ -1,0 +1,38 @@
+---
+// In-site notice banner (D-114). Shows the owner's published PUBLIC notices whose window is open at build time (static pages: a change
+// shows after the next site update). Nothing is shown unless features.siteNotices is on (or, in a developer build, the sample is
+// asked for with PS_NOTICES_SAMPLE=1): src/lib/notices/provider.ts decides, fail closed. Text only (no set:html); a link is a page of
+// this site through path(), or an allow-listed outside link (src/lib/notices/site-notices.ts). No contact data can be in a notice.
+// Include it once per page, right under the site header (the integrator wires it into src/layouts/BaseLayout.astro).
+import { siteNoticesOnce } from '../../../lib/notices/provider';
+import { noticeHref, type PublicSiteNotice } from '../../../lib/notices/site-notices';
+
+interface Props {
+  /** Tests and previews: the notices to show (default: read once per build). */
+  notices?: readonly PublicSiteNotice[];
+}
+const notices = Astro.props.notices ?? (await siteNoticesOnce());
+---
+{notices.length > 0 && (
+  <aside aria-label="Notices" class="border-b border-line bg-ps-court-tint/60 text-ps-ink" data-site-notices>
+    <ul class="ps-container flex flex-col gap-2 py-3">
+      {notices.map((n) => {
+        const link = noticeHref(n);
+        return (
+          <li class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-3" data-notice={n.id}>
+            <strong class="font-semibold">{n.title}</strong>
+            {n.body && <span class="whitespace-pre-line">{n.body}</span>}
+            {link && (
+              <a
+                class="font-semibold underline underline-offset-2"
+                href={link.href}
+                target={link.external ? '_blank' : undefined}
+                rel={link.external ? 'noopener' : undefined}
+              >{n.link_label}{link.external && <span class="sr-only"> (opens in a new tab)</span>}</a>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  </aside>
+)}

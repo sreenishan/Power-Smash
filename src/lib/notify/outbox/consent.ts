@@ -7,6 +7,10 @@
 //  2. Consent is opt-in per channel. No entry for the channel = `no_consent`; a withdrawal (withdrawnAt set, or granted false
 //     after a grant) = `consent_withdrawn`. A withdrawal dated after the check time does not count yet (injected clock).
 //  3. A kind the recipient turned off = `muted_kind` (honoured for every kind; the safer choice is to send less).
+//  0. Email-list subscribers (audience 'subscriber', D-114): only kind 'announcement' and only channel 'email'; everything else is
+//     'no_consent'. The list is a general announcement list: the D-012 protection of rule 1 is about PLAYERS and their contacts, and a
+//     subscriber is never linked to a player record (the sign-up asks the person to confirm they are 18 or older, and nothing about a
+//     player is ever lifted from that answer). Rules 2 and 3 apply as usual.
 // A legal review may later decide that some service messages need no separate consent; until then every channel needs one.
 import type { Channel, NotificationKind, Recipient, SkipReason } from './types';
 
@@ -16,7 +20,9 @@ export function isProtectedRecipient(r: Pick<Recipient, 'ageStatus' | 'guardianC
 
 /** Returns null when the message may be queued, or the reason it must be skipped. `now` is the injected check time. */
 export function consentDecision(recipient: Recipient, channel: Channel, kind: NotificationKind, now: Date): SkipReason | null {
-  if (isProtectedRecipient(recipient)) return 'protected_recipient';
+  if (recipient.audience === 'subscriber') {
+    if (channel !== 'email' || kind !== 'announcement') return 'no_consent';
+  } else if (isProtectedRecipient(recipient)) return 'protected_recipient';
   const c = recipient.consent[channel];
   if (!c) return 'no_consent';
   if (c.withdrawnAt) {

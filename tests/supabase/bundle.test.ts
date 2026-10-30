@@ -31,7 +31,7 @@ describe('supabase SQL bundles', () => {
   });
 
   it('end with the last check\'s ok row, use LF only and carry no secret-shaped text, no psql meta-command and no role change', () => {
-    expect(b.checksSql.trimEnd().endsWith("select 'ok: 0018_competition_admin assertions passed' as result;")).toBe(true);
+    expect(b.checksSql.trimEnd().endsWith("select 'ok: 0023_notifications assertions passed' as result;")).toBe(true);
     for (const sql of [b.migrationsSql, b.checksSql]) {
       expect(sql).not.toContain('\r');
       expect(sql).not.toMatch(/sb_secret_|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY|postgres(ql)?:\/\/[^\s:@/]+:[^\s@/]+@/i);

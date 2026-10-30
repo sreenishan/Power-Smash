@@ -51,7 +51,11 @@ describe('RLS / grants matrix (pure policy table)', () => {
     const { PRODUCT_VIEW } = await import('../../src/lib/products/db');
     const { LIVE_VIEWS } = await import('../../src/lib/live/source');
     const { COMPETITION_VIEW_COLUMNS } = await import('../../src/lib/competition/db');
-    expect(tables.filter((t) => t.startsWith('api.')).sort()).toEqual([...API_VIEWS, PRODUCT_VIEW, LIVE_VIEWS.settings.name, LIVE_VIEWS.past.name, ...Object.keys(COMPETITION_VIEW_COLUMNS)].map((v) => `api.${v}`).sort());
+    const { LIVE_VIEW } = await import('../../src/lib/live-scores/public');
+    const { INTERNATIONAL_VIEW } = await import('../../src/lib/international/public/provider');
+    // 0020 registration (event ids and fees; the payee payment texts), 0021 live scores, 0022 international links, 0023 site notices and the sign-up switch
+    const WAVE5_VIEWS = ['public_registration_events', 'public_registration_payment', LIVE_VIEW, INTERNATIONAL_VIEW, 'public_site_notices', 'public_notify_settings'];
+    expect(tables.filter((t) => t.startsWith('api.')).sort()).toEqual([...API_VIEWS, PRODUCT_VIEW, LIVE_VIEWS.settings.name, LIVE_VIEWS.past.name, ...Object.keys(COMPETITION_VIEW_COLUMNS), ...WAVE5_VIEWS].map((v) => `api.${v}`).sort());
   });
   it('audit_log is append-only for everyone: no update, no delete, no direct insert, even for the owner', () => {
     for (const role of DB_ROLES) for (const op of ['insert', 'update', 'delete'] as const) expect(isAllowedOp('audit_log', role, op, { editorsEnabled: true }), `${role} ${op}`).toBe(false);

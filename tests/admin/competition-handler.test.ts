@@ -9,7 +9,9 @@ import { MemoryAdminStore, SEED } from '../../src/lib/admin/memory-store';
 import { EDITOR_ID, makeHandler, makeKeys, NOW, req, signToken } from './_helpers';
 
 const json = async (r: Response) => (await r.json()) as { ok: boolean; code?: string; data?: any; errors?: Record<string, string> };
-const COMPETITION_ACTIONS = (Object.keys(ADMIN_ACTIONS) as AdminActionName[]).filter((a) => a.startsWith('competition.'));
+// the 22 actions of the competition store; the six live scoring actions (D-113, competition.live*) have their own tests (tests/live-scores)
+const LIVE_ACTIONS = ['competition.liveMatches', 'competition.liveMatch', 'competition.liveSettings', 'competition.liveScore', 'competition.liveStatus', 'competition.saveLiveSettings'];
+const COMPETITION_ACTIONS = (Object.keys(ADMIN_ACTIONS) as AdminActionName[]).filter((a) => a.startsWith('competition.') && !LIVE_ACTIONS.includes(a));
 
 async function setup() {
   const keys = await makeKeys();

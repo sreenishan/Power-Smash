@@ -17,9 +17,15 @@ import { alertsSignupForm } from '../lib/forms/defs/alerts';
 import { formPageConfig, plainForm } from '../lib/forms/page-config';
 import { titleWithBrand } from '../lib/seo';
 import { ROUTES } from '../lib/urls';
+import StayUpdated from '../components/site/notices/StayUpdated.astro';
+import { alertsPageUsesStayUpdated } from '../lib/notices/switches';
 
 const cfg = formPageConfig();
 const form = plainForm(alertsSignupForm());
+// D-114: once the email updates list is switched on, the "Stay updated" block (double opt-in sign-up, one-click unsubscribe, the
+// WhatsApp Channel link) replaces the older channel block and the address-only alerts form. siteNotices alone (the banner) leaves the
+// older blocks in place, so the page is never left empty. The flag is off today.
+const stayUpdated = alertsPageUsesStayUpdated();
 ---
 <BaseLayout
   title={titleWithBrand('Alerts')}
@@ -32,6 +38,12 @@ const form = plainForm(alertsSignupForm());
     crumbs={[{ name: 'Support', href: ROUTES.support }, { name: 'Alerts' }]}
   />
 
+  {stayUpdated ? (
+    <Section labelledBy="stay-updated-title" tone="surface">
+      <StayUpdated />
+    </Section>
+  ) : (
+  <>
   <OwnerSection when={site.whatsappChannelUrl} name="alerts-whatsapp-channel">
     <Section labelledBy="channel-title" tone="surface">
       <SectionHeading id="channel-title" title="WhatsApp Channel" lead="Follow the channel in WhatsApp. You do not share your number with us." />
@@ -65,4 +77,6 @@ const form = plainForm(alertsSignupForm());
       </ul>
     </Fragment>
   </FormSection>
+  </>
+  )}
 </BaseLayout>
