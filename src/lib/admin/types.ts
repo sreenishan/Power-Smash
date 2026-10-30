@@ -10,6 +10,7 @@ import type { PaymentRecord, Settlement } from '../pricing-admin/mark-paid';
 import type { ProductEditInput, ProductRecord } from '../pricing-admin/product-edit';
 import type { ReviewAction, VideoSubmission } from './submissions';
 import type { PlayerProfileFields } from './player-profile';
+import type { LiveEditInput, LiveSettings } from '../live/rules';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -208,6 +209,9 @@ export interface ProductItem {
 }
 export type ProductSaveInput = ProductEditInput & { slug: string };
 
+/** The admin Live screen's save (D-101): what the owner typed, plus a reason for the audit. */
+export type LiveSaveInput = LiveEditInput & { reason: string };
+
 export interface PosterTarget {
   slug: string;
   title: string;
@@ -345,6 +349,11 @@ export interface AdminStore {
   saveProduct(actor: Actor, input: ProductSaveInput): Promise<StoreResult<ProductItem>>;
 
   listPosterTargets(): Promise<StoreResult<PosterTarget[]>>;
+
+  /** The /live pin and past streams as stored (D-101). */
+  getLive(): Promise<StoreResult<LiveSettings>>;
+  /** Saves the pin and the whole past-streams list; the owner may paste YouTube links (the id is read from them). Audits the changed parts' names. */
+  saveLive(actor: Actor, input: LiveSaveInput): Promise<StoreResult<{ settings: LiveSettings; fields: string[] }>>;
 
   getProtectedModes(): Promise<StoreResult<DashboardData['protectedModes']>>;
   setProtectedMode(actor: Actor, input: { key: ProtectedModeKey; value: ProtectedMatchMode; reason: string }): Promise<StoreResult<WithUndo<{ key: ProtectedModeKey; value: ProtectedMatchMode }>>>;

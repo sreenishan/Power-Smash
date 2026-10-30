@@ -43,7 +43,7 @@ export const MODE_LABEL = {
 
 // ----------------------------------------------------------------------------- hash router
 
-export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'settings', 'more'] as const;
+export const ROUTES_ADMIN = ['dashboard', 'inbox', 'videos', 'players', 'tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'settings', 'more'] as const;
 export type AdminRoute = (typeof ROUTES_ADMIN)[number];
 
 export const ROUTE_TITLE: Record<AdminRoute, string> = {
@@ -56,6 +56,7 @@ export const ROUTE_TITLE: Record<AdminRoute, string> = {
   sponsors: 'Sponsor placements',
   prices: 'Prices',
   posters: 'QR posters',
+  live: 'Live page',
   settings: 'Settings',
   more: 'More',
 };
@@ -70,13 +71,14 @@ export const ROUTE_NOTE: Record<AdminRoute, string> = {
   sponsors: 'Add a sponsor placement and switch it on or off.',
   prices: 'Type or change a price.',
   posters: 'Get the QR link for a printed poster.',
+  live: 'Pin the stream on the Live page and list past streams.',
   settings: 'What the public sees for players who are not confirmed adults.',
   more: 'All areas.',
 };
 
 /** The five tabs of the bottom bar, in order; the rest live under More. */
 export const TAB_ROUTES: readonly AdminRoute[] = ['dashboard', 'inbox', 'videos', 'players', 'more'];
-export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', settings: 'Settings' };
+export const TAB_LABEL: Record<AdminRoute, string> = { dashboard: 'Home', inbox: 'Enquiries', videos: 'Videos', players: 'Players', more: 'More', tournaments: 'Tournaments', submissions: 'Submissions', sponsors: 'Sponsors', prices: 'Prices', posters: 'Posters', live: 'Live', settings: 'Settings' };
 /** Which tab to highlight for a route. */
 export const tabFor = (r: AdminRoute): AdminRoute => (TAB_ROUTES.includes(r) ? r : 'more');
 

@@ -117,6 +117,9 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
     .strict(),
   'placements.setStatus': z.object({ id: uuid, status: z.enum(['active', 'paused', 'ended']) }).strict(),
   'products.list': empty,
+  'live.get': empty,
+  // generous bounds here; the exact rules (ids or YouTube links, 20 streams, 100-character titles, real dates) are in validateLiveEdit
+  'live.save': z.object({ pinned: z.string().max(300).nullable(), past: z.array(z.object({ video: z.string().max(300), title: z.string().max(400), date: z.string().max(20).nullable() }).strict()).max(40), reason }).strict(),
   'products.save': z
     .object({
       slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
@@ -284,6 +287,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'placements.setStatus': return fromStore(await s.setPlacementStatus(actor, input), cors);
     case 'products.list': return fromStore(await s.listProducts(), cors);
     case 'products.save': return fromStore(await s.saveProduct(actor, input), cors);
+    case 'live.get': return fromStore(await s.getLive(), cors);
+    case 'live.save': return fromStore(await s.saveLive(actor, input), cors);
     case 'posters.list': return fromStore(await s.listPosterTargets(), cors);
     case 'profileRequests.list': return fromStore(await s.listProfileRequests(), cors);
     case 'profileRequests.resolve': return fromStore(await s.resolveProfileRequest(actor, input), cors);

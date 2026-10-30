@@ -52,6 +52,8 @@ export const ADMIN_ACTIONS = {
   'placements.setStatus': ownerWrite,
   'products.list': ownerRead,
   'products.save': ownerWrite,
+  'live.get': ownerRead,
+  'live.save': ownerWrite,
   'posters.list': ownerRead,
   'settings.get': ownerRead,
   'settings.setProtectedMode': ownerWrite,
@@ -115,6 +117,9 @@ export const RLS_MATRIX = {
   'api.public_archive_modes': { private: false, grants: PUBLIC_VIEW },
   // 0011_products.sql (D-099): visible products only, explicit columns
   'api.public_products': { private: false, grants: PUBLIC_VIEW },
+  // 0013_live_pin.sql (D-101): the /live pin and past streams, explicit columns
+  'api.public_live_settings': { private: false, grants: PUBLIC_VIEW },
+  'api.public_live_past_streams': { private: false, grants: PUBLIC_VIEW },
   // archive base tables: owner reads, writes only via RPC
   'videos': { private: true, grants: OWNER_READ_RPC_WRITE },
   'video_title_history': { private: true, grants: OWNER_READ },
@@ -141,6 +146,9 @@ export const RLS_MATRIX = {
   'placements': { private: true, grants: OWNER_READ_RPC_WRITE },
   // 0011_products.sql (D-099): the owner's prices; writes only through admin_save_product
   'products': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0013_live_pin.sql (D-101): the /live pin and past streams; writes only through admin_save_live
+  'live_settings': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'live_past_streams': { private: true, grants: OWNER_READ_RPC_WRITE },
   'placement_stats_daily': { private: true, grants: OWNER_READ },
   'placement_page_stats_daily': { private: true, grants: OWNER_READ },
   // Worker-only plumbing: no admin access at all
