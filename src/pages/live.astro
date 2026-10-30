@@ -1,5 +1,6 @@
 ---
-// Live (spec 7.13), static shell. Reads src/content/live.ts: a pinned YouTube video id (empty by default; the player section is
+// Live (spec 7.13), static shell. Reads the pin through src/lib/live/source.ts (D-101): src/content/live.ts by default, or the owner's
+// admin settings from the database when the build variable PS_LIVE_SOURCE is exactly "supabase". Either way: a pinned YouTube video id (empty by default; the player section is
 // hidden until it is set, D-034) and an optional list of past streams. NO API calls and no live data: the cached live status
 // (RSS plus videos.list) arrives with the sync. The player is a click-to-load facade on the privacy-enhanced domain: nothing from
 // YouTube is requested until the visitor presses the button, and the page says so. Without JavaScript the visitor gets a plain link.
@@ -11,13 +12,15 @@ import SectionHeading from '../components/ui/SectionHeading.astro';
 import Button from '../components/ui/Button.astro';
 import EmptyState from '../components/ui/EmptyState.astro';
 import OwnerSection from '../components/site/OwnerSection.astro';
-import { assertValidLive, embedUrl, live, watchUrl } from '../content/live';
+import { assertValidLive, embedUrl, watchUrl } from '../content/live';
+import { loadLiveSettings } from '../lib/live/source';
 import { features } from '../content/legal/status';
 import { site } from '../content/site';
 import { formatDate } from '../lib/dates';
 import { titleWithBrand } from '../lib/seo';
 
-assertValidLive();
+const { source: liveSource, settings: live } = await loadLiveSettings();
+assertValidLive(live, liveSource === 'supabase' ? 'the live settings in the database' : 'src/content/live.ts');
 const pinned = live.pinnedVideoId;
 // The player is shown only when the Privacy Policy covers YouTube embeds (features.youtubeEmbeds, a switch the owner and the lawyer set).
 const embedsOn = features.youtubeEmbeds === true;

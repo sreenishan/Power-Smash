@@ -87,6 +87,8 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     listProducts: () => post('products.list'),
     saveProduct: noActor('products.save'),
     listPosterTargets: () => post('posters.list'),
+    getLive: () => post('live.get'),
+    saveLive: noActor('live.save'),
     listProfileRequests: () => post('profileRequests.list'),
     resolveProfileRequest: noActor('profileRequests.resolve'),
     listTournamentCandidates: () => post('tournaments.candidates'),

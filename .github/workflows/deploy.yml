@@ -101,6 +101,10 @@ jobs:
           PUBLIC_WHATSAPP_NUMBER: ${{ vars.PUBLIC_WHATSAPP_NUMBER }}
           PUBLIC_CF_ANALYTICS_TOKEN: ${{ vars.PUBLIC_CF_ANALYTICS_TOKEN }}
           PUBLIC_HSTS_MAX_AGE: ${{ vars.PUBLIC_HSTS_MAX_AGE }}
+          # Data-source switches (docs/SECRETS.md). Unset = the content files and the sample archive (which the strict build refuses).
+          # Each one is used only when it is exactly "supabase"; switching one on changes what visitors see (owner's yes, D-101).
+          PS_ARCHIVE_SOURCE: ${{ vars.PS_ARCHIVE_SOURCE }}
+          PS_LIVE_SOURCE: ${{ vars.PS_LIVE_SOURCE }}
         run: npm run build:strict
 
       # Fail closed: the strict build must have produced the Build Output API folder. Nothing is uploaded without it.

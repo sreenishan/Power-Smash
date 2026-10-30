@@ -7,6 +7,7 @@
 // admin_dismiss_duplicate, admin_decide_tournament, admin_resolve_profile_request and admin_set_match_lock (0008), plus the RPCs of 0006.
 import type { AgeStatus } from '../identity/types';
 import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
+import { liveChanges, validateLiveEdit, type LiveSettings } from '../live/rules';
 import type { PlayerRow, SuppressionKind, VideoRow, AdminRpcArgs, EmergencyHideResult } from '../archive/types';
 import { findPossibleDuplicates, canConfirmAdult, MAX_BULK_CONFIRM, planMerge, type IdAlias, type IdPlayer } from '../identity';
 import { chooseSlug } from '../identity/operations';
@@ -173,6 +174,13 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
     return p
       ? { slug: p.slug, group: p.group, record: { name: p.name, summary: p.summary, priceType: p.priceType, pricePaise: p.pricePaise, gstInclusive: p.gstInclusive, deliveryDays: p.deliveryDays, visible: false, sort: 0, inclusions: p.inclusions.map((i) => i.text), inclusionsApproved: p.inclusionsApproved, quoteWordingApproved: p.quoteWordingApproved } satisfies ProductRecord }
       : undefined;
+  };
+
+  type LivePastRow = { video_id: string; title: string; streamed_on: string | null; position: number };
+  const loadLive = async (): Promise<LiveSettings> => {
+    const [settings] = await select<{ pinned_video_id: string | null }>('live_settings', 'select=pinned_video_id&id=eq.1&limit=1');
+    const past = await select<LivePastRow>('live_past_streams', 'select=video_id,title,streamed_on,position&order=position.asc&limit=100');
+    return { pinnedVideoId: settings?.pinned_video_id ?? null, pastStreams: past.map((r) => ({ videoId: r.video_id, title: r.title, date: r.streamed_on })) };
   };
 
   type ProfileRow = { age_status: AgeStatus; district: string | null; academy: string | null; bio: string | null };
@@ -467,6 +475,22 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
         if (!r.ok) return failResult('INVALID', r.errors);
         await rpc('admin_save_product', { p_actor: actor.userId, p_slug: input.slug, p_record: r.value, p_reason: r.price ? 'price change' : 'product edit' });
         return okResult<ProductItem>({ ...item, record: r.value });
+      }),
+
+    // /live (migration 0013, D-101): the one settings row and the past-streams list, read with the service role; saved through admin_save_live
+    getLive: () => guard(async () => okResult(await loadLive())),
+
+    saveLive: (actor, input) =>
+      guard(async () => {
+        // checked here first: a refused form makes no network call at all
+        const v = validateLiveEdit(input);
+        if (!v.ok) return failResult('INVALID', v.errors);
+        const fields = liveChanges(await loadLive(), v.value);
+        if (fields.length === 0) return okResult({ settings: v.value, fields: [] as string[] });
+        await rpc('admin_save_live', {
+          p_actor: actor.userId, p_pinned: v.value.pinnedVideoId, p_past: v.value.pastStreams.map((s) => ({ videoId: s.videoId, title: s.title, date: s.date })), p_reason: input.reason,
+        });
+        return okResult({ settings: v.value, fields: fields as string[] });
       }),
 
     listPosterTargets: () =>

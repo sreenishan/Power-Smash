@@ -68,6 +68,11 @@ export const MANIFEST = [
   { name: 'public_products', pk: 'slug', pkSample: '__no_such_product__', schema: 'api', expectSelect: true },
   { name: 'public_slug_redirects', pk: 'from_path', pkSample: '/__no_such_path__/', schema: 'api', expectSelect: true },
   { name: 'public_archive_modes', pk: 'key', pkSample: '__no_such_key__', schema: 'api', expectSelect: true },
+  // 0013_live_pin.sql (D-101): the /live pin tables are denied; their two api views allow select only
+  { name: 'live_settings', pk: 'id', pkSample: '0' },
+  { name: 'live_past_streams', pk: 'video_id', pkSample: '__no_such_video__' },
+  { name: 'public_live_settings', pk: 'pinned_video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
+  { name: 'public_live_past_streams', pk: 'video_id', pkSample: '__no_such_video__', schema: 'api', expectSelect: true },
   // Later milestones add their tables here, for example:
   //   { name: 'players', pk: 'id', pkSample: NIL_UUID }                                  (base table: must be denied)
   //   { name: 'public_players', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true }  (api view: select allowed, writes denied)

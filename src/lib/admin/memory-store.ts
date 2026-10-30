@@ -2,6 +2,7 @@
 // rules (src/lib/identity) the SQL RPCs implement, writes an audit row for every privileged action, and offers undo where possible.
 // Seed data is FICTIONAL (invented names, `fake-` video ids). Nothing here touches the network.
 import { changedProfileFields, validatePlayerProfile, type PlayerProfileFields } from './player-profile';
+import { liveChanges, NO_LIVE, validateLiveEdit, type LiveSettings } from '../live/rules';
 import { findPossibleDuplicates, pairKey, planMerge, planRename, planSplit, applyMergeUndo, canConfirmAdult, MAX_BULK_CONFIRM, removeRedirectsFor, suppressionsForPlayer, tombstone, addSuppressions } from '../identity';
 import type { IdAlias, IdPlayer, IdentityState, MergeUndo, Suppression } from '../identity';
 import { normalizeName } from '../parser/normalize';
@@ -31,6 +32,7 @@ import {
   type SubmissionReviewRequest,
   type PlacementCreateInput,
   type ProductSaveInput,
+  type LiveSaveInput,
   type ProfileRequest,
   type ProtectedMatchMode,
   type PlacementsData,
@@ -85,6 +87,8 @@ export interface MemoryState {
   modes: { unknown_match_mode: ProtectedMatchMode; minor_match_mode: ProtectedMatchMode };
   /** Adult players' profile fields by player id (D-100). Absent = nothing stated. */
   playerProfiles?: Record<string, PlayerProfileFields>;
+  /** The /live pin and past streams (D-101). Absent = nothing pinned, no list. */
+  live?: LiveSettings;
   audit: AuditEntry[];
   siteDirty: boolean;
   lastDeployStatus: string | null;
@@ -397,6 +401,23 @@ export class MemoryAdminStore implements AdminClient {
     this.audit(actor, r.price ? 'product.price_change' : 'product.edit', 'product', item.slug, r.price ? `price ${r.price.fromPaise ?? 'none'} -> ${r.price.toPaise ?? 'none'} paise; ${r.changed.join(', ')}` : r.changed.join(', '));
     this.markDirty(); // prices and visibility are public content: the next build must pick them up
     return okResult({ ...item, record: { ...item.record } });
+  }
+
+  async getLive(): Promise<StoreResult<LiveSettings>> {
+    const l = this.state.live ?? NO_LIVE;
+    return okResult<LiveSettings>({ pinnedVideoId: l.pinnedVideoId, pastStreams: l.pastStreams.map((s) => ({ ...s })) });
+  }
+
+  async saveLive(actor: Actor, input: LiveSaveInput) {
+    const v = validateLiveEdit(input);
+    if (!v.ok) return failResult('INVALID', v.errors);
+    const fields = liveChanges(this.state.live ?? NO_LIVE, v.value);
+    if (fields.length === 0) return okResult({ settings: v.value, fields: [] as string[] });
+    this.state.live = v.value;
+    // the ids are public; the titles are not repeated in the audit (like the SQL)
+    this.audit(actor, 'live.save', 'live_settings', '1', `${fields.join(', ')}; pinned ${v.value.pinnedVideoId ?? 'none'}; ${v.value.pastStreams.length} past`);
+    this.markDirty();
+    return okResult({ settings: v.value, fields: fields as string[] });
   }
 
   async listPosterTargets(): Promise<StoreResult<PosterTarget[]>> {

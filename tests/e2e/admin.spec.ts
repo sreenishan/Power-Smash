@@ -288,3 +288,52 @@ test.describe('Player profile (adults only, D-100)', () => {
     expect(stray).toEqual([]);
   });
 });
+
+test.describe('Live page pin (D-101)', () => {
+  test('pasting YouTube links pins a stream and lists a past one after a confirm step; a bad link is refused in words', async ({ page }) => {
+    const stray = await open(page, '#/more');
+    await page.getByRole('link', { name: /Live page/ }).click();
+    await expect(page.getByRole('heading', { name: 'Live page', level: 1 })).toBeVisible();
+    // the screen says plainly that the public page does not read these settings yet (PS_LIVE_SOURCE is off)
+    await expect(page.getByText('Not on the site yet')).toBeVisible();
+
+    // a link to another site is refused before anything is saved
+    const pin = page.getByLabel('Pinned stream: YouTube link or video id');
+    await pin.fill('https://evil.test/watch?v=FAKEvid0002');
+    await page.getByRole('button', { name: 'Review and save' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Paste the YouTube link of the stream' })).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+    await pin.fill('https://www.youtube.com/live/FAKEvid0002?feature=share');
+    await page.getByRole('button', { name: 'Add a past stream' }).click();
+    await page.getByLabel('Past stream 1: YouTube link or video id').fill('https://youtu.be/FAKEvid0001');
+    await page.getByLabel('Past stream 1: title, exactly as on YouTube').fill('Fake Open 2026 Final - a fictional stream');
+    await page.getByLabel('Past stream 1: date (optional)').fill('2026-10-01');
+    await noHorizontalScroll(page);
+    await axeClean(page);
+    await page.getByRole('button', { name: 'Review and save' }).click();
+    const dlg = page.getByRole('alertdialog', { name: 'Save the Live page?' });
+    await expect(dlg).toContainText('FAKEvid0002');
+    await dlg.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Saved in the admin' })).toBeVisible();
+    // the form now shows the cleaned ids, not the pasted links
+    await expect(pin).toHaveValue('FAKEvid0002');
+    await expect(page.getByLabel('Past stream 1: YouTube link or video id')).toHaveValue('FAKEvid0001');
+    expect(stray).toEqual([]);
+  });
+
+  test('a row error does not stay on the wrong row after the list changes', async ({ page }) => {
+    await open(page, '#/live');
+    await page.getByRole('button', { name: 'Add a past stream' }).click();
+    await page.getByRole('button', { name: 'Add a past stream' }).click();
+    await page.getByLabel('Past stream 2: YouTube link or video id').fill('FAKEvid0001');
+    await page.getByLabel('Past stream 2: title, exactly as on YouTube').fill('Fake Cup 2026 Semi');
+    await page.getByRole('button', { name: 'Review and save' }).click();
+    // row 1 is empty: its errors show
+    await expect(page.getByRole('alert').filter({ hasText: 'Paste the YouTube link of the video' })).toHaveCount(1);
+    // removing row 1 moves the good row up; the old errors must not land on it
+    await page.getByRole('listitem').filter({ hasText: 'Past stream 1' }).getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByLabel('Past stream 1: title, exactly as on YouTube')).toHaveValue('Fake Cup 2026 Semi');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+});
