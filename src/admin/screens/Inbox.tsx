@@ -12,6 +12,8 @@ import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, cx
 
 // The payment form is its own chunk: it is loaded only when the owner opens it.
 const MarkPaid = lazy(() => import('./MarkPaid').then((m) => ({ default: m.MarkPaid })));
+// The tournament-list step for an organizer's submission (D-103): its own chunk too.
+const SubmissionToTournament = lazy(() => import('./SubmissionToTournament').then((m) => ({ default: m.SubmissionToTournament })));
 
 const istNow = (): string => istDateOfInstant(new Date().toISOString());
 
@@ -33,7 +35,8 @@ export function Inbox() {
           </button>
         ))}
       </div>
-      <LoadState loading={q.loading} error={q.error}>
+      {/* while the list reloads after a change, keep showing it, so an open panel (or a half-typed note) is not thrown away */}
+      <LoadState loading={q.loading && !q.data} error={q.error}>
         {shown.length > 0 ? shown.map((l) => <LeadCard key={l.id} lead={l} today={today} />) : <Empty>No enquiries here.</Empty>}
       </LoadState>
     </div>
@@ -44,6 +47,7 @@ function LeadCard({ lead, today }: { lead: InboxLead; today: string }) {
   const { client, actor, notify, check, bump } = useAdmin();
   const [open, setOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [listing, setListing] = useState(false);
   const [notes, setNotes] = useState(lead.notes ?? '');
   const [follow, setFollow] = useState(lead.followUpOn ?? '');
   const [value, setValue] = useState(rupeesInputFromPaise(lead.valuePaise));
@@ -99,7 +103,13 @@ function LeadCard({ lead, today }: { lead: InboxLead; today: string }) {
         {actions.email ? <a className="inline-flex min-h-tap items-center rounded-md border-2 border-line-strong px-4 font-bold no-underline" href={actions.email}>Email reply</a> : null}
         <Button small onClick={() => setOpen(!open)}>{open ? 'Close' : 'Update'}</Button>
         <Button small onClick={() => setPaying(!paying)}>{paying ? 'Close payment' : 'Record payment'}</Button>
+        {lead.type === 'tournament_submission' ? <Button small onClick={() => setListing(!listing)}>{listing ? 'Close tournament list' : 'Tournament list'}</Button> : null}
       </div>
+      {listing ? (
+        <Suspense fallback={<p className="mt-3 text-fg-muted">Loading...</p>}>
+          <SubmissionToTournament leadId={lead.id} />
+        </Suspense>
+      ) : null}
       {paying ? (
         <Suspense fallback={<p className="mt-3 text-fg-muted">Loading...</p>}>
           <MarkPaid lead={lead} onDone={() => setPaying(false)} />

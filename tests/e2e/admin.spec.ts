@@ -387,3 +387,26 @@ test.describe('Tournament details (D-102)', () => {
     expect(stray).toEqual([]);
   });
 });
+
+test.describe('Organizer submission to the tournament list (D-103)', () => {
+  test('a tournament-listing enquiry is added as a hidden Submitted candidate, once, without copying contact details', async ({ page }) => {
+    const stray = await open(page, '#/inbox');
+    const lead = page.getByRole('article', { name: 'Enquiry PS-2026-DEMK04' });
+    await lead.getByRole('button', { name: 'Tournament list' }).click();
+    await expect(lead.getByText('Demo Shuttle Open 2026')).toBeVisible();
+    await expect(lead.getByText('Yes (the place is in Tamil Nadu)')).toBeVisible();
+    await expect(lead.getByText(/not copied/)).toBeVisible();
+    await noHorizontalScroll(page);
+    await axeClean(page);
+    await lead.getByRole('button', { name: 'Add to the tournament list' }).click();
+    await page.getByRole('alertdialog', { name: 'Add "Demo Shuttle Open 2026" to the tournament list?' }).getByRole('button', { name: 'Add' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Submitted by organizers' })).toBeVisible();
+    await expect(lead.getByText('In the tournament list')).toBeVisible();
+
+    // it waits, hidden, in the Submitted tab
+    await lead.getByRole('link', { name: 'Open Tournaments' }).click();
+    await expect(page.getByRole('tab', { name: 'Submitted by organizers (2)' })).toBeVisible();
+    await expect(page.locator('article').filter({ hasText: 'Demo Shuttle Open 2026' })).toContainText('Submitted by organizer');
+    expect(stray).toEqual([]);
+  });
+});

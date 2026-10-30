@@ -11,6 +11,7 @@ import { liveChanges, validateLiveEdit, type LiveSettings } from '../live/rules'
 import { todayIst } from '../dates';
 import { CATEGORIES, type Category } from '../parser/types';
 import { changedTournamentFields, sameTournamentDetails, validateTournamentEdit, type TournamentDetails } from './tournament-edit';
+import { slugOptionsFor, submissionPreview, type SubmissionPayload, type SubmissionPreview } from './submission-candidate';
 import type { PlayerRow, SuppressionKind, VideoRow, AdminRpcArgs, EmergencyHideResult } from '../archive/types';
 import { findPossibleDuplicates, canConfirmAdult, MAX_BULK_CONFIRM, planMerge, type IdAlias, type IdPlayer } from '../identity';
 import { chooseSlug } from '../identity/operations';
@@ -193,6 +194,27 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
   const loadTournamentDetails = async (id: string): Promise<TournamentDetails | null> => {
     const [row] = await select<TournamentDetailRow>('tournaments', `select=${TOURNAMENT_DETAIL_COLUMNS}&id=eq.${encodeURIComponent(id)}&limit=1`);
     return row ? detailsOf(row) : null;
+  };
+
+  // An organizer's submission (D-103): only the tournament fields of the payload are selected (PostgREST ->> aliases), never a contact column
+  const SUBMISSION_SELECT = 'id,ref_code,type,tournamentName:payload->>tournamentName,startDate:payload->>startDate,endDate:payload->>endDate,venue:payload->>venue,city:payload->>city,district:payload->>district';
+  type SubmissionLeadRow = { id: string; ref_code: string; type: string } & SubmissionPayload;
+  const loadSubmissionPreview = async (leadId: string): Promise<StoreResult<SubmissionPreview>> => {
+    const [lead] = await select<SubmissionLeadRow>('leads', `select=${SUBMISSION_SELECT}&id=eq.${encodeURIComponent(leadId)}&limit=1`);
+    if (!lead) return failResult('NOT_FOUND');
+    if (lead.type !== 'tournament_submission') return failResult('INVALID');
+    const payload: SubmissionPayload = { tournamentName: lead.tournamentName, startDate: lead.startDate, endDate: lead.endDate, venue: lead.venue, city: lead.city, district: lead.district };
+    const [link] = await select<{ tournament_id: string }>('tournament_submissions', `select=tournament_id&lead_id=eq.${encodeURIComponent(leadId)}&limit=1`);
+    const options = slugOptionsFor(payload);
+    const taken = new Set(options.length === 0 ? [] : (await select<{ slug: string }>('tournaments', `select=slug&slug=in.(${options.map(encodeURIComponent).join(',')})&limit=20`)).map((r) => r.slug));
+    // the duplicate check needs the series key and year, which the pure rule computes: ask once for the one candidate
+    const draft = submissionPreview({ id: lead.id, refCode: lead.ref_code, payload }, { addedAs: null, slugTaken: (s) => taken.has(s), isDuplicate: () => false });
+    let duplicate = false;
+    if (draft.record) {
+      const year = draft.record.editionYear === null ? 'is.null' : `eq.${draft.record.editionYear}`;
+      duplicate = (await select<{ id: string }>('tournaments', `select=id&series_key=eq.${encodeURIComponent(draft.record.seriesKey)}&edition_year=${year}&limit=1`)).length > 0;
+    }
+    return okResult(submissionPreview({ id: lead.id, refCode: lead.ref_code, payload }, { addedAs: link ? { tournamentId: link.tournament_id } : null, slugTaken: (s) => taken.has(s), isDuplicate: () => duplicate }));
   };
 
   type LivePastRow = { video_id: string; title: string; streamed_on: string | null; position: number };
@@ -689,6 +711,19 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
       }),
 
     // Tournament details (migration 0014, D-102): read with the service role; saved through admin_update_tournament (owner only, audited)
+    previewSubmission: (o) => guard(() => loadSubmissionPreview(o.leadId)),
+
+    addSubmission: (actor, input) =>
+      guard(async () => {
+        // computed again here from the stored lead, never taken from the browser
+        const p = await loadSubmissionPreview(input.leadId);
+        if (!p.ok) return p;
+        const r = p.data.record;
+        if (!r || p.data.problem) return failResult('INVALID', { form: p.data.problem ?? 'This submission cannot be added.' });
+        const out = await rpc<{ id: string; slug: string }>('admin_add_submitted_tournament', { p_actor: actor.userId, p_lead: input.leadId, p_record: r, p_reason: input.reason });
+        return okResult({ tournamentId: out.id, slug: out.slug });
+      }),
+
     listApprovedTournaments: () =>
       guard(async () => {
         const rows = await select<{ id: string; name: string; series_key: string; edition_year: number | null; region: TournamentCandidate['region']; is_promoted: boolean; source: TournamentCandidate['source']; visibility: TournamentCandidate['visibility']; status: TournamentCandidate['status']; matches: { count: number }[] | null }>(

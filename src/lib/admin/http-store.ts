@@ -94,6 +94,8 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     listTournamentCandidates: () => post('tournaments.candidates'),
     decideTournament: noActor('tournaments.decide'),
     listApprovedTournaments: () => post('tournaments.approved'),
+    previewSubmission: (o) => post('tournaments.previewSubmission', o),
+    addSubmission: noActor('tournaments.addSubmission'),
     getTournamentDetails: (o) => post('tournaments.details', o),
     updateTournamentDetails: noActor('tournaments.update'),
     getProtectedModes: () => post('settings.get'),

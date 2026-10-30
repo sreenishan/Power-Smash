@@ -12,6 +12,7 @@ import type { ReviewAction, VideoSubmission } from './submissions';
 import type { PlayerProfileFields } from './player-profile';
 import type { LiveEditInput, LiveSettings } from '../live/rules';
 import type { TournamentDetails, TournamentDetailField, TournamentEditInput } from './tournament-edit';
+import type { SubmissionPreview } from './submission-candidate';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -337,6 +338,10 @@ export interface AdminStore {
   decideTournament(actor: Actor, input: { id: string; decision: 'promote' | 'reject' | 'hide'; reason: string }): Promise<StoreResult<{ id: string }>>;
   /** Approved tournaments (published or completed), newest first, so their details can be corrected (D-102). */
   listApprovedTournaments(): Promise<StoreResult<TournamentCandidate[]>>;
+  /** What adding an organizer's tournament_submission lead to the tournament list would create (D-103). No contact detail. */
+  previewSubmission(opts: { leadId: string }): Promise<StoreResult<SubmissionPreview>>;
+  /** Adds the submission as a pending, hidden "Submitted by organizers" candidate. Computed again here, never taken from the browser. */
+  addSubmission(actor: Actor, input: { leadId: string; reason: string }): Promise<StoreResult<{ tournamentId: string; slug: string }>>;
   getTournamentDetails(opts: { id: string }): Promise<StoreResult<TournamentDetails>>;
   /** Name, level, place, dates, categories, featured and covered (D-102). Audits the changed fields' names; locks name/level/city/district against the sync. */
   updateTournamentDetails(actor: Actor, input: TournamentUpdateInput): Promise<StoreResult<{ id: string; details: TournamentDetails; fields: TournamentDetailField[] }>>;

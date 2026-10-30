@@ -61,7 +61,7 @@ describe('leads: move through statuses with notes and a follow-up date', () => {
   });
   it('lists leads and 404s an unknown one', async () => {
     const s = await setup();
-    expect((await json(await s.call('leads.list'))).data).toHaveLength(3);
+    expect((await json(await s.call('leads.list'))).data).toHaveLength(4); // 3 enquiries + the organizer's tournament submission (D-103)
     expect((await s.call('leads.update', { id: '60000000-0000-4000-8000-0000000000ff', to: 'contacted' })).status).toBe(404);
   });
 });

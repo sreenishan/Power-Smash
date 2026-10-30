@@ -65,6 +65,8 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   'tournaments.candidates': empty,
   'tournaments.decide': z.object({ id: uuid, decision: z.enum(['promote', 'reject', 'hide']), reason }).strict(),
   'tournaments.approved': empty,
+  'tournaments.previewSubmission': z.object({ leadId: uuid }).strict(),
+  'tournaments.addSubmission': z.object({ leadId: uuid, reason }).strict(),
   'tournaments.details': z.object({ id: uuid }).strict(),
   // generous bounds here; the exact rules (lengths, levels, categories, real dates, featured until today or later) are in validateTournamentEdit
   'tournaments.update': z
@@ -332,6 +334,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'tournaments.candidates': return fromStore(await s.listTournamentCandidates(), cors);
     case 'tournaments.decide': return fromStore(await s.decideTournament(actor, input), cors);
     case 'tournaments.approved': return fromStore(await s.listApprovedTournaments(), cors);
+    case 'tournaments.previewSubmission': return fromStore(await s.previewSubmission(input), cors);
+    case 'tournaments.addSubmission': return fromStore(await s.addSubmission(actor, input), cors);
     case 'tournaments.details': return fromStore(await s.getTournamentDetails(input), cors);
     case 'tournaments.update': return fromStore(await s.updateTournamentDetails(actor, input), cors);
     case 'settings.get': return fromStore(await s.getProtectedModes(), cors);
