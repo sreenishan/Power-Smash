@@ -149,6 +149,26 @@ describe('harness hints (first live run, 2026-10-24)', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('a public view that answers 404 is an ERROR line (never PASS) with a plain hint: apply the migrations, or reload the Data API (2026-10-30)', async () => {
+    const api = fakeApi({ open: { public_live_settings: { select: 404 }, public_products: { select: 404 } } });
+    vi.stubGlobal('fetch', api.fetch);
+    try {
+      const lines = [];
+      const code = await main({ PUBLIC_SUPABASE_URL: URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY: KEY }, { log: (l) => lines.push(l), error: (l) => lines.push(l) });
+      const text = lines.join('\n');
+      expect(code).toBe(1);
+      expect(text).toMatch(/^ERROR select public_live_settings -> HTTP 404 \(expected allowed, 2xx\)$/m);
+      expect(text).not.toMatch(/^PASS\s+select public_live_settings/m);
+      expect(text).not.toMatch(/^PASS\s+select public_products/m);
+      expect(text).toMatch(/HINT: 2 public api view\(s\) answered HTTP 404 \(public_products, public_live_settings\).*sql:bundle -- --from.*notify pgrst, 'reload schema'/);
+      // a readable public view still prints PASS
+      expect(text).toMatch(/^PASS\s+select public_videos -> HTTP 200/m);
+      expect(text).not.toContain(KEY);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe('harness: public views that cannot be written at all (first live run, 2026-10-24)', () => {

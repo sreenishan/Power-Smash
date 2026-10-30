@@ -1,6 +1,6 @@
 // The SQL bundles the owner pastes into the Supabase SQL editor (scripts/supabase-bundle.mjs). Built from the real repository files; no database needed.
 import { describe, expect, it } from 'vitest';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { buildBundles, replaceTempHelpers } from '../../scripts/supabase-bundle.mjs';
 
@@ -43,6 +43,18 @@ describe('supabase SQL bundles', () => {
   it('migrations manage no transaction and use no statement that cannot run inside one, so one paste is all-or-nothing', () => {
     expect(b.migrationsSql).not.toMatch(/^\s*(begin|commit|rollback)\s*;/im);
     expect(b.migrationsSql).not.toMatch(/\bconcurrently\b|alter\s+type\s+\S+\s+add\s+value|^\s*vacuum\b/im);
+  });
+  it('every check that adds a fake owner first sets a real owner aside (only one owner is allowed; the dev project has one)', () => {
+    for (const file of b.checkFiles) {
+      const text = readFileSync(join(ROOT, 'supabase', 'checks', file), 'utf8');
+      const insert = text.indexOf("values (v_owner, 'owner'");
+      if (insert === -1) continue;
+      const aside = text.lastIndexOf("update public.profiles set role = 'editor' where role = 'owner';", insert);
+      expect(aside, `${file} must set a real owner aside before inserting the fake owner`).toBeGreaterThan(-1);
+      // in the same rolled-back block: no block end between the two, and the block ends in ps_rollback
+      expect(text.slice(aside, insert), file).not.toMatch(/\n\s*end;?\n/);
+      expect(text.indexOf("raise exception 'ps_rollback'", insert), file).toBeGreaterThan(insert);
+    }
   });
   it('--from keeps only the later migrations (for a project that has the earlier ones), says so, and still bundles every check', () => {
     const later = buildBundles(ROOT, { from: '0011' });
