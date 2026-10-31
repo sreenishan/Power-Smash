@@ -4,6 +4,23 @@ Plain English for the owner. Written 2026-10-22 for the Vercel host (decision D-
 
 Facts below come from Vercel's own pages as recorded in `docs/VERIFIED_FACTS.md` (VF-V2, VF-V7) and the deploy notes in `docs/m3/vercel-deploy-notes.md`. Anything marked **unverified** has not been tried on a real Vercel account yet; the first preview is the test, and if a screen looks different, tell me what you see (never a password or a key).
 
+## Made-up competitions on the preview (development project only)
+
+The preview's `/competitions/` pages (draws, order of play, results, rankings) read the **development** Supabase project. It starts empty, so those pages show nothing until you add the made-up competition data once. Everything in it is invented: "Demo" players such as "Demo Arun Fakeson", towns called Sampleville and Fakenagar, tournaments called "Demo Lakeside Open", "Demo Riverside Championship" and "Demo Schools Cup". No real player, club, hall or place; no phone number or email.
+
+**Add it (once):**
+1. Open supabase.com, the **development** project (never the live one), **SQL Editor**, **New query**.
+2. Open `supabase/demo/competition-demo.sql` in the repository (GitHub app or website), copy the whole file and paste it into the editor.
+3. **Before Run**, find the line with `PASTE-THE-DEVELOPMENT-PROJECT-REFERENCE-HERE` (near the top) and put the **development** project's reference there in place of that text (the short code in the development project's web address; it is not a secret). This is the safety catch: as it is in the repository the file refuses with "this does not look like the development project" and adds nothing, so a paste into the live project by mistake does nothing. Then tap **Run**.
+4. It should say `DEMO: added 3 made-up tournaments ...`. If it says the data is already there, nothing was changed. If it says no owner account was found, finish the owner sign-in set-up first (OT-51).
+5. Run the **Preview** job again (a preview reads the data when it is built).
+
+**What the preview then shows:** one finished tournament (two weeks ago) with men's singles, mixed doubles and an under-15 boys' event, every result in (one walkover, one player who retired); one tournament in ten days with draws and an order of play but nothing played yet (including a round robin and a draw with byes); one School/college tournament. Some players show as **"Protected player"** on purpose: the under-15 event, everyone in the School/college tournament, the players whose age is not confirmed and a pair with a player who may be under 18. One local men's singles ranking is shown: for this the add step switches **public rankings on in the development project only** (the live project is never touched).
+
+**Take it away again:** the same way, with `supabase/demo/competition-demo-remove.sql`. It needs no change before Run. It removes only the demo rows and puts the rankings switch back as it was. If there is no demo data (it was already removed, or this is the wrong project), it says so and changes nothing at all. If it refuses with a message, something real points at the demo data (for example you entered a real player in a demo event); nothing was removed, tell me what it says. The admin's history log keeps its lines about the demo (that log can never be edited), which is expected.
+
+**Dates go stale:** the dates are set on the day you add the data. Once the "in ten days" tournament has passed (and ten days later the School/college one), the preview shows tournaments that look upcoming but are already over. To refresh them, run the removal, then the add step again (with the reference line filled in), then the Preview job.
+
 ## Before the first preview (one time)
 
 1. OT-01 done (repository on GitHub) and OT-02 done (Vercel account, project, the three deploy values stored as GitHub secrets; the project is made from the command line with **no repository connected**, so Vercel's own Git deploys cannot publish anything, and the function region is Mumbai). Hobby (free) is fine for a private preview. The live site needs Pro (OT-02, D-097).

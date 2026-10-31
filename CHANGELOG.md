@@ -65,6 +65,10 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
 
 ### Added
 
+*Made-up competitions for the private preview (2026-10-31): nothing is run yet; you paste the file into the development project*
+
+- **Demo competition data for the development project.** `supabase/demo/competition-demo.sql` adds three invented tournaments ("Demo ..." names, towns Sampleville and Fakenagar, no contact details) with draws, an order of play, results and one local ranking, written through your own admin functions; `supabase/demo/competition-demo-remove.sql` takes exactly that away again and refuses if anything real points at it. The private preview now reads the competition pages from the development project. How to use both: `docs/PREVIEW.md`. Tested on the local database (`tests/supabase/competition-demo.test.ts`).
+
 *The tournament platform, follow-ups (2026-10-31): organizer player search, screens per role, keep-for periods and the clean-up of registrations and email sign-ups, vendor facts re-read, leftover review findings; all built, all switched off*
 
 - **Organizers can find and add players (migration 0024; D-126).** In Entries, an organizer types at least 3 letters of a name and sees at most 25 players a page, only for the tournaments given to them. A few letters find only players the website already names, or players already in that tournament; anyone else (a player of unknown age or a junior from your videos) is found only by typing their full name exactly. Each organizer search is recorded (without what was typed) and limited to 120 in 10 minutes. When no found name is exactly the typed one, they can add a new player, who starts hidden, provisional and of unknown age (so never named). If the name is already taken, belongs to a hidden player or is on the removal list, they see the same plain refusal in every case, so nobody can learn that someone asked to be removed. They can never change an existing player. You keep the full Players search.

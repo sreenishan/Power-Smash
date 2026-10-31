@@ -71,6 +71,9 @@ jobs:
           # The business WhatsApp number (public by design, spec 13.2; owner confirmed 2026-10-25) so the owner can test every
           # WhatsApp button on the private preview. Unset = the buttons are hidden.
           PUBLIC_WHATSAPP_NUMBER: ${{ vars.PREVIEW_PUBLIC_WHATSAPP_NUMBER }}
+          # The /competitions/ pages (and their registration facts) read the DEV project's api views with the publishable key above
+          # (made-up data from supabase/demo/competition-demo.sql). Without the URL and key the build falls back to the fictional seed.
+          PS_COMPETITION_SOURCE: supabase
         run: npm run build
 
       - name: Check the build output exists
