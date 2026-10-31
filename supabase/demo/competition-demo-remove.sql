@@ -7,7 +7,10 @@
 --
 -- What it removes: the demo tournaments and players (fixed ids starting de000000-0000-4000-8000-, names starting "Demo "), every
 -- event, entry, draw, match, game and court of a demo tournament, the "Demo ..." halls in Sampleville or Fakenagar that only demo
--- courts use, the ranking labelled exactly "Demo men's singles ranking (made up)", and the "Demo points table (made up, dev only)".
+-- courts use, the rankings labelled exactly "Demo men's singles ranking (made up)" and "Demo men's singles ranking with the 2026 points
+-- table" (the second one comes from supabase/demo/points-table-2026-dev.sql), and the "Demo points table (made up, dev only)".
+-- The points table is cleared ONLY while it is that made-up demo table: the approved local ranking table (D-129)
+-- or any other non-demo table is never touched.
 -- Only when it removed demo tournaments or the demo ranking does it put competition_settings.rankings_public back to the value the
 -- seed found, read from the newest seed audit row that is newer than the last removal; with no such row it leaves the switch alone.
 --
@@ -31,6 +34,7 @@ declare
   c_prefix constant text := 'de000000-0000-4000-8000-';
   c_points_label constant text := 'Demo points table (made up, dev only)';
   c_ranking_label constant text := 'Demo men''s singles ranking (made up)';
+  c_ranking_label_2026 constant text := 'Demo men''s singles ranking with the 2026 points table';
   c_demo_cities constant text[] := array['Sampleville', 'Fakenagar'];
   c_guards constant text[][] := array[
     ['public.draws', 'draws_guard'],
@@ -72,7 +76,7 @@ begin
   select coalesce(array_agg(x.id), '{}') into v_m from public.competition_matches x where x.event_id = any (v_e);
   select coalesce(array_agg(x.id), '{}') into v_c from public.courts x where x.tournament_id = any (v_t);
   select coalesce(array_agg(x.id), '{}') into v_v from public.venues x where x.name like 'Demo %' and x.city = any (c_demo_cities);
-  select coalesce(array_agg(x.id), '{}') into v_s from public.ranking_snapshots x where x.label = c_ranking_label;
+  select coalesce(array_agg(x.id), '{}') into v_s from public.ranking_snapshots x where x.label = c_ranking_label or x.label = c_ranking_label_2026;
   v_points_demo := exists (select 1 from public.competition_settings s where s.id = 1 and s.ranking_points_table ->> 'label' = c_points_label);
 
   -- nothing demo-shaped here (a second run, or the wrong project): change nothing at all
@@ -193,6 +197,7 @@ begin
       update public.competition_settings set rankings_public = v_before where id = 1 and rankings_public is distinct from v_before;
     end if;
   end if;
+  -- only the made-up demo table; the approved table (or any other non-demo table) stays as it is
   update public.competition_settings set ranking_points_table = null, ranking_points_approved_at = null, ranking_points_approved_by = null
    where id = 1 and ranking_points_table ->> 'label' = c_points_label;
 

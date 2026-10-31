@@ -15,7 +15,7 @@ D-108 organizer and scorer accounts by invitation; D-109 juniors and unknown-age
 | Junior and unknown-age players | Never named publicly in draws, scores, entries or rankings; shown as "Protected player" (D-012, fail closed) | Owner + lawyer |
 | Tournament registration | Built, **switched off** | Owner |
 | Payments | Manual verification only; no gateway without credentials | Owner + CA (Razorpay keys, OT-06) |
-| Rankings | Local Power Smash table only, labelled "not an official BWF ranking", unpublished until the owner approves the points | Owner |
+| Rankings | Local Power Smash table only, labelled "not an official BWF ranking", unpublished until the owner approves the points (table decided 2026-10-31, D-129; approved on the live project when the owner saves it in the admin) | Owner |
 | International (BWF) data | Adapter awaiting a licensed source; **no scraping**, no invented data | Owner (licence) |
 | Live scores | Shown only when an authorised scorer is sending updates | Owner |
 
@@ -36,6 +36,7 @@ D-108 organizer and scorer accounts by invitation; D-109 juniors and unknown-age
 
 - [ ] Keep-for periods for registrations and email sign-ups decided by the lawyer and entered by the owner in the admin (Settings, "How long to keep registrations and email sign-ups"). Both are empty until then, so nothing is removed. The lawyer said whether a code (hash) of a deleted unsubscribed address may be kept; the box "Remember removed unsubscribed addresses as a code" stays unticked until they say yes. One dry run of the Retention workflow was read. `RETENTION_ENABLED` is on before the first registration or sign-up reaches its period.
 - [ ] The owner confirmed the organizer search rule (D-126): a few letters find only players the website already names or players already in that tournament; anyone else (unknown age, juniors, the video archive) only by the full name typed exactly; 25 a page, 120 searches in 10 minutes, each search recorded without what was typed.
+- [ ] Enter the approved points table (D-129) in the admin, Competitions -> Rankings ("Rankings and points table", then "Enter the points table"), on the LIVE project: "Power Smash local ranking 2026", 364 days, best 6, the numbers in D-129. The admin form has a separate "group" box and "league" box for every level: type the D-129 group / league number into BOTH (a box left empty scores 0 for those events). Leave the school_college row empty. Saving it is the formal approval and is audited; until then no ranking can be worked out. The dev project has the same table for the preview only (`supabase/demo/points-table-2026-dev.sql`). Once it is there, the demo seed (`competition-demo.sql`) refuses to run again, and the demo removal keeps the table, so reseeding the demo would need a change to the seed first.
 - [ ] The organizer and scorer browser test (`tests/e2e/admin-organizer.spec.ts`) has run after a build.
 
 ## Test results

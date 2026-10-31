@@ -1749,6 +1749,32 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
   - **Accepted, not changed:** a result recorded but not yet confirmed may be recorded again, so the owner or organizer can fix a mistake before confirming (`admin_record_result`, 0019); a confirmed result can never be changed this way. The outbox payload rule of 0017 stands as reconciled by D-120 (`{event, revision}` only).
 - **Status.** built.
 
+## D-129 Local ranking points table approved (2026) (completes D-110)
+
+- **Context.** D-110 says the owner approves the points table before any ranking is computed; the admin refuses to work out a ranking without one and never uses example points.
+- **Decision (owner, 2026-10-31: "use it as is").** The local ranking points table is:
+  - Name: **"Power Smash local ranking 2026"**. Window: the last **364** days up to the ranking date. Each player's best **6** results count.
+  - Points by tournament level and finish (W = winner, F = lost the final, then the round lost in; "group / league" = taking part in a group or league event, the same value for `group` and `league`):
+
+    | Level | W | F | SF | QF | R16 | R32 | R64 | R128 | group / league |
+    |---|---|---|---|---|---|---|---|---|---|
+    | national | 1000 | 700 | 500 | 350 | 250 | 150 | 100 | 50 | 50 |
+    | zonal | 700 | 490 | 350 | 245 | 175 | 105 | 70 | 35 | 35 |
+    | state | 500 | 350 | 250 | 175 | 125 | 75 | 50 | 25 | 25 |
+    | open | 300 | 210 | 150 | 105 | 75 | 45 | 30 | 15 | 15 |
+    | district | 200 | 140 | 100 | 70 | 50 | 30 | 20 | 10 | 10 |
+    | corporate | 150 | 105 | 75 | 53 | 38 | 23 | 15 | 8 | 8 |
+    | veterans | 150 | 105 | 75 | 53 | 38 | 23 | 15 | 8 | 8 |
+    | other | 100 | 70 | 50 | 35 | 25 | 15 | 10 | 5 | 5 |
+    | school_college | not counted (no row) | | | | | | | | |
+
+  - The table is the record `APPROVED_POINTS_TABLE_2026` in `src/lib/competition/points-table-2026.ts`, in the exact shape the admin form and `admin_set_ranking_points` (0018) take; a test checks it cell by cell and against the admin validator.
+- **Consequences.**
+  - **The formal approval is the save in the LIVE admin** (Competitions -> Rankings, the points table): the owner enters this table there; `admin_set_ranking_points` stores it with the approval time and the owner's id and writes the audit row (`approve_ranking_points`). Until that save the live project has no approved table and no ranking can be worked out. The step is in `docs/GO_LIVE_CHECKLIST.md` and `docs/PLATFORM_CHECKLIST.md`.
+  - **The dev copy is for the private preview only:** `supabase/demo/points-table-2026-dev.sql` (development project only, guarded by the project-reference line like the demo seed, one transaction, refuses a second run) installs the same table through `admin_set_ranking_points` with the real owner as the actor, replacing the made-up demo table, then works out and publishes a "Demo men's singles ranking with the 2026 points table" from the made-up results with the admin's ranking rules. `supabase/demo/competition-demo-remove.sql` removes that demo ranking with the rest of the demo data and keeps the approved table (it clears only the made-up demo table). While the approved table is in the dev project the demo seed refuses to run again (it never replaces a non-demo table).
+  - Still a local ranking, never an official BWF, BAI or state association ranking (D-110). Publishing rankings still needs a published snapshot and the `rankings_public` switch.
+- **Status.** adopted (owner decision 2026-10-31); the TS record, the dev script and the tests built; the live save is an owner step.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.
