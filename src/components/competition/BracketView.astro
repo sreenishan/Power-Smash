@@ -1,13 +1,19 @@
 ---
-// Knockout bracket (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// Knockout bracket (Module 15 building block). Server-rendered, no client JavaScript.
 // - Rounds run left to right (earliest first, the third-place match after the final), in a horizontally scrollable region. The
-//   region is focusable (keyboard scrolling) and labelled; on phones a visible line says to swipe sideways.
-// - Byes read "advances without a match"; walkover, retired and abandoned are written out; the winner is marked with the word
-//   "Winner" and bold text, never by colour alone.
+//   region is focusable (keyboard scrolling) and labelled; a visible line says to scroll sideways, and where the browser supports
+//   scroll-driven animations the clipped edge fades out (CSS only).
+// - One fixed card layout: two side rows (seed slot, name, game scores right-aligned in fixed columns) and a status line at the foot.
+//   Each round is a grid of equal slots (the slots halve round by round), so the CSS connector lines between rounds meet exactly.
+// - Byes read "advances without a match"; walkover, retired and abandoned are written out; the winner is marked inside the row with
+//   a tick, bold text and an accent edge, and the screen-reader sentence says "winner": never by colour alone. A finished match
+//   with no confirmed result says so ("Result to be confirmed") instead of a bare "Completed".
 // - Names: every line goes through ./helpers.ts, which prints "Protected player" for anyone not explicitly marked
 //   `protected: false` (D-012, fail closed). Nothing else about a protected player (seed is kept, it is not personal) is shown.
 // - Screen readers get one plain sentence per match (bracketMatchSummary); the visual lines are hidden from them to avoid reading twice.
 // - All logic lives in ./helpers.ts (tested in tests/competition-ui/); this file is markup only.
+import Check from '@lucide/astro/icons/check';
+import MoveHorizontal from '@lucide/astro/icons/move-horizontal';
 import {
   BYE_LABEL,
   bracketColumns,
@@ -37,60 +43,76 @@ const RoundTag = headingLevel === 3 ? 'h4' : 'h3';
 const columns = bracketColumns(rounds);
 const headingId = `${id}-heading`;
 const hintId = `${id}-hint`;
+// A doubles pair prints one player per line; the slash stays in the text, glued to the first name by a no-break space.
+const players = (name: string): string[] => name.split(' / ');
 const seedOf = (s: SlotView): string => (s.kind === 'entry' ? seedText(s.seed) : '');
+// Connector lines only between two rounds where the later one has exactly half the matches (a clean knockout step).
+const feeds = (i: number): boolean => i + 1 < columns.length && columns[i + 1]!.matches.length * 2 === columns[i]!.matches.length;
 ---
 <section class="ps-bracket" aria-labelledby={headingId} data-bracket>
-  <Tag id={headingId} class="text-h3">{title}</Tag>
+  <Tag id={headingId} class:list={{ 'text-h3': headingLevel === 3 }}>{title}</Tag>
+  <span aria-hidden="true" class:list={['ps-rule', { 'ps-rule-sm': headingLevel === 3 }]}></span>
   {columns.length === 0 ? (
-    <p class="mt-3 text-fg-muted">The draw is not ready yet.</p>
+    <p class="mt-6 text-fg-muted">The draw is not ready yet.</p>
   ) : (
     <>
-      <p id={hintId} class="mt-2 text-small text-fg-muted ps-bracket-hint">Scroll or swipe sideways to see every round.</p>
-      <div class="ps-bracket-scroll mt-3" role="region" aria-labelledby={headingId} aria-describedby={hintId} tabindex="0">
+      <p id={hintId} class="ps-bracket-hint">
+        <MoveHorizontal size={18} aria-hidden="true" />
+        <span>Scroll or swipe sideways to see every round.</span>
+      </p>
+      <div class="ps-bracket-scroll" role="region" aria-labelledby={headingId} aria-describedby={hintId} tabindex="0">
         <ol class="ps-bracket-rounds">
-          {columns.map((col) => (
-            <li class="ps-bracket-round" data-round={col.code}>
+          {columns.map((col, ci) => (
+            <li class:list={['ps-bracket-round', { 'ps-bracket-feeds': feeds(ci), 'ps-bracket-fed': ci > 0 && feeds(ci - 1) }]} data-round={col.code}>
               <RoundTag class="ps-bracket-round-title">{col.label}</RoundTag>
-              <ol class="ps-bracket-matches">
+              <ol class="ps-bracket-matches" style={`--ps-bracket-n: ${col.matches.length}`}>
                 {col.matches.map((m) => {
                   const bye = isByeMatch(m);
                   const note = outcomeNote(m.status);
                   const games = displayGames(m.games);
                   const sides: [Side, SlotView][] = [['A', m.a], ['B', m.b]];
+                  const decided = isWinner('A', m.winner, m.status) || isWinner('B', m.winner, m.status);
+                  const waiting = m.status === 'completed' && !decided && games.length === 0;
+                  const foot = note || (waiting ? 'Result to be confirmed' : statusText(m.status ?? 'scheduled'));
+                  const real = bye ? (m.a.kind === 'bye' ? m.b : m.a) : null;
                   return (
-                    <li class="ps-card ps-bracket-match" data-match-id={m.id}>
-                      <p class="sr-only">{bracketMatchSummary(m)}</p>
-                      <div aria-hidden="true">
-                      {bye ? (
-                        <p class="ps-bracket-line">
-                          <span class="ps-bracket-name">
-                            {seedOf(m.a.kind === 'bye' ? m.b : m.a) && <span class="ps-num text-fg-muted">{seedOf(m.a.kind === 'bye' ? m.b : m.a)} </span>}
-                            {slotText(m.a.kind === 'bye' ? m.b : m.a)}
-                          </span>
-                          <span class="ps-bracket-note">{m.a.kind === 'bye' && m.b.kind === 'bye' ? 'No match' : `${BYE_LABEL}: advances without a match`}</span>
-                        </p>
-                      ) : (
-                        <>
-                          {sides.map(([side, slot]) => {
-                            const win = isWinner(side, m.winner, m.status);
-                            return (
-                              <p class:list={['ps-bracket-line', { 'ps-bracket-winner': win }]}>
-                                <span class="ps-bracket-name">
-                                  {seedOf(slot) && <span class="ps-num text-fg-muted">{seedOf(slot)} </span>}
-                                  {slotText(slot)}
-                                </span>
-                                {games.length > 0 && (
-                                  <span class="ps-bracket-games ps-num">
-                                    {games.map((g) => <span>{side === 'A' ? g.a : g.b}</span>)}
-                                  </span>
-                                )}
-                                {win && <span class="ps-chip ps-chip-court ps-bracket-win-tag"><span aria-hidden="true">✓</span> Winner</span>}
+                    <li class="ps-bracket-slot" data-match-id={m.id}>
+                      <div class:list={['ps-bracket-match', { 'ps-bracket-match-bye': bye }]}>
+                        <p class="sr-only">{bracketMatchSummary(m)}</p>
+                        <div aria-hidden="true">
+                          {bye && real ? (
+                            <>
+                              <p class="ps-bracket-line">
+                                <span class="ps-bracket-seed ps-num">{seedOf(real)}</span>
+                                <span class="ps-bracket-name">{players(slotText(real)).map((p, i, all) => <span>{p}{i < all.length - 1 && <>&nbsp;/ </>}</span>)}</span>
                               </p>
-                            );
-                          })}
-                          <p class="ps-bracket-note">{note || statusText(m.status ?? 'scheduled')}</p>
-                        </>
-                      )}
+                              <p class="ps-bracket-note">{m.a.kind === 'bye' && m.b.kind === 'bye' ? 'No match' : `${BYE_LABEL}: advances without a match`}</p>
+                            </>
+                          ) : (
+                            <>
+                              {sides.map(([side, slot]) => {
+                                const win = isWinner(side, m.winner, m.status);
+                                return (
+                                  <p class:list={['ps-bracket-line', { 'ps-bracket-winner': win }]}>
+                                    <span class="ps-bracket-seed ps-num">{seedOf(slot)}</span>
+                                    <span class="ps-bracket-name">{players(slotText(slot)).map((p, i, all) => <span>{p}{i < all.length - 1 && <>&nbsp;/ </>}</span>)}</span>
+                                    <span class="ps-bracket-mark">{win && <Check size={16} stroke-width={3} />}</span>
+                                    {games.length > 0 && (
+                                      <span class="ps-bracket-games">
+                                        {games.map((g) => {
+                                          const mine = side === 'A' ? g.a : g.b;
+                                          const theirs = side === 'A' ? g.b : g.a;
+                                          return <span class:list={{ 'ps-bracket-took': mine > theirs }}>{mine}</span>;
+                                        })}
+                                      </span>
+                                    )}
+                                  </p>
+                                );
+                              })}
+                              <p class="ps-bracket-note">{foot}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </li>
                   );
@@ -105,15 +127,76 @@ const seedOf = (s: SlotView): string => (s.kind === 'entry' ? seedText(s.seed) :
 </section>
 
 <style>
+  .ps-bracket-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    font-size: var(--ps-text-small);
+    color: var(--ps-fg-muted);
+  }
+  .ps-bracket-hint :global(svg) {
+    flex: none;
+    color: var(--ps-link);
+  }
   .ps-bracket-scroll {
+    --ps-bracket-gap: 2.5rem;
+    --ps-bracket-fade-l: 0rem;
+    --ps-bracket-fade-r: 0rem;
+    margin-top: 1rem;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    padding-bottom: 0.75rem;
+    padding: 0.25rem 0.25rem 1rem;
     border-radius: var(--ps-radius-md);
+  }
+  /* The clipped edge fades while there is more to see (scroll-driven, CSS only; without support nothing fades and the hint line
+     above still says to scroll). No overflow = no active timeline = no fade. */
+  @property --ps-bracket-fade-l {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0rem;
+  }
+  @property --ps-bracket-fade-r {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0rem;
+  }
+  @supports (animation-timeline: scroll()) {
+    .ps-bracket-scroll {
+      mask-image: linear-gradient(to right, transparent, #000 var(--ps-bracket-fade-l), #000 calc(100% - var(--ps-bracket-fade-r)), transparent);
+      animation-name: ps-bracket-fade;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      /* A scroll-linked fade is not motion: keep it under reduced motion (the global rule shortens every animation). */
+      animation-duration: auto !important;
+    }
+    /* A separate rule on purpose: the CSS minifier would fold the longhands into an "animation" shorthand, which cannot carry a
+       timeline, and the browser would then drop the whole declaration. */
+    .ps-bracket-scroll[role="region"] {
+      animation-timeline: scroll(self inline);
+    }
+    @keyframes ps-bracket-fade {
+      0% {
+        --ps-bracket-fade-l: 0rem;
+        --ps-bracket-fade-r: 3rem;
+      }
+      8% {
+        --ps-bracket-fade-l: 2rem;
+        --ps-bracket-fade-r: 3rem;
+      }
+      92% {
+        --ps-bracket-fade-l: 2rem;
+        --ps-bracket-fade-r: 3rem;
+      }
+      100% {
+        --ps-bracket-fade-l: 2rem;
+        --ps-bracket-fade-r: 0rem;
+      }
+    }
   }
   .ps-bracket-rounds {
     display: flex;
-    gap: 1rem;
+    gap: var(--ps-bracket-gap);
     min-width: max-content;
     list-style: none;
     margin: 0;
@@ -122,54 +205,184 @@ const seedOf = (s: SlotView): string => (s.kind === 'entry' ? seedText(s.seed) :
   .ps-bracket-round {
     display: flex;
     flex-direction: column;
-    width: 15rem;
+    width: 18rem;
+  }
+  @media (min-width: 64rem) {
+    .ps-bracket-round {
+      width: 21rem;
+    }
   }
   .ps-bracket-round-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.75rem;
-    font-size: var(--ps-text-small);
-    font-weight: 700;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--ps-line);
+    font-family: var(--ps-font-display);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--ps-fg-muted);
+    white-space: nowrap;
+    color: var(--ps-heading);
   }
+  /* Equal slots per round: the first round sets the height, later rounds split it into fewer, taller slots. */
   .ps-bracket-matches {
-    display: flex;
+    display: grid;
     flex: 1;
-    flex-direction: column;
-    justify-content: space-around;
-    gap: 0.75rem;
+    grid-template-rows: repeat(var(--ps-bracket-n), minmax(0, 1fr));
+    row-gap: 0;
     list-style: none;
     margin: 0;
     padding: 0;
   }
-  .ps-bracket-match {
-    padding: 0.5rem 0.75rem;
-  }
-  .ps-bracket-line {
+  .ps-bracket-slot {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem 0.5rem;
-    min-height: 1.75rem;
+    padding-block: 0.375rem;
+  }
+  .ps-bracket-match {
+    position: relative;
+    width: 100%;
+    padding: 0.375rem 0;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-surface);
+    box-shadow: var(--ps-shadow-card);
+  }
+  .ps-bracket-match-bye {
+    border-style: dashed;
+    box-shadow: none;
+  }
+
+  /* Connector lines (decorative): out of a feeding match to the middle of the gap, a vertical joining each pair, then into the next match. */
+  .ps-bracket-feeds .ps-bracket-slot::after {
+    content: "";
+    position: absolute;
+    right: calc(var(--ps-bracket-gap) / -2);
+    width: calc(var(--ps-bracket-gap) / 2);
+    border-right: 2px solid var(--ps-line-strong);
+    pointer-events: none;
+  }
+  .ps-bracket-feeds .ps-bracket-slot:nth-child(odd)::after {
+    top: 50%;
+    bottom: 0;
+    border-top: 2px solid var(--ps-line-strong);
+    border-top-right-radius: var(--ps-radius-sm);
+  }
+  .ps-bracket-feeds .ps-bracket-slot:nth-child(even)::after {
+    top: 0;
+    bottom: calc(50% - 2px);
+    border-bottom: 2px solid var(--ps-line-strong);
+    border-bottom-right-radius: var(--ps-radius-sm);
+  }
+  .ps-bracket-fed .ps-bracket-slot::before {
+    content: "";
+    position: absolute;
+    top: calc(50% - 1px);
+    left: calc(var(--ps-bracket-gap) / -2);
+    width: calc(var(--ps-bracket-gap) / 2);
+    border-top: 2px solid var(--ps-line-strong);
+    pointer-events: none;
+  }
+
+  /* One row layout for every side: seed | name | tick | scores. */
+  .ps-bracket-line {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr) 1rem auto;
+    align-items: center;
+    column-gap: 0.375rem;
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+    line-height: 1.3;
+  }
+  .ps-bracket-line + .ps-bracket-line {
+    border-top: 1px solid var(--ps-line);
+  }
+  .ps-bracket-seed {
+    font-size: var(--ps-text-caption);
+    font-weight: 700;
+    text-align: center;
+    color: var(--ps-fg-muted);
+  }
+  /* One player per line; a name never breaks inside itself (the round column is wide enough, the region scrolls). */
+  .ps-bracket-name > span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .ps-bracket-name {
-    flex: 1 1 8rem;
     min-width: 0;
-    overflow-wrap: anywhere;
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+  .ps-bracket-mark {
+    display: inline-flex;
+    color: var(--ps-link);
+  }
+  .ps-bracket-winner {
+    box-shadow: inset 3px 0 0 var(--ps-link);
   }
   .ps-bracket-winner .ps-bracket-name {
     font-weight: 800;
   }
   .ps-bracket-games {
-    display: inline-flex;
-    gap: 0.5rem;
+    display: inline-grid;
+    grid-auto-columns: 1.5rem;
+    grid-auto-flow: column;
+    font-family: var(--ps-font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: right;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    color: var(--ps-fg-muted);
+  }
+  /* Desktop: body-size names and scoreboard-size figures, matching the result cards below the bracket. */
+  @media (min-width: 64rem) {
+    .ps-bracket-line {
+      grid-template-columns: 2rem minmax(0, 1fr) 1rem auto;
+      min-height: 2.75rem;
+      padding-block: 0.375rem;
+    }
+    .ps-bracket-name {
+      font-size: var(--ps-text-body);
+    }
+    .ps-bracket-games {
+      grid-auto-columns: 2rem;
+      font-size: 1.375rem;
+    }
+    .ps-bracket-note {
+      padding-left: 2.875rem;
+    }
+  }
+  .ps-bracket-took {
+    font-weight: 800;
+    color: var(--ps-fg);
   }
   .ps-bracket-note {
     margin-top: 0.25rem;
+    padding: 0.25rem 0.75rem 0 2.625rem;
+    border-top: 1px solid var(--ps-line);
     font-size: var(--ps-text-caption);
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
+  }
+  .ps-bracket-match-bye .ps-bracket-note {
+    margin-top: 0;
+    border-top: 0;
+    padding-top: 0;
+  }
+  @media (forced-colors: active) {
+    .ps-bracket-winner {
+      border-left: 3px solid CanvasText;
+    }
   }
 </style>

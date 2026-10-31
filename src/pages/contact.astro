@@ -56,8 +56,8 @@ const form = plainForm(generalForm({ topics: topicOptions() }));
       replyPromise={cfg.replyPromise}
     />
     <Fragment slot="aside">
-      <h2 class="text-h4 normal-case">Good to know</h2>
-      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+      <h2 class="text-h3 normal-case">Good to know</h2>
+      <ul class="ps-ticks">
         <li>Give a phone number, an email address, or both, so we can reply.</li>
         <li>For a coverage quote, the <a href={ROUTES.book}>booking form</a> is faster.</li>
         <li>To list a tournament, use the <a href={ROUTES.submitTournament}>listing form</a>.</li>

@@ -42,14 +42,14 @@ export function TurnstileWidget({ mode, siteKey, started, controllerRef, boxRef,
       {started ? (
         <Suspense
           fallback={
-            // Same height as the placeholder below and as the loaded widget area (the 65 px box, the gap and one status line): if
+            // Same height as the placeholder below and as the loaded widget area (the 65 px box, the gap and one status line, so the
+            // box is 94 px = 5.875rem and no empty line sits under it): if
             // the box shrank here, the Send button would move up between pointer-down and pointer-up and the very first tap on
             // Send would be lost (finding E-1).
             <>
-              <div role="status" className="flex min-h-[65px] items-center justify-center rounded-md border-2 border-dashed border-line-strong px-4 py-2 text-center text-small text-fg-muted">
+              <div role="status" className="flex min-h-[65px] h-[5.875rem] items-center justify-center rounded-md border-2 border-dashed border-line-strong bg-page px-4 py-2 text-center text-small text-fg-muted">
                 {WIDGET_LOADING_FALLBACK}
               </div>
-              <div aria-hidden="true" className="h-[1.3125rem]" />
             </>
           }
         >
@@ -58,11 +58,10 @@ export function TurnstileWidget({ mode, siteKey, started, controllerRef, boxRef,
       ) : (
         <>
           {/* The words sit inside the reserved box (one element, so it reads as a placeholder for the widget, not a failed load);
-              the empty line below is the room the status line takes once the widget is there, so nothing moves when it loads. */}
-          <div role="status" className="flex min-h-[65px] items-center justify-center rounded-md border-2 border-dashed border-line-strong px-4 py-2 text-center text-small text-fg-muted">
+              the box is as tall as the widget plus its status line (94 px), so nothing moves when it loads. */}
+          <div role="status" className="flex min-h-[65px] h-[5.875rem] items-center justify-center rounded-md border-2 border-dashed border-line-strong bg-page px-4 py-2 text-center text-small text-fg-muted">
             The spam check loads when you start filling in the form.
           </div>
-          <div aria-hidden="true" className="h-[1.3125rem]" />
         </>
       )}
     </div>

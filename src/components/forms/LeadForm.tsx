@@ -219,7 +219,7 @@ export default function LeadForm({ form, leadNotice, privacyHref, turnstileMode,
     >
       <fieldset role="none" disabled={!ready} className="m-0 flex min-w-0 flex-col gap-6 border-0 p-0">
         {ready ? null : (
-          <p role="status" className="text-small font-semibold text-fg-muted">
+          <p role="status" className="ps-loading text-small font-semibold text-fg-muted">
             Loading the form...
           </p>
         )}
@@ -258,7 +258,7 @@ export default function LeadForm({ form, leadNotice, privacyHref, turnstileMode,
           </div>
         ) : null}
 
-        <div ref={statusBoxRef} tabIndex={-1}>
+        <div ref={statusBoxRef} tabIndex={-1} className="-my-3">
           <FormStatus status={pending ? state.status : ''} error={state.formError} />
         </div>
 

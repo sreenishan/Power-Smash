@@ -5,7 +5,7 @@ import { features } from '../../../content/legal/status';
 import { competitionUiFor, type CompetitionCapabilities } from '../../../lib/admin/accounts/access';
 import type { Actor } from '../../../lib/admin/types';
 import type { StoreResult } from '../../../lib/admin/types';
-import { Field, cx, inputCls, useAdmin } from '../../ui';
+import { Field, Icon, inputCls, useAdmin } from '../../ui';
 import { failureText, fieldErrors, reasonProblem } from './logic';
 
 export interface ActionState {
@@ -63,15 +63,20 @@ export function useAction(): ActionState {
 export function ErrorText({ id, text }: { id?: string; text: string | null | undefined }) {
   if (!text) return null;
   return (
-    <p id={id} role="alert" className="font-semibold text-ps-live">
-      <span aria-hidden="true">! </span>
-      {text}
+    <p id={id} role="alert" className="flex items-start gap-1.5 font-semibold text-ps-live">
+      <Icon name="alert" size={18} className="mt-1" />
+      <span>{text}</span>
     </p>
   );
 }
 
 export function Note({ children, tone = 'info' }: { children: ReactNode; tone?: 'info' | 'warn' }) {
-  return <p className={cx('rounded-lg border-2 p-3 text-small', tone === 'warn' ? 'border-ps-live bg-ps-live-tint text-ps-ink' : 'border-line-strong bg-surface text-fg')}>{children}</p>;
+  return (
+    <p className={tone === 'warn' ? 'ps-admin-callout ps-admin-callout-warn' : 'ps-admin-callout ps-admin-callout-info'}>
+      <Icon name={tone === 'warn' ? 'alert' : 'info'} size={18} />
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
 }
 
 /** A required reason (3 to 500 characters), for steps that change what others see or cannot be undone. */
@@ -80,7 +85,7 @@ export function ReasonField({ id, value, onChange, error, label = 'Reason (kept 
     <Field label={label} htmlFor={id}>
       <textarea
         id={id}
-        className="block min-h-[4.5rem] w-full rounded-md border-2 border-line-strong bg-surface px-3 py-2 text-body text-fg"
+        className={inputCls.replace('min-h-[3rem]', 'min-h-[4.5rem]')}
         value={value}
         maxLength={520}
         aria-invalid={error ? true : undefined}
@@ -96,8 +101,8 @@ export { reasonProblem };
 
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="inline-flex min-h-tap items-center font-semibold text-fg">
-      <span aria-hidden="true">&larr;&nbsp;</span>
+    <a href={href} className="ps-admin-back">
+      <Icon name="arrowLeft" size={20} />
       {children}
     </a>
   );
@@ -156,5 +161,10 @@ export function byRole(role: Actor['role']): string {
 
 /** A plain sentence where a job belongs to the owner, instead of a button that would be refused. */
 export function OwnerJob({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg border-2 border-line-strong bg-surface p-3 text-small text-fg-muted">{children}</p>;
+  return (
+    <p className="ps-admin-callout ps-admin-callout-info">
+      <Icon name="info" size={18} />
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
 }

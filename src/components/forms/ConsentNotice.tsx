@@ -16,7 +16,7 @@ const LINK_WORDS = 'Privacy Policy';
 export function ConsentNotice({ notice, privacyHref }: ConsentNoticeProps) {
   const at = notice.text.indexOf(LINK_WORDS);
   return (
-    <p className="rounded-md border-l-4 border-ps-court bg-ps-court-tint/60 px-4 py-3 text-small leading-relaxed text-ps-ink" data-notice-id={notice.id} data-notice-version={notice.version}>
+    <p className="rounded-md border border-line bg-page px-4 py-3 text-small leading-relaxed text-fg" data-notice-id={notice.id} data-notice-version={notice.version}>
       {at < 0 ? (
         notice.text
       ) : (

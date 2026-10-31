@@ -198,7 +198,10 @@ async function expectEndClear(page: Page, notice: Locator, last: Locator, tap: L
     const [row, n, bar] = await Promise.all([last.boundingBox(), notice.boundingBox(), tabBar.boundingBox()]);
     if (!row || !n || !bar) throw new Error('the last card, the message box or the tab bar has no box');
     expect(row.y + row.height, 'last card bottom vs message box top').toBeLessThanOrEqual(n.y);
-    expect(row.y + row.height, 'last card bottom vs tab bar top').toBeLessThanOrEqual(bar.y);
+    // phones: the tab bar runs along the bottom; from 1024 px it is a side rail (premium pass), so the card must clear it sideways
+    const sideRail = bar.y <= 1 && bar.height >= (await page.evaluate(() => window.innerHeight)) - 1;
+    if (sideRail) expect(row.x, 'last card left vs side rail right').toBeGreaterThanOrEqual(bar.x + bar.width);
+    else expect(row.y + row.height, 'last card bottom vs tab bar top').toBeLessThanOrEqual(bar.y);
     const hit = await tap.evaluate((el) => {
       const r = el.getBoundingClientRect();
       const at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);

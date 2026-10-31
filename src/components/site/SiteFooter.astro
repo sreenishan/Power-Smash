@@ -12,6 +12,11 @@ import Todo from './Todo.astro';
 import SponsorStrip from './SponsorStrip.astro';
 import WhatsAppButton from './WhatsAppButton.astro';
 import { whatsappTextForPath } from './whatsappText';
+import CirclePlay from '@lucide/astro/icons/circle-play';
+import Star from '@lucide/astro/icons/star';
+import Camera from '@lucide/astro/icons/camera';
+import Users from '@lucide/astro/icons/users';
+import Megaphone from '@lucide/astro/icons/megaphone';
 
 const year = todayIst().slice(0, 4);
 const isHome = Astro.url.pathname === '/';
@@ -23,7 +28,7 @@ const linkClass = 'ps-footer-link';
 <footer class="ps-surface-dark ps-footer">
   {!isHome && <SponsorStrip name="footer-partners-strip" class="border-b border-line" />}
 
-  <div class="ps-container grid gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:py-16">
+  <div class="ps-container grid gap-12 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16 lg:py-20">
     <div class="flex flex-col gap-5">
       <a href={path('/')} class="inline-flex min-h-tap items-center" aria-label="Power Smash, home">
         <img src="/brand/logo-full-dark.svg" alt="" width="203" height="32" class="h-8 w-auto" loading="lazy" />
@@ -33,13 +38,13 @@ const linkClass = 'ps-footer-link';
         Power Smash is a YouTube-first badminton media brand for Tamil Nadu players and tournaments.
       </p>
 
-      <ul class="flex flex-wrap gap-x-6">
-        <li><a class={linkClass} href={site.youtubeUrl} rel="noopener" target="_blank">YouTube<span class="sr-only"> (opens in a new tab)</span></a></li>
-        <li><a class={linkClass} href={site.youtubeJoinUrl} rel="noopener" target="_blank">Join the channel<span class="sr-only"> (opens in a new tab)</span></a></li>
-        <li><a class={linkClass} href={site.instagramUrl} rel="noopener" target="_blank">Instagram<span class="sr-only"> (opens in a new tab)</span></a></li>
-        <li><a class={linkClass} href={site.facebookUrl} rel="noopener" target="_blank">Facebook<span class="sr-only"> (opens in a new tab)</span></a></li>
+      <ul class="ps-social">
+        <li><a class="ps-social-link" href={site.youtubeUrl} rel="noopener" target="_blank"><CirclePlay size={18} aria-hidden="true" />YouTube<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class="ps-social-link" href={site.youtubeJoinUrl} rel="noopener" target="_blank"><Star size={18} aria-hidden="true" />Join the channel<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class="ps-social-link" href={site.instagramUrl} rel="noopener" target="_blank"><Camera size={18} aria-hidden="true" />Instagram<span class="sr-only"> (opens in a new tab)</span></a></li>
+        <li><a class="ps-social-link" href={site.facebookUrl} rel="noopener" target="_blank"><Users size={18} aria-hidden="true" />Facebook<span class="sr-only"> (opens in a new tab)</span></a></li>
         <OwnerSection when={site.whatsappChannelUrl} name="footer-whatsapp-channel">
-          <li><a class={linkClass} href={site.whatsappChannelUrl ?? '#'} rel="noopener" target="_blank">WhatsApp Channel<span class="sr-only"> (opens in a new tab)</span></a></li>
+          <li><a class="ps-social-link" href={site.whatsappChannelUrl ?? '#'} rel="noopener" target="_blank"><Megaphone size={18} aria-hidden="true" />WhatsApp Channel<span class="sr-only"> (opens in a new tab)</span></a></li>
         </OwnerSection>
       </ul>
 
@@ -54,11 +59,11 @@ const linkClass = 'ps-footer-link';
       </address>
     </div>
 
-    <nav aria-label="Footer" class="grid grid-cols-2 content-start gap-x-6 sm:grid-cols-4">
+    <nav aria-label="Footer" class="ps-footer-nav">
       {footerGroupsFor().map((group) => (
         <div class="ps-footer-group">
           <p class="ps-footer-heading">{group.title}</p>
-          <ul class="mt-2 flex flex-col">
+          <ul class="ps-footer-list">
             {group.links.map((link) => (
               <li><a class={linkClass} href={link.href}>{link.label}</a></li>
             ))}
@@ -69,15 +74,15 @@ const linkClass = 'ps-footer-link';
   </div>
 
   <div class="border-t border-line bg-ps-ink">
-    <div class="ps-container flex flex-col gap-3 py-6 text-small text-fg-muted lg:flex-row lg:items-center lg:justify-between">
+    <div class="ps-container flex flex-col gap-3 py-5 text-small text-fg-muted lg:flex-row lg:items-center lg:justify-between">
       <nav aria-label="Legal">
-        <ul class="flex flex-wrap gap-x-6">
+        <ul class="ps-legal-list">
           {legalLinks.map((link) => (
             <li><a class={linkClass} href={link.href}>{link.label}</a></li>
           ))}
         </ul>
       </nav>
-      <p>&copy; {year} {site.legalName ?? site.name}</p>
+      <p class="ps-num">&copy; {year} {site.legalName ?? site.name}</p>
     </div>
   </div>
 </footer>

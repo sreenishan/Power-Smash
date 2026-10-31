@@ -35,7 +35,7 @@ export function UpdateMatches({ detail }: { detail: CompetitionEventDetail }) {
 /** What an update (or a publish) of the matches did. */
 export function SyncOutcomeNote({ outcome, detail }: { outcome: MatchSyncOutcome; detail: CompetitionEventDetail }) {
   return (
-    <div role="status" className="rounded-lg border-2 border-ps-court p-3 text-small">
+    <div role="status" className="rounded-lg border border-ps-court border-l-4 bg-ps-court-tint p-3 text-small">
       {syncOutcomeLines(outcome).map((l) => <p key={l}>{l}</p>)}
       {outcome.problems.length > 0 ? (
         <ul aria-label="Needs your attention" className="mt-1 list-disc pl-5">

@@ -1,6 +1,9 @@
 ---
 // Breadcrumbs (spec 7: every public page except Home). Home is added automatically. The last item is the current page.
 // Also writes the BreadcrumbList structured data. Links and JSON-LD urls use the same canonical slash form (R-LINKS).
+// Phones (below 640 px), deep pages (Home + 2 or more): only the parent link shows ("< Sample City Open 2026"), so the trail never
+// wraps into orphan "/" lines and pushes the h1 down; the current page stays for screen readers. CSS only; the JSON-LD is unchanged.
+import ChevronLeft from '@lucide/astro/icons/chevron-left';
 import JsonLd from './JsonLd.astro';
 import { breadcrumbJsonLd } from '../../lib/jsonld';
 import { absoluteUrl, path } from '../../lib/urls';
@@ -18,13 +21,16 @@ interface Props {
 const { items, class: className } = Astro.props;
 const origin = Astro.site ?? Astro.url;
 const all: Item[] = [{ name: 'Home', href: '/' }, ...items];
+const compact = all.length >= 3;
+const parent = all.length - 2;
 const ld = breadcrumbJsonLd(all.map((i) => ({ name: i.name, url: absoluteUrl(i.href ?? Astro.url.pathname, origin) })));
 ---
-<nav aria-label="Breadcrumb" class={className}>
+<nav aria-label="Breadcrumb" class:list={[className, { 'ps-crumbs-compact': compact }]}>
   <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-fg-muted">
     {all.map((item, i) => (
-      <li class="flex items-center gap-2">
-        {i > 0 && <span aria-hidden="true" class="opacity-60">/</span>}
+      <li class:list={['flex items-center gap-2', { 'ps-crumb-parent': compact && i === parent, 'ps-crumb-current': i === all.length - 1, 'ps-crumb-far': compact && i < parent }]}>
+        {i > 0 && <span aria-hidden="true" class="ps-crumb-sep opacity-60">/</span>}
+        {compact && i === parent && <ChevronLeft size={16} aria-hidden="true" class="ps-crumb-back" />}
         {i === all.length - 1 ? (
           <span aria-current="page" class="font-semibold text-fg">{item.name}</span>
         ) : (
@@ -35,3 +41,33 @@ const ld = breadcrumbJsonLd(all.map((i) => ({ name: i.name, url: absoluteUrl(i.h
   </ol>
   <JsonLd data={ld} />
 </nav>
+
+<style>
+  :global(.ps-crumb-back) {
+    display: none;
+    flex: none;
+  }
+  @media (max-width: 39.99rem) {
+    .ps-crumbs-compact .ps-crumb-far {
+      display: none;
+    }
+    .ps-crumbs-compact .ps-crumb-parent {
+      gap: 0.25rem;
+    }
+    .ps-crumbs-compact .ps-crumb-parent .ps-crumb-sep {
+      display: none;
+    }
+    .ps-crumbs-compact .ps-crumb-parent :global(.ps-crumb-back) {
+      display: block;
+    }
+    /* The current page is the h1 just below: keep it for screen readers only. */
+    .ps-crumbs-compact .ps-crumb-current {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+</style>

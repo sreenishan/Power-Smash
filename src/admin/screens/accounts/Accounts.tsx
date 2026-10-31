@@ -128,9 +128,9 @@ function InviteSection({ api, data }: { api: AccountsStore; data: AccountsOvervi
           <ErrorText id="acc-name-error" text={errors['displayName']} />
         </Field>
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-small font-bold uppercase tracking-wider text-fg">What they do</legend>
+          <legend className="text-small font-semibold text-heading">What they do</legend>
           {(['organizer', 'scorer'] as const).map((r) => (
-            <label key={r} className="flex min-h-tap items-start gap-3 rounded-md border-2 border-line-strong p-3">
+            <label key={r} className="flex min-h-tap items-start gap-3 rounded-md border border-line-strong p-3 has-[:checked]:border-ps-court has-[:checked]:bg-ps-court-tint">
               <input type="radio" name="acc-role" value={r} checked={f.role === r} onChange={() => set('role', r)} className="mt-1 h-5 w-5" />
               <span>
                 <span className="block font-bold">{roleLabel(r)}</span>
@@ -142,7 +142,7 @@ function InviteSection({ api, data }: { api: AccountsStore; data: AccountsOvervi
         </fieldset>
         {f.role === 'organizer' ? <Note tone="warn">{WARNINGS.role}</Note> : null}
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-small font-bold uppercase tracking-wider text-fg">Their tournaments</legend>
+          <legend className="text-small font-semibold text-heading">Their tournaments</legend>
           {data.tournaments.length === 0 ? <Empty>No tournaments yet. Approve a tournament under More, Tournaments first.</Empty> : null}
           {data.tournaments.map((t) => (
             <label key={t.id} className="flex min-h-tap items-center gap-3">

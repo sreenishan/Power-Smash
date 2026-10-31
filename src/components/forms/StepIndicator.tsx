@@ -21,7 +21,7 @@ export function StepIndicator({ current, titles }: StepIndicatorProps) {
         {titles.map((title, i) => (
           <div
             key={title}
-            className={`h-2 flex-1 -skew-x-12 rounded-sm ps-transition ${i < current ? 'bg-ps-court' : i === current ? 'bg-ps-court shadow-[0_0_0_2px_var(--ps-court-tint)]' : 'bg-ps-border'}`}
+            className={`h-2 flex-1 -skew-x-12 rounded-sm ps-transition ${i < current ? 'bg-ps-court' : i === current ? 'bg-ps-court shadow-[0_0_0_2px_var(--ps-court-tint)]' : 'bg-line'}`}
           />
         ))}
       </div>

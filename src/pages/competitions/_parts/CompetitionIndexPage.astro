@@ -6,7 +6,13 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PageHero from '../../../components/ui/PageHero.astro';
 import Section from '../../../components/ui/Section.astro';
+import SectionHeading from '../../../components/ui/SectionHeading.astro';
 import EmptyState from '../../../components/ui/EmptyState.astro';
+import ChevronRight from '@lucide/astro/icons/chevron-right';
+import MapPin from '@lucide/astro/icons/map-pin';
+import Trophy from '@lucide/astro/icons/trophy';
+import StatusBadge from '../../../components/competition/StatusBadge.astro';
+import { tournamentStatusChip } from '../../../components/competition/helpers';
 import CompetitionSampleNotice from './CompetitionSampleNotice.astro';
 import { loadCompetitionSite } from '../../../lib/competition/public/load';
 import { eventCountText, tournamentPlace, tournamentWhen } from '../../../lib/competition/public/model';
@@ -25,25 +31,53 @@ const site = await loadCompetitionSite();
   <PageHero tone="dark" title="Draws and results" lead="Entry lists, draws, order of play and results, as entered by the organisers." crumbs={[{ name: 'Draws and results' }]} />
 
   <Section labelledBy="competitions-title">
-    <h2 id="competitions-title" class="text-h3">Tournaments</h2>
+    <SectionHeading id="competitions-title" title="Tournaments" />
     {site.tournaments.length === 0 ? (
-      <EmptyState title="No draws are published yet" class="mt-4">
+      <EmptyState title="No draws are published yet" level={3} class="mt-8">
         <p>Draws and results appear here once an organiser publishes them.</p>
       </EmptyState>
     ) : (
-      <ul class="mt-4 grid gap-3 sm:grid-cols-2" data-competition-list>
-        {site.tournaments.map((t) => (
-          <li class="relative rounded-lg border border-line bg-surface p-4 ps-transition hover:shadow-card">
-            <a href={t.path} class="font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a>
-            <p class="mt-1 text-small text-fg-muted ps-num">{tournamentWhen(t)}</p>
-            {tournamentPlace(t) && <p class="text-small text-fg-muted">{tournamentPlace(t)}</p>}
-            <p class="mt-1 text-small">{eventCountText(t.events.length)}</p>
-          </li>
-        ))}
+      <ul class="mt-8 grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3" data-competition-list>
+        {site.tournaments.map((t) => {
+          const chip = tournamentStatusChip(t.status);
+          const place = tournamentPlace(t);
+          return (
+            <li>
+              <article class="ps-card ps-card-hover ps-card-accent ps-comp-card group flex h-full flex-col p-5 pt-6">
+                <div class="pb-5">
+                  <p class="ps-eyebrow ps-num">{tournamentWhen(t)}</p>
+                  <h3 class="mt-2 text-h4">
+                    <a href={t.path} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{t.name}</a>
+                  </h3>
+                  {place && (
+                    <p class="mt-2 flex items-start gap-2 text-fg-muted">
+                      <MapPin size={18} aria-hidden="true" class="mt-0.5 shrink-0 text-link" />
+                      <span>{place}</span>
+                    </p>
+                  )}
+                </div>
+                <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+                  <p class="flex flex-wrap items-center gap-x-3 gap-y-2 text-small">
+                    {chip && <StatusBadge text={chip.text} tone={chip.tone} />}
+                    <span class="ps-num font-semibold">{eventCountText(t.events.length)}</span>
+                  </p>
+                  <ChevronRight size={20} aria-hidden="true" class="shrink-0 text-link ps-transition group-hover:translate-x-0.5" />
+                </div>
+              </article>
+            </li>
+          );
+        })}
       </ul>
     )}
     {site.rankings.length > 0 && (
-      <p class="mt-6"><a href={COMPETITION_ROUTES.rankings} class="font-bold">Local rankings</a> <span class="text-fg-muted">(not official BWF rankings)</span></p>
+      <div class="ps-card ps-card-hover group mt-10 flex items-center gap-4 p-4 sm:p-5">
+        <span class="ps-icon-tile"><Trophy size={24} aria-hidden="true" /></span>
+        <p class="min-w-0 flex-1">
+          <a href={COMPETITION_ROUTES.rankings} class="font-[family-name:var(--ps-font-display)] text-h4 font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">Local rankings</a>
+          <span class="block text-small text-fg-muted">(not official BWF rankings)</span>
+        </p>
+        <ChevronRight size={20} aria-hidden="true" class="shrink-0 text-link ps-transition group-hover:translate-x-0.5" />
+      </div>
     )}
   </Section>
 </BaseLayout>

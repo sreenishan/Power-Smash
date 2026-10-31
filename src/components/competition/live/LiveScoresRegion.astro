@@ -40,9 +40,21 @@ const endpoint = `/api/live-scores/${eventId.toLowerCase()}`;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
   }
+  [data-live-scores] :global(.ps-scoretable thead th) {
+    white-space: nowrap;
+  }
   [data-live-scores] :global(.ps-scoretable tbody th) {
+    width: 100%;
     text-align: left;
     font-weight: 600;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+  }
+  [data-live-scores] :global(.ps-scoretable td) {
+    font-family: var(--ps-font-display);
+    font-size: 1.375rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums lining-nums;
   }
 </style>

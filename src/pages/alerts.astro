@@ -4,6 +4,7 @@
 //   2. an email sign-up, kind "alerts_signup", with the alerts consent and the 18+ confirmation as separate unticked boxes.
 // NO phone number is collected. Double opt-in (the spec's rule for email) is pending the email path: no email is sent today
 // (EMAIL_ENABLED is off), the sign-up is only saved, and this page and the confirmation say exactly that. Nothing here promises a send.
+import Info from '@lucide/astro/icons/info';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHero from '../components/ui/PageHero.astro';
 import Section from '../components/ui/Section.astro';
@@ -54,9 +55,10 @@ const stayUpdated = alertsPageUsesStayUpdated();
   </OwnerSection>
 
   <FormSection id="email" title="Email alerts sign-up form" route="/alerts/" blocked={cfg.turnstileMode === 'blocked'}>
-    <p role="note" class="rounded-md border-l-4 border-ps-court bg-ps-court-tint/60 px-4 py-3 text-ps-ink">
-      <strong>Email alerts are not switched on yet.</strong> Signing up saves your address for when they are. Until then you will not get any email from us.
-    </p>
+    <div role="note" class="ps-note">
+      <Info size={20} aria-hidden="true" class="ps-note-icon" />
+      <p><strong>Email alerts are not switched on yet.</strong> Signing up saves your address for when they are. Until then you will not get any email from us.</p>
+    </div>
     <LeadForm
       client:visible
       form={form}
@@ -68,8 +70,8 @@ const stayUpdated = alertsPageUsesStayUpdated();
       replyPromise={cfg.replyPromise}
     />
     <Fragment slot="aside">
-      <h2 class="text-h4 normal-case">Good to know</h2>
-      <ul class="flex list-disc flex-col gap-2 pl-5 text-body">
+      <h2 class="text-h3 normal-case">Good to know</h2>
+      <ul class="ps-ticks">
         <li>We ask only for your name and email address. We do not ask for a phone number.</li>
         <li>When alerts start, the first email will ask you to confirm your address. We send alerts only after you confirm.</li>
         <li>Every email will have an unsubscribe link.</li>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { EmergencyHideOutcome } from '../../lib/admin/types';
 import { SUPPRESSION_KINDS } from '../../lib/archive/types';
 import { hashFor, MODE_LABEL, type AdminRoute } from '../messages';
-import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, inputCls, useAdmin, useAsync, useBusy } from '../ui';
+import { Badge, Button, Confirm, Empty, Field, Icon, LoadState, TextInput, cardCls, cx, inputCls, useAdmin, useAsync, useBusy } from '../ui';
 
 const KIND_LABEL: Record<(typeof SUPPRESSION_KINDS)[number], string> = {
   player_id: 'A player (by player id)',
@@ -20,9 +20,12 @@ const CHECKLIST: Record<string, string> = {
 
 function Stat(props: { label: string; value: number; to: AdminRoute }) {
   return (
-    <a href={hashFor(props.to)} className="block rounded-lg border-2 border-line-strong bg-surface p-4 no-underline hover:bg-ps-court-tint">
-      <span className="block text-h2 font-bold text-heading">{props.value}</span>
-      <span className="text-small text-fg-muted">{props.label}</span>
+    <a href={hashFor(props.to)} className={cx('ps-admin-card ps-admin-kpi', props.value === 0 && 'is-zero')}>
+      <span className="ps-admin-kpi-value">
+        {props.value}
+        <Icon name="chevronRight" size={20} />
+      </span>
+      <span className="ps-admin-kpi-label">{props.label}</span>
     </a>
   );
 }
@@ -54,14 +57,14 @@ export function Dashboard() {
             </div>
             <section className={cardCls} aria-label="Site status">
               <h2 className="text-h4 font-bold text-heading">Site</h2>
-              <p className="mt-1">
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 {dash.data.siteDirty ? <Badge tone="warn">Changes waiting to be published</Badge> : <Badge tone="good">Up to date</Badge>}{' '}
                 {dash.data.lastDeployAt ? <span className="text-small text-fg-muted">Last publish: {new Date(dash.data.lastDeployAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span> : null}
               </p>
-              <p className="mt-2 text-small text-fg-muted">
+              <p className="mt-3 max-w-prose text-small text-fg-muted">
                 Unknown-age players: {MODE_LABEL[dash.data.protectedModes.unknown_match_mode]}. Possible minors: {MODE_LABEL[dash.data.protectedModes.minor_match_mode]}.
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                 <Button onClick={() => setConfirm('sync')}>Sync videos now</Button>
                 <Button variant="primary" onClick={() => setConfirm('publish')}>Publish now</Button>
               </div>
@@ -129,9 +132,9 @@ function EmergencyHide() {
   return (
     <section className={cardCls} aria-label="Emergency hide">
       <h2 className="text-h4 font-bold text-heading">Emergency hide</h2>
-      <p className="text-small text-fg-muted">Takes something off the public site at once and stops it coming back on the next sync. Use for takedown requests.</p>
+      <p className="max-w-prose text-small text-fg-muted">Takes something off the public site at once and stops it coming back on the next sync. Use for takedown requests.</p>
       {!open ? (
-        <div className="mt-3">
+        <div className="mt-4 grid grid-cols-1 sm:flex">
           <Button onClick={() => setOpen(true)}>Open</Button>
         </div>
       ) : (
@@ -156,7 +159,7 @@ function EmergencyHide() {
         </form>
       )}
       {outcome ? (
-        <div className="mt-4 rounded-lg border-2 border-line-strong p-3" role="status">
+        <div className="ps-admin-row mt-4 p-3" role="status">
           <p className="font-bold">Hidden at {new Date(outcome.hiddenAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
           <p className="text-small text-fg-muted">
             Videos {outcome.videosHidden}, players {outcome.playersHidden}, tournaments {outcome.tournamentsHidden}, web addresses removed {outcome.redirectsRemoved}.

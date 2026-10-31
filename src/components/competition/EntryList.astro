@@ -1,8 +1,9 @@
 ---
-// Entry list of one event (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// Entry list of one event (Module 15 building block). Server-rendered, no client JavaScript.
 // Seeded entries first, then the rest in the caller's order (never sorted by name), withdrawn entries last (entryRows in ./helpers.ts).
 // Names: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed); a protected entry's club is
-// hidden as well. Registration is OFF in this wave: this list only displays entries the owner has added.
+// hidden as well. A compact table: a narrow seed column (only when some entry has a seed), the name taking the free width, and a
+// readable maximum width on wide screens.
 import { entryRows, type EntryItem } from './helpers';
 
 interface Props {
@@ -12,19 +13,28 @@ interface Props {
 }
 const { caption, items } = Astro.props;
 const rows = entryRows(items);
+const hasSeed = rows.some((r) => r.seedText !== '');
 const hasClub = rows.some((r) => r.club !== '');
 const hasStatus = rows.some((r) => r.statusText !== '');
+const entered = rows.filter((r) => !r.withdrawn).length;
+// A doubles pair prints one player per line (as on the score cards); a name never breaks inside itself, so no initial is left alone.
+const players = (name: string): string[] => name.split(' / ');
 ---
-<div data-entry-list>
+<div class="ps-entries" data-entry-list>
   {rows.length === 0 ? (
     <p class="text-fg-muted">No entries yet.</p>
   ) : (
-    <div class="overflow-x-auto" role="region" aria-label={caption} tabindex="0">
+    <div class="ps-entries-frame" role="region" aria-label={caption} tabindex="0">
       <table class="ps-entry-table">
-        <caption>{caption} <span class="font-normal text-fg-muted ps-num">({rows.filter((r) => !r.withdrawn).length} entered)</span></caption>
+        <caption>
+          <span class="ps-entry-captionrow">
+            <span class="ps-entry-caption">{caption}</span>
+            <span class="ps-entry-count ps-num">({entered} entered)</span>
+          </span>
+        </caption>
         <thead>
           <tr>
-            <th scope="col">Seed</th>
+            {hasSeed && <th scope="col" class="ps-entry-seedcol">Seed</th>}
             <th scope="col">Player or pair</th>
             {hasClub && <th scope="col">Club</th>}
             {hasStatus && <th scope="col">Status</th>}
@@ -33,8 +43,8 @@ const hasStatus = rows.some((r) => r.statusText !== '');
         <tbody>
           {rows.map((r) => (
             <tr class:list={{ 'ps-entry-withdrawn': r.withdrawn }} data-entry={r.id}>
-              <td class="ps-num">{r.seedText || <span class="sr-only">Unseeded</span>}</td>
-              <th scope="row">{r.name}</th>
+              {hasSeed && <td class="ps-entry-seed ps-num">{r.seedText ? <span>{r.seedText.replace(/^\[|\]$/g, '')}<span class="sr-only"> (seed)</span></span> : <span class="sr-only">Unseeded</span>}</td>}
+              <th scope="row">{players(r.name).map((p, i, all) => <span class="ps-entry-player">{p}{i < all.length - 1 && <>&nbsp;/ </>}</span>)}</th>
               {hasClub && <td>{r.club || '–'}</td>}
               {hasStatus && <td>{r.statusText || '–'}</td>}
             </tr>
@@ -46,31 +56,88 @@ const hasStatus = rows.some((r) => r.statusText !== '');
 </div>
 
 <style>
+  .ps-entries-frame {
+    max-width: 44rem;
+    overflow-x: auto;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-lg);
+    background: var(--ps-surface);
+    box-shadow: var(--ps-shadow-card);
+  }
   .ps-entry-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--ps-surface);
   }
   .ps-entry-table caption {
-    padding-bottom: 0.5rem;
-    text-align: left;
-    font-weight: 700;
-  }
-  .ps-entry-table th,
-  .ps-entry-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.875rem 1rem 0.75rem;
     border-bottom: 1px solid var(--ps-line);
     text-align: left;
   }
+  .ps-entry-captionrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+  }
+  .ps-entry-caption {
+    font-family: var(--ps-font-display);
+    font-size: var(--ps-text-h4);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ps-heading);
+  }
+  .ps-entry-count {
+    font-size: var(--ps-text-small);
+    font-weight: 600;
+    color: var(--ps-fg-muted);
+  }
+  .ps-entry-table th,
+  .ps-entry-table td {
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--ps-line);
+    text-align: left;
+    vertical-align: top;
+  }
+  .ps-entry-table tbody tr:last-child th,
+  .ps-entry-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
   .ps-entry-table thead th {
+    padding-block: 0.5rem;
     font-size: var(--ps-text-caption);
-    letter-spacing: 0.06em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
+    white-space: nowrap;
+  }
+  .ps-entry-table th.ps-entry-seedcol,
+  .ps-entry-table td.ps-entry-seed {
+    width: 3.5rem;
+    padding-right: 0;
+    text-align: center;
+  }
+  .ps-entry-seed > span:not(.sr-only) {
+    display: inline-flex;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ps-radius-sm);
+    background: color-mix(in srgb, var(--ps-fg) 7%, transparent);
+    font-family: var(--ps-font-display);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ps-fg);
   }
   .ps-entry-table tbody th {
     font-weight: 600;
-    overflow-wrap: anywhere;
+  }
+  .ps-entry-player {
+    display: block;
+    white-space: nowrap;
   }
   /* Withdrawn: the word "Withdrawn" is in the status column; the strike-through is extra, never the only signal. */
   .ps-entry-withdrawn th {

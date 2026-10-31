@@ -8,7 +8,8 @@ import { countByStatus, istDateOfInstant, moveButtons } from '../../lib/inbox/fi
 import { LEAD_STATUSES, LOST_REASON_PRESETS, STATUS_LABELS, type LeadStatus } from '../../lib/inbox/status';
 import { parseRupeesToPaise, rupeesInputFromPaise } from '../../lib/pricing-admin/price-input';
 import type { LeadUpdateInput } from '../../lib/admin/types';
-import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, cx, inputCls, useAdmin, useAsync, useBusy } from '../ui';
+import { formatShortInstantIst } from '../../lib/dates';
+import { Badge, Button, Confirm, Empty, Field, LoadState, TextInput, btnCls, cardCls, cx, inputCls, useAdmin, useAsync, useBusy } from '../ui';
 
 // The payment form is its own chunk: it is loaded only when the owner opens it.
 const MarkPaid = lazy(() => import('./MarkPaid').then((m) => ({ default: m.MarkPaid })));
@@ -30,7 +31,7 @@ export function Inbox() {
       <p className="text-fg-muted">Enquiries from the website. Contact details are visible only here, to you.</p>
       <div role="group" aria-label="Filter by stage" className="flex flex-wrap gap-2">
         {(['open', ...LEAD_STATUSES] as const).map((s) => (
-          <button key={s} aria-pressed={filter === s} onClick={() => setFilter(s)} className={cx('min-h-tap rounded-md border-2 px-3 text-small font-bold', filter === s ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}>
+          <button key={s} aria-pressed={filter === s} onClick={() => setFilter(s)} className={cx('min-h-tap rounded-md border px-3 text-small font-bold', filter === s ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}>
             {s === 'open' ? 'Open' : STATUS_LABELS[s]} {s === 'open' ? '' : `(${counts[s]})`}
           </button>
         ))}
@@ -95,12 +96,12 @@ function LeadCard({ lead, today }: { lead: InboxLead; today: string }) {
         <span className="text-small text-fg-muted">{lead.refCode}</span>
       </div>
       <p className="mt-2 break-words text-body font-bold">{lead.name}{lead.organization ? `, ${lead.organization}` : ''}</p>
-      <p className="text-small text-fg-muted">{new Date(lead.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}{lead.followUpOn ? ` · Follow up ${lead.followUpOn}` : ''}</p>
+      <p className="text-small text-fg-muted">{formatShortInstantIst(lead.createdAt)}{lead.followUpOn ? ` · Follow up ${lead.followUpOn}` : ''}</p>
       {lead.notes ? <p className="mt-1 whitespace-pre-wrap break-words text-small">{lead.notes}</p> : null}
       {lead.lostReason ? <p className="mt-1 text-small text-fg-muted">Lost: {lead.lostReason}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        {actions.whatsapp.href ? <a className="inline-flex min-h-tap items-center rounded-md border-2 border-line-strong px-4 font-bold no-underline" href={actions.whatsapp.href} rel="noopener noreferrer" target="_blank">WhatsApp reply{actions.whatsapp.customerAgreed ? '' : ' (asked for other contact)'}</a> : null}
-        {actions.email ? <a className="inline-flex min-h-tap items-center rounded-md border-2 border-line-strong px-4 font-bold no-underline" href={actions.email}>Email reply</a> : null}
+        {actions.whatsapp.href ? <a className={btnCls('quiet', true)} href={actions.whatsapp.href} rel="noopener noreferrer" target="_blank">WhatsApp reply{actions.whatsapp.customerAgreed ? '' : ' (asked for other contact)'}</a> : null}
+        {actions.email ? <a className="inline-flex min-h-tap items-center rounded-md border border-line-strong px-4 font-bold no-underline" href={actions.email}>Email reply</a> : null}
         <Button small onClick={() => setOpen(!open)}>{open ? 'Close' : 'Update'}</Button>
         <Button small onClick={() => setPaying(!paying)}>{paying ? 'Close payment' : 'Record payment'}</Button>
         {lead.type === 'tournament_submission' ? <Button small onClick={() => setListing(!listing)}>{listing ? 'Close tournament list' : 'Tournament list'}</Button> : null}

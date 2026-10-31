@@ -21,7 +21,7 @@ export function Videos() {
     <div className="flex flex-col gap-4">
       <div role="tablist" aria-label="Video tools" className="flex gap-2">
         {([['queue', 'Videos to check'], ['title', 'Title check']] as const).map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-tap rounded-md border-2 px-3 text-small font-bold ${tab === k ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg'}`}>{label}</button>
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-tap rounded-md border px-3 text-small font-bold ${tab === k ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg'}`}>{label}</button>
         ))}
       </div>
       {tab === 'queue' ? <ReviewQueue /> : <Suspense fallback={<p className="text-fg-muted">Loading...</p>}><TitleCheck /></Suspense>}
@@ -94,7 +94,7 @@ function ReviewCard({ video }: { video: ReviewVideo }) {
       </div>
 
       {/* Locking is the rare case, so the five ticks live in one closed panel instead of under every field. */}
-      <details className="group mt-4 rounded-md border-2 border-line-strong bg-page open:border-ps-court">
+      <details className="group mt-4 rounded-md border border-line-strong bg-page open:border-ps-court">
         <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 px-3 text-body font-bold text-fg [&::-webkit-details-marker]:hidden">
           <span>Lock fields ({lockedCount})</span>
           <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ps-transition group-open:rotate-180">

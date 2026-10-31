@@ -5,6 +5,9 @@ import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PageHero from '../../../components/ui/PageHero.astro';
 import Section from '../../../components/ui/Section.astro';
+import ChevronRight from '@lucide/astro/icons/chevron-right';
+import Users from '@lucide/astro/icons/users';
+import SectionHeading from '../../../components/ui/SectionHeading.astro';
 import CompetitionSampleNotice from '../_parts/CompetitionSampleNotice.astro';
 import { loadCompetitionSite } from '../../../lib/competition/public/load';
 import { competitionTournamentJsonLd, tournamentPlace, tournamentWhen, updatedText, type CompetitionTournamentPage } from '../../../lib/competition/public/model';
@@ -40,14 +43,26 @@ const jsonLd = competitionTournamentJsonLd(t, source, Astro.site ?? Astro.url) ?
   <PageHero tone="dark" title={t.name} lead={place ? `${when} · ${place}` : when} crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: t.name }]} />
 
   <Section labelledBy="events-title">
-    <h2 id="events-title" class="text-h3">Events</h2>
-    {updated && <p class="mt-2 text-small text-fg-muted ps-num" data-updated-note>{updated}.</p>}
-    <ul class="mt-4 grid gap-3 sm:grid-cols-2" data-competition-events>
+    <SectionHeading id="events-title" title="Events" />
+    {updated && <p class="mt-4 text-small text-fg-muted ps-num" data-updated-note>{updated}.</p>}
+    <ul class="mt-8 grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3" data-competition-events>
       {t.events.map((e) => (
-        <li class="relative rounded-lg border border-line bg-surface p-4 ps-transition hover:shadow-card">
-          <a href={e.path} class="font-bold text-heading no-underline after:absolute after:inset-0 hover:underline">{e.title}</a>
-          <p class="mt-1 text-small text-fg-muted">{e.formatText}</p>
-          <p class="text-small">{e.drawPublished ? `${e.entries.length} ${e.entries.length === 1 ? 'entry' : 'entries'} in the draw` : 'The draw is not published yet.'}</p>
+        <li>
+          <article class="ps-card ps-card-hover ps-card-accent group flex h-full flex-col p-5 pt-6">
+            <div class="pb-5">
+              <p class="ps-eyebrow">{e.formatText}</p>
+              <h3 class="mt-2 text-h4">
+                <a href={e.path} class="text-heading no-underline after:absolute after:inset-0 hover:underline">{e.title}</a>
+              </h3>
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+              <p class="flex items-start gap-2 text-small">
+                <Users size={18} aria-hidden="true" class="shrink-0 text-link" />
+                <span class:list={['ps-num', e.drawPublished ? 'font-semibold' : 'text-fg-muted']}>{e.drawPublished ? `${e.entries.length} ${e.entries.length === 1 ? 'entry' : 'entries'} in the draw` : 'The draw is not published yet.'}</span>
+              </p>
+              <ChevronRight size={20} aria-hidden="true" class="shrink-0 text-link ps-transition group-hover:translate-x-0.5" />
+            </div>
+          </article>
         </li>
       ))}
     </ul>

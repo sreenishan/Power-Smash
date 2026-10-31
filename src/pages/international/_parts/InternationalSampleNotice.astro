@@ -4,6 +4,8 @@
 //    refuses to publish made-up events (D-034).
 //  - Real data but the legal switch features.internationalLinks is still off: the same Todo in the strict build only (the strict build
 //    normally builds no international page at all then; this is the second line of defence).
+// Look: the shared SampleNotice band (info icon, calm tone), the same as the competition and archive sample notices.
+import SampleNotice from '../../../components/site/notices/SampleNotice.astro';
 import Todo from '../../../components/site/Todo.astro';
 import { internationalLinksFlag } from '../../../lib/international/in-build';
 import type { InternationalSource } from '../../../lib/international/public/provider';
@@ -17,11 +19,9 @@ const isSeed = source === 'seed';
 const legalOff = !internationalLinksFlag();
 ---
 {isSeed && (
-  <div class="border-b-2 border-ps-live bg-ps-live-tint" role="note" data-international-sample>
-    <p class="ps-container py-2 text-small font-semibold text-ps-ink">
-      Sample data: the events on this page are made up for testing. They are not real tournaments.
-    </p>
-  </div>
+  <SampleNotice data-international-sample>
+    <strong>Sample data:</strong> the events on this page are made up for testing. They are not real tournaments.
+  </SampleNotice>
 )}
 {strict && (isSeed || legalOff) && (
   <div class="ps-container py-2">

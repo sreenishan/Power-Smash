@@ -5,9 +5,7 @@
  * .ps-surface-dark and .ps-surface-court. No JavaScript, no images except the two court-line SVGs in public/brand.
  */
 @layer components {
-  :root {
-    --ps-surface-hover: var(--ps-white);
-  }
+  /* --ps-surface-hover (white, ink-raised in dark mode) lives in tokens.css. */
   .ps-surface-dark {
     --ps-surface-hover: var(--ps-ink-raised);
   }
@@ -16,15 +14,17 @@
   }
 
   /* ---------------------------------------------------------------- eyebrow, rule, lower-third */
+  /* A long eyebrow wraps balanced, indented under its own text, with the dash beside the FIRST line. */
   .ps-eyebrow {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.625rem;
     font-size: 0.8125rem;
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.14em;
     text-transform: uppercase;
+    text-wrap: balance;
     color: var(--ps-fg-muted);
   }
   .ps-eyebrow::before {
@@ -32,6 +32,7 @@
     width: 1.25rem;
     height: 0.25rem;
     flex: none;
+    margin-top: calc((1.2em - 0.25rem) / 2);
     background: var(--ps-link);
     clip-path: polygon(0.25rem 0, 100% 0, calc(100% - 0.25rem) 100%, 0 100%);
   }
@@ -131,14 +132,14 @@
     box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.2);
   }
   .ps-btn-secondary {
-    border-color: var(--ps-court);
+    border-color: var(--ps-court-text);
     background: var(--ps-surface);
-    color: var(--ps-court);
+    color: var(--ps-court-text);
   }
   .ps-btn-secondary:hover {
     background: var(--ps-court-tint);
-    border-color: var(--ps-court-deep);
-    color: var(--ps-court-deep);
+    border-color: var(--ps-court-deep-text);
+    color: var(--ps-court-deep-text);
   }
   .ps-btn-quiet {
     border-color: var(--ps-line-strong);
@@ -256,7 +257,7 @@
     justify-content: center;
     border-radius: var(--ps-radius-md);
     background: var(--ps-court-tint);
-    color: var(--ps-court);
+    color: var(--ps-court-text);
   }
   .ps-surface-dark .ps-icon-tile,
   .ps-surface-court .ps-icon-tile {
@@ -265,24 +266,41 @@
   }
 
   /* ---------------------------------------------------------------- chips */
+  /* ONE chip vocabulary for the whole brand (public pages, competition StatusBadge, admin Badge): body font, 13 px, bold, sentence
+     case, a pill. Tones: neutral (outline), court (done or confirmed, tint), ink (solid), live (red fill). The words carry the
+     meaning; StatusBadge and the admin Badge add an icon or dot. */
   .ps-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    padding: 0.1875rem 0.75rem;
+    min-height: 1.625rem;
+    padding: 0.125rem 0.6875rem;
+    border: 1px solid transparent;
     border-radius: var(--ps-radius-pill);
-    font-size: 0.75rem;
+    font-family: var(--ps-font-body);
+    font-size: 0.8125rem;
     font-weight: 700;
-    line-height: 1.4;
-    letter-spacing: 0.02em;
+    line-height: 1.25rem;
+    letter-spacing: 0.01em;
+  }
+  .ps-chip-neutral {
+    border-color: var(--ps-line-strong);
+    color: var(--ps-fg);
   }
   .ps-chip-court {
     background: var(--ps-court-tint);
-    color: var(--ps-court);
+    color: var(--ps-court-text);
   }
   .ps-chip-ink {
     background: var(--ps-ink);
     color: var(--ps-volt);
+    box-shadow: inset 0 0 0 1px var(--ps-border-on-dark);
+  }
+  /* Volt fills always carry ink text, also in dark mode (where text-ps-ink otherwise turns light). */
+  .bg-ps-volt,
+  .ps-btn-volt,
+  .ps-lowerthird {
+    --ps-ink-text: var(--ps-ink);
   }
   .ps-chip-live {
     background: var(--ps-live);
@@ -373,8 +391,8 @@
     }
   }
   .ps-pattern::before {
-    background-image: url("/brand/court-lines-ink.svg");
-    opacity: 0.045;
+    background-image: var(--ps-lines-on-light);
+    opacity: var(--ps-lines-on-light-opacity);
   }
   .ps-surface-dark.ps-pattern::before,
   .ps-surface-court.ps-pattern::before {
@@ -385,8 +403,8 @@
     background: var(--ps-surface);
   }
   .ps-hero-light::before {
-    background-image: url("/brand/court-lines-ink.svg");
-    opacity: 0.045;
+    background-image: var(--ps-lines-on-light);
+    opacity: var(--ps-lines-on-light-opacity);
   }
   .ps-surface-court.ps-pattern {
     background-image: radial-gradient(44rem 22rem at 0% 100%, rgb(11 110 79 / 0.55), transparent 70%);
@@ -552,7 +570,7 @@
     width: min(44rem, 120%);
     aspect-ratio: 678 / 313;
     background: url("/brand/court-lines.svg") no-repeat center / contain;
-    opacity: 0.04;
+    opacity: 0.03;
     pointer-events: none;
   }
   .ps-footer-link {
@@ -569,15 +587,20 @@
     color: var(--ps-volt);
     text-decoration-line: underline;
   }
-  /* Footer link columns. The groups on one row share a heading row, so when a heading wraps to two lines ("Players & parents" in
-     a narrow column) the first links of its neighbours still line up with its own. Browsers without subgrid keep the plain
-     stacked columns. The row gap lives in the margin of the later groups (two columns on a phone, one row from 640 px). */
-  .ps-footer-group:nth-child(n + 3) {
-    margin-top: 2rem;
+  /* Footer link columns: two columns on a phone and a tablet, four from 1024 px. Every group shares one heading row (subgrid where
+     supported), headings never wrap, and every link is a 44 px row with the same padding, so a wrapped link keeps the rhythm. */
+  .ps-footer-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-items: start;
+    column-gap: 1.5rem;
+    row-gap: 2.25rem;
   }
-  @media (min-width: 40rem) {
-    .ps-footer-group:nth-child(n + 3) {
-      margin-top: 0;
+  @media (min-width: 64rem) {
+    .ps-footer-nav {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      column-gap: 2rem;
     }
   }
   @supports (grid-template-rows: subgrid) {
@@ -585,18 +608,300 @@
       display: grid;
       grid-row: span 2;
       grid-template-rows: subgrid;
+      row-gap: 0.5rem;
     }
   }
   .ps-footer-heading {
-    font-size: 0.8125rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid var(--ps-line);
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
   }
+  @media (min-width: 64rem) {
+    .ps-footer-heading {
+      font-size: 0.8125rem;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+  }
+  .ps-footer-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .ps-footer-list .ps-footer-link {
+    padding-block: 0.5rem;
+    line-height: 1.35;
+  }
+  /* Social links: icon and label pills, two per row on a phone. */
+  .ps-social {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .ps-social-link {
+    display: flex;
+    min-height: var(--ps-tap);
+    align-items: center;
+    gap: 0.5rem;
+    padding-inline: 0.875rem;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-pill);
+    background: rgb(255 255 255 / 0.02);
+    font-size: var(--ps-text-small);
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--ps-fg);
+    text-decoration: none;
+    transition-property: color, border-color, background-color;
+    transition-duration: var(--ps-dur-base);
+    transition-timing-function: var(--ps-ease);
+  }
+  .ps-social-link > svg {
+    flex: none;
+    color: var(--ps-link);
+  }
+  .ps-social-link:hover {
+    border-color: var(--ps-line-strong);
+    background: var(--ps-surface);
+    color: var(--ps-white);
+  }
+  /* Legal row: a tidy two-column list on a phone, one line from 640 px. */
+  .ps-legal-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+  @media (min-width: 40rem) {
+    .ps-legal-list {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 1.5rem;
+    }
+  }
+  .ps-legal-list .ps-footer-link {
+    color: var(--ps-fg-muted);
+  }
+  .ps-legal-list .ps-footer-link:hover {
+    color: var(--ps-volt);
+  }
+
+  /* ---------------------------------------------------------------- header actions (desktop) */
+  @media (min-width: 64rem) {
+    .ps-site-header .ps-btn-sm {
+      padding-inline: 1rem;
+      font-size: 1.0625rem;
+    }
+  }
+
+  /* ---------------------------------------------------------------- home hero: the channel figures panel */
+  .ps-hero-stats {
+    max-width: 36rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-xl);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.01));
+  }
+  @media (min-width: 40rem) {
+    .ps-hero-stats {
+      padding: 1rem;
+    }
+  }
+  .ps-hero-stats-note {
+    margin-top: 0.875rem;
+    padding: 0.875rem 0.25rem 0.125rem;
+    border-top: 1px solid var(--ps-line);
+    font-size: var(--ps-text-small);
+    line-height: var(--ps-lh-small);
+    color: var(--ps-fg-muted);
+  }
+  @media (min-width: 64rem) {
+    /* The panel is the frame on wide screens, so the court-line motif would only draw a second, misaligned box around it. */
+    .ps-hero-home::before {
+      display: none;
+    }
+    .ps-hero-stats {
+      justify-self: end;
+      width: 100%;
+    }
+  }
+
+  /* ---------------------------------------------------------------- section with a heading-row action group */
+  /* Phone: heading, content, actions. From 1024 px the actions sit at the right end of the heading row. */
+  @media (min-width: 64rem) {
+    .ps-section-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 2rem;
+      align-items: end;
+    }
+    .ps-section-split > :first-child {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .ps-section-split-aside {
+      grid-column: 2;
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .ps-section-split-body {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+
+  /* ---------------------------------------------------------------- call-to-action panel (heading left, buttons right) */
+  .ps-cta-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-left: 4px solid var(--ps-court-text);
+  }
+  @media (min-width: 40rem) {
+    .ps-cta-panel {
+      padding: 2rem;
+    }
+  }
+  @media (min-width: 64rem) {
+    .ps-cta-panel {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2.5rem;
+      padding: 2.5rem 3rem;
+    }
+    .ps-cta-panel .ps-actions {
+      flex: none;
+      flex-wrap: nowrap;
+    }
+  }
+
+  /* ---------------------------------------------------------------- package cards: shared rows across a grid row */
+  .ps-pkg {
+    display: flex;
+    flex-direction: column;
+  }
+  .ps-pkg-head {
+    display: flex;
+    flex-direction: column;
+  }
+  @supports (grid-template-rows: subgrid) {
+    @media (min-width: 48rem) {
+      :where(ul, ol, div):has(> li > .ps-pkg) > li:has(> .ps-pkg) {
+        display: grid;
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+      }
+      .ps-pkg {
+        display: grid;
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+      }
+      .ps-pkg > .ps-actions-card {
+        align-self: end;
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------- info note (sample data, "not switched on yet") */
+  /* Neutral and calm on purpose: an information note is not an error, so it never uses the alert red. Icon: Lucide Info, 20 px,
+     class ps-note-icon. role="note" stays on the element. The band (ps-note-band) uses the same calm court tint as the admin's
+     info callout and preview strip: one information tone across the site. */
+  .ps-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--ps-line);
+    border-left: 4px solid var(--ps-court-text);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-surface);
+    font-size: var(--ps-text-small);
+    line-height: var(--ps-lh-small);
+    color: var(--ps-fg);
+  }
+  .ps-note-icon {
+    flex: none;
+    margin-top: 0.0625rem;
+    color: var(--ps-court-text);
+  }
+  .ps-surface-dark .ps-note-icon,
+  .ps-surface-court .ps-note-icon {
+    color: var(--ps-volt);
+  }
+  .ps-note-band {
+    border-bottom: 1px solid var(--ps-line);
+    background: var(--ps-court-tint);
+    font-size: var(--ps-text-small);
+    line-height: var(--ps-lh-small);
+    color: var(--ps-ink-text);
+  }
+  .ps-note-band-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding-block: 0.625rem;
+  }
+
+  /* ---------------------------------------------------------------- forms: aside, tick list, loading line */
+  .ps-form-aside .ps-ticks {
+    margin-top: -0.25rem;
+  }
+  .ps-ticks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ps-ticks > li {
+    position: relative;
+    padding-left: 1.5rem;
+  }
+  .ps-ticks > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.75rem;
+    height: 0.3125rem;
+    background: var(--ps-link);
+    clip-path: polygon(0.1875rem 0, 100% 0, calc(100% - 0.1875rem) 100%, 0 100%);
+  }
+  .ps-form-wa {
+    padding-bottom: 0.5rem;
+  }
+  .ps-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+  .ps-loading::before {
+    content: "";
+    width: 0.625rem;
+    height: 0.625rem;
+    flex: none;
+    border-radius: var(--ps-radius-pill);
+    background: var(--ps-link);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ps-loading::before {
+      animation: ps-loading-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes ps-loading-pulse {
+      50% {
+        opacity: 0.35;
+      }
+    }
+  }
 
   /* ---------------------------------------------------------------- Tamil: no uppercase, no tracking */
-  :lang(ta) :is(.ps-eyebrow, .ps-btn, .ps-lowerthird, .ps-nav-link, .ps-chip, .ps-jump-link, .ps-scoreboard-label, .ps-footer-heading) {
+  :lang(ta) :is(.ps-eyebrow, .ps-btn, .ps-lowerthird, .ps-nav-link, .ps-chip, .ps-jump-link, .ps-scoreboard-label, .ps-footer-heading, .ps-note-title) {
     text-transform: none;
     letter-spacing: normal;
   }

@@ -132,7 +132,7 @@ const buttonClass = 'min-h-[3rem] rounded-md border-2 border-line-strong px-5 fo
       {(featured.length > 0 || pinned.length > 0) && (
         <div class="mt-8" data-tournament-group>
           <h3 class="text-h4">Featured</h3>
-          {pinned.length > 0 && <ArchiveSeedNotice source={archive.source} />}
+          {pinned.length > 0 && <ArchiveSeedNotice source={archive.source} placement="inline" />}
           <ul class="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featured.map((t) => <li data-tournament-card data-keys={keysOf(t)}><TournamentCard tournament={t} headingLevel={3} featured /></li>)}
             {pinned.map((t) => <li data-tournament-card data-keys={JSON.stringify(featuredFilterKeys(t))}><FeaturedTournamentCard tournament={t} headingLevel={3} /></li>)}
@@ -165,7 +165,7 @@ const buttonClass = 'min-h-[3rem] rounded-md border-2 border-line-strong px-5 fo
   {fromVideos.length > 0 && (
     <Section labelledBy="videos-title">
       <SectionHeading id="videos-title" title="From our videos" lead="Tournaments we have match videos from, with the number of matches on each page." />
-      <ArchiveSeedNotice source={archive.source} />
+      <ArchiveSeedNotice source={archive.source} placement="inline" />
       <ul class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {fromVideos.map((t) => <li><ArchiveTournamentCard tournament={t} headingLevel={3} /></li>)}
       </ul>

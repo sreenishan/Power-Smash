@@ -23,7 +23,7 @@ export function EntriesTab({ detail }: { detail: CompetitionEventDetail }) {
   const published = detail.draw !== null && detail.draw.status !== 'draft';
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-fg-muted">
+      <p className="ps-num text-fg-muted">
         {confirmed} confirmed, {live.length - confirmed} waiting. Only confirmed entries go into the draw.
         {detail.draw?.status === 'draft' ? ' A draft draw is removed when you confirm, reject or withdraw an entry or change a seed: make it again afterwards.' : ''}
       </p>
@@ -33,9 +33,9 @@ export function EntriesTab({ detail }: { detail: CompetitionEventDetail }) {
         {live.length === 0 ? <Empty>No entries yet.</Empty> : live.map((e) => <EntryCard key={e.id} e={e} detail={detail} />)}
       </section>
       {gone.length > 0 ? (
-        <details className="rounded-lg border border-line p-3">
+        <details className="ps-admin-row px-3 py-1">
           <summary className="min-h-tap cursor-pointer py-2 font-semibold">Withdrawn and rejected ({gone.length})</summary>
-          <ul className="mt-2 flex flex-col gap-1">
+          <ul className="mb-2 mt-1 flex flex-col gap-1 text-small text-fg-muted">
             {gone.map((e) => <li key={e.id}>{ownerEntryName(e)} · {ENTRY_STATUS_LABEL[e.status]}</li>)}
           </ul>
         </details>
@@ -81,28 +81,29 @@ function EntryCard({ e, detail }: { e: CompetitionEntryDto; detail: CompetitionE
   };
   return (
     <article aria-label={`Entry ${name}`} className={cardCls}>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1.5">
         {e.players.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center gap-2">
-            <span className="break-words font-bold">{p.displayName}</span>
+          <li key={p.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="break-words text-body font-bold text-heading">{p.displayName}</span>
             <AgeBadge status={p.ageStatus} />
           </li>
         ))}
       </ul>
-      <p className="mt-2 flex flex-wrap gap-2">
+      <p className="mt-3 flex flex-wrap gap-1.5">
         <Badge tone={e.status === 'confirmed' ? 'good' : 'neutral'}>{ENTRY_STATUS_LABEL[e.status]}</Badge>
         {e.seed !== null ? <Badge>{`Seed ${e.seed}`}</Badge> : null}
         {e.isProtected ? <Badge tone="warn">On the site: Protected player</Badge> : null}
       </p>
       {e.isProtected ? <p className="mt-1 text-small text-fg-muted">The website will show &quot;{publicEntryName(e)}&quot; for this entry{detail.event.isJunior ? ' (junior event)' : ''}.</p> : null}
-      <div className="mt-3 flex flex-wrap items-end gap-2">
+      <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4">
         <div className="w-28">
-          <Field label="Seed" htmlFor={seedId} hint={`${COMP_LIMITS.seed.min} to ${COMP_LIMITS.seed.max}`}>
+          <Field label="Seed" htmlFor={seedId}>
             <Input id={seedId} value={seed} inputMode="numeric" maxLength={3} onChange={setSeed} error={act.fields['seed']} />
           </Field>
         </div>
-        <Button small onClick={() => void saveSeed()} busy={act.busy}>Save seed</Button>
+        <Button small onClick={() => void saveSeed()} busy={act.busy} className="min-h-[3rem]">Save seed</Button>
       </div>
+      <p className="ps-num mt-1 text-small text-fg-muted">{`${COMP_LIMITS.seed.min} to ${COMP_LIMITS.seed.max}`}</p>
       <ErrorText id={`${seedId}-error`} text={act.fields['seed']} />
       <div className="mt-3 flex flex-wrap gap-2">
         {e.status !== 'confirmed' ? <Button small variant="primary" onClick={() => void setStatus('confirmed', e.seed, 'Entry confirmed.')} busy={act.busy}>Confirm entry</Button> : null}
@@ -154,14 +155,22 @@ export function ChoiceBadge({ p }: { p: EntryChoice }) {
 /** The found players with a Choose button each (split out so it renders without effects). */
 export function FoundPlayers({ items, taken, onChoose }: { items: readonly EntryChoice[]; taken: (id: string) => boolean; onChoose: (p: EntryChoice) => void }) {
   return (
-    <ul aria-label="Players found" className="flex flex-col gap-2">
+    <ul aria-label="Players found" className="ps-admin-list">
       {items.map((p) => {
         const isTaken = taken(p.id);
         return (
-          <li key={p.id} className="flex flex-wrap items-center gap-2">
-            <span className="break-words">{p.displayName}</span>
-            <ChoiceBadge p={p} />
-            <Button small disabled={isTaken} onClick={() => onChoose(p)}>{isTaken ? 'Already entered' : `Choose ${p.displayName}`}</Button>
+          <li key={p.id}>
+            <span className="flex min-w-0 flex-col items-start gap-1">
+              <span className="break-words font-semibold text-heading">{p.displayName}</span>
+              <ChoiceBadge p={p} />
+            </span>
+            {isTaken ? (
+              <Badge>Already entered</Badge>
+            ) : (
+              <Button small onClick={() => onChoose(p)} className="shrink-0">
+                Choose<span className="sr-only">{` ${p.displayName}`}</span>
+              </Button>
+            )}
           </li>
         );
       })}
@@ -289,12 +298,16 @@ function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
           : "The club used to keep players apart in the draw is the academy the owner keeps on each player's profile."}
       </p>
       {picked.length > 0 ? (
-        <ul aria-label="Chosen players" className="flex flex-col gap-2">
+        <ul aria-label="Chosen players" className="ps-admin-list">
           {picked.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center gap-2">
-              <span className="font-bold">{p.displayName}</span>
-              <ChoiceBadge p={p} />
-              <Button small onClick={() => setPicked((x) => x.filter((y) => y.id !== p.id))}>{`Remove ${p.displayName}`}</Button>
+            <li key={p.id}>
+              <span className="flex min-w-0 flex-col items-start gap-1">
+                <span className="break-words font-bold text-heading">{p.displayName}</span>
+                <ChoiceBadge p={p} />
+              </span>
+              <Button small onClick={() => setPicked((x) => x.filter((y) => y.id !== p.id))} className="shrink-0">
+                Remove<span className="sr-only">{` ${p.displayName}`}</span>
+              </Button>
             </li>
           ))}
         </ul>
@@ -365,7 +378,7 @@ export function NewPlayer({ tournamentId, typed, onAdded }: { tournamentId: stri
     onAdded({ id: r.id, displayName: r.displayName, named: false });
   };
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-line p-3">
+    <div className="ps-admin-row flex flex-col gap-2 p-3">
       <p className="text-small text-fg-muted">{NEW_PLAYER_NOTE}</p>
       <Field label="New player's full name" htmlFor="new-player-name">
         <Input id="new-player-name" value={name} maxLength={ORGANIZER_PLAYER_LIMITS.nameMax} onChange={setName} error={act.fields['name']} />

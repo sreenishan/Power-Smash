@@ -3,6 +3,8 @@
 // actions: the enquiry button and WhatsApp. Inclusions are shown only when `showInclusions` is true; the PAGE then shows ONE
 // <Todo> while any of them are unapproved (needsInclusionApproval in src/content/products.ts).
 // `wide` lays a card that sits alone in its row out as two columns from 768 px (name and summary left, price and buttons right).
+// A normal card has four slots (copy, price, inclusions, buttons); cards side by side share those rows through CSS subgrid
+// (.ps-pkg in components.css), so their rules, prices and buttons line up across the row.
 import Check from '@lucide/astro/icons/check';
 import PriceTag from './PriceTag.astro';
 import Button from './Button.astro';
@@ -40,14 +42,14 @@ const {
 const Tag = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
 // Only inclusions without an availableFrom marker are public (R-ALLOWED-CLAIMS).
 const inclusions = publicInclusions(product);
-// Normal card: the two wrappers vanish (display: contents), so the children lay out exactly as direct flex children.
-const copyClass = wide ? 'md:self-center' : 'contents';
+// Normal card: the buy wrapper vanishes (display: contents), so the four slots are direct children of the card.
+const copyClass = wide ? 'md:self-center' : 'ps-pkg-head';
 const buyClass = wide ? 'flex flex-col md:self-center md:border-l md:border-line md:pl-8' : 'contents';
 ---
 <article
   class:list={[
-    'ps-card ps-card-hover ps-card-accent flex h-full flex-col p-5 pt-6 sm:p-6 sm:pt-7',
-    wide && 'md:grid md:grid-cols-[minmax(0,1fr)_17rem] md:gap-x-8',
+    'ps-card ps-card-hover ps-card-accent h-full p-5 pt-6 sm:p-6 sm:pt-7',
+    wide ? 'flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_17rem] md:gap-x-8' : 'ps-pkg',
     className,
   ]}
 >
@@ -57,20 +59,24 @@ const buyClass = wide ? 'flex flex-col md:self-center md:border-l md:border-line
     <p class="mt-2 text-fg-muted">{product.summary}</p>
   </div>
   <div class={buyClass}>
-    <PriceTag product={product} class={wide ? 'mt-4 border-t border-line pt-4 md:mt-0 md:border-t-0 md:pt-0' : 'mt-4 border-t border-line pt-4'} />
-    {showDelivery && product.deliveryDays !== null && (
-      <p class="mt-2 text-small text-fg-muted">Delivery: {product.deliveryDays} {product.deliveryDays === 1 ? 'day' : 'days'}</p>
-    )}
-    {showInclusions && inclusions.length > 0 && (
-      <ul class="mt-4 flex flex-col gap-2 text-small text-fg">
-        {inclusions.map((item) => (
-          <li class="flex items-start gap-2">
-            <Check size={18} class="mt-0.5 shrink-0 text-link" aria-hidden="true" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    )}
+    <div class={wide ? 'contents' : 'ps-pkg-price'}>
+      <PriceTag product={product} class={wide ? 'mt-4 border-t border-line pt-4 md:mt-0 md:border-t-0 md:pt-0' : 'mt-4 border-t border-line pt-4'} />
+      {showDelivery && product.deliveryDays !== null && (
+        <p class="mt-2 text-small text-fg-muted">Delivery: {product.deliveryDays} {product.deliveryDays === 1 ? 'day' : 'days'}</p>
+      )}
+    </div>
+    <div class={wide ? 'contents' : 'ps-pkg-body'}>
+      {showInclusions && inclusions.length > 0 && (
+        <ul class="mt-4 flex flex-col gap-2 text-small text-fg">
+          {inclusions.map((item) => (
+            <li class="flex items-start gap-2">
+              <Check size={18} class="mt-0.5 shrink-0 text-link" aria-hidden="true" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
     <div class="ps-actions-card mt-auto pt-6">
       <Button href={href} variant="primary">{ctaLabel}<span class="sr-only"> for {product.name}</span></Button>
       <WhatsAppButton text={whatsappTextForPackage(product.name)} label="Ask on WhatsApp" variant="quiet" source={source} />

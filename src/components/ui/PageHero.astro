@@ -26,7 +26,7 @@ const hasJump = Astro.slots.has('jump');
   <div class="ps-container">
     {crumbs && <Breadcrumbs items={crumbs} class="mb-5" />}
     {eyebrow && <p class="ps-eyebrow mb-3">{eyebrow}</p>}
-    <h1 class:list={['ps-rise max-w-4xl', rawTitle && 'normal-case text-h2']}>{title}</h1>
+    <h1 class:list={['ps-rise max-w-4xl text-balance', rawTitle && 'normal-case text-h2']}>{title}</h1>
     <span aria-hidden="true" class="ps-rule ps-rise ps-rise-2"></span>
     {lead && <p class="ps-rise ps-rise-2 mt-5 max-w-2xl text-lead text-fg-muted">{lead}</p>}
     {hasActions && <div class="ps-actions ps-rise ps-rise-2 mt-8"><slot /></div>}

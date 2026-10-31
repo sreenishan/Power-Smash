@@ -20,7 +20,7 @@ export function Submissions() {
       <p className="text-fg-muted">Videos people sent you. Watch the link yourself: the site never opens it. Approve only when the rights boxes are ticked and you are happy to upload it.</p>
       <div role="group" aria-label="Filter by stage" className="flex flex-wrap gap-2">
         {(['open', 'new', 'approved', 'uploaded', 'rejected'] as const).map((s) => (
-          <button key={s} aria-pressed={filter === s} onClick={() => setFilter(s)} className={cx('min-h-tap rounded-md border-2 px-3 text-small font-bold', filter === s ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}>
+          <button key={s} aria-pressed={filter === s} onClick={() => setFilter(s)} className={cx('min-h-tap rounded-md border px-3 text-small font-bold', filter === s ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}>
             {s === 'open' ? 'To do' : STATUS_LABEL[s]}
           </button>
         ))}

@@ -35,7 +35,7 @@ function Tick({ id, name, checked, onChange, invalid, describedBy, children }: {
   children: ReactNode;
 }) {
   return (
-    <div className={`flex min-h-tap items-start gap-3 rounded-md border-2 p-4 ps-transition ${invalid ? 'border-ps-live bg-ps-live-tint/40' : 'border-line-strong bg-surface hover:border-ps-ink'}`}>
+    <div className={`flex min-h-tap items-start gap-3 rounded-md border-2 p-4 ps-transition ${invalid ? 'border-ps-live bg-ps-live-tint/40' : 'border-line-strong bg-surface hover:border-ps-ink has-[:checked]:border-ps-court has-[:checked]:bg-ps-court-tint'}`}>
       <input
         id={id}
         name={name}
@@ -106,7 +106,7 @@ export default function ChoiceField({ field: f, id, value, error, onChange, opti
   return (
     <fieldset
       role={radio ? 'radiogroup' : undefined}
-      className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0"
+      className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0"
       aria-describedby={describedBy}
       aria-required={radio && !f.optional ? true : undefined}
       aria-invalid={radio && error ? true : undefined}

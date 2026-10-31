@@ -202,6 +202,47 @@ Full table (generated):
 
 Ratios are shown rounded down (WCAG forbids rounding up). Thresholds: normal text 4.5, large text (24 px, or 19 px bold) 3, UI components and graphics 3.
 
+## Dark mode (premium pass, 2026-10-31)
+
+Dark mode follows the device setting; `data-theme="light"` on `<html>` opts out, `data-theme="dark"` forces it (`src/styles/tokens.css`, the block is written twice and the two copies must stay identical). No new fonts or images.
+
+New base colours (used only by dark mode):
+
+| Token | Value | Use |
+|---|---|---|
+| `--ps-night` | `#0f1b1f` | page background (a step lighter than ink, so ink bands still read as bands) |
+| `--ps-fog` | `#e8eeec` | body text |
+| `--ps-steel` | `#6f8489` | control edges (`--ps-line-strong`) |
+| `--ps-court-night` | `#0f3227` | court tint |
+| `--ps-live-night` | `#3a1714` | alert tint |
+| `--ps-court-bright` | `#5fd3a5` | court-coloured TEXT (never a fill under white text) |
+| `--ps-court-bright-hover` | `#8fe3c1` | hover of court-bright text; deep-court text |
+| `--ps-live-bright` | `#ff9b91` | alert TEXT and edges (fills stay `--ps-live`) |
+
+Text roles (light value, dark value): `--ps-ink-text` (ink, fog), `--ps-ink-line` (ink, mist), `--ps-court-text` (court, court-bright), `--ps-court-deep-text` (court-deep, court-bright-hover), `--ps-live-text` (live, live-bright), `--ps-surface-hover` (white, ink-raised), `--ps-lines-on-light` and `--ps-lines-on-light-opacity` (the court-line motif on light bands follows the theme). The classes `text-ps-ink`, `text-ps-court`, `text-ps-court-deep`, `text-ps-live`, `border-ps-ink`, `border-ps-live` and `border-ps-court` read these roles; background fills are unchanged. Volt fills always carry ink text.
+
+Admin-scoped tokens (`src/admin/admin.css`): `--ps-admin-chip-bg` (`#eef2f1`; dark: ink-raised) and `--ps-admin-chip-edge` (`#cfd8d5`; dark: border-on-dark), for the neutral chip and the segmented-control track; `--ps-admin-rail-w` and `--ps-admin-nav-h` are layout sizes.
+
+Measured contrast pairs (WCAG AA; text 4.5:1, large text and control edges 3:1):
+
+| Pair | Ratio |
+|---|---|
+| fog body text on ink-soft (dark surface) | 13.6:1 |
+| court-bright text on ink-soft | 8.6:1 |
+| live-bright text on ink-soft | 7.8:1 |
+| steel input edge on ink-soft / on ink-raised | 4.07:1 / 3.46:1 |
+| fog on court-night / court-bright on court-night | 11.8:1 / 7.5:1 |
+| fog on live-night / live-bright on live-night | 13.6:1 / 7.8:1 |
+| court text on court-tint (light: court chip, confirmed badge) | 5.6:1 |
+| slate (muted game numbers) on white | 5.4:1 |
+| admin: ink on chip-bg / slate on chip-bg (light) | 16.5:1 / 4.9:1 |
+| admin: fog on dark chip-bg | 11.6:1 |
+| admin: good chip text, light / dark | 9.6:1 / 9.3:1 |
+| admin: tab-bar text | 8.9:1 |
+| white on live fill (live chip, danger chip) | 5.6:1 |
+
+`scripts/brand-contrast.mjs` reports no unexpected failure, and axe (wcag2a, wcag2aa, including color-contrast) on every page at 360 px in light and dark reported 0 violations (review of 2026-10-31). The recipes that use these colours are listed in `docs/DESIGN_DIRECTION.md` (sections 6 and 6a).
+
 ## Logo
 
 Concept: **POWER SMASH** in a heavy condensed italic, plus a shuttle diving to the lower right with three speed streaks behind it

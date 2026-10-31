@@ -28,6 +28,7 @@ import {
   isWinner,
   isZonedInstant,
   istDateOf,
+  matchStatusTone,
   outcomeNote,
   playerName,
   rankingRows,
@@ -41,6 +42,7 @@ import {
   snapshotText,
   statusBadge,
   statusText,
+  tournamentStatusChip,
   type BracketMatchView,
   type PlayerRef,
 } from '../../src/components/competition/helpers';
@@ -232,6 +234,24 @@ describe('status badge (text, never colour alone)', () => {
     expect(statusText('toString')).toBe('Status unknown');
     expect(statusText('weird')).toBe('Status unknown');
     expect(statusText(null)).toBe('Status unknown');
+  });
+  it('static lists get one chip vocabulary and never the live tone', () => {
+    expect(matchStatusTone('completed')).toBe('court');
+    for (const st of ['walkover', 'retired', 'live', 'paused']) expect(matchStatusTone(st)).toBe('ink');
+    for (const st of ['scheduled', 'ready', 'abandoned', 'postponed', 'cancelled', 'weird', null, undefined]) expect(matchStatusTone(st)).toBe('neutral');
+    const rows = scheduleRows([
+      { id: 'a', a: [adult('Arun Vel')], b: [adult('Bala Fict')], status: 'live' },
+      { id: 'b', a: [adult('Arun Vel')], b: [adult('Bala Fict')] },
+    ]);
+    expect(rows.map((r) => [r.statusText, r.statusTone])).toEqual([['In progress', 'ink'], ['', 'neutral']]);
+  });
+  it('tournament chips only for a known status', () => {
+    expect(tournamentStatusChip('scheduled')).toEqual({ text: 'Scheduled', tone: 'neutral' });
+    expect(tournamentStatusChip('completed')).toEqual({ text: 'Completed', tone: 'court' });
+    expect(tournamentStatusChip('cancelled')).toEqual({ text: 'Cancelled', tone: 'ink' });
+    expect(tournamentStatusChip('toString')).toBeNull();
+    expect(tournamentStatusChip('draft')).toBeNull();
+    expect(tournamentStatusChip(null)).toBeNull();
   });
   it('outcome notes', () => {
     expect(outcomeNote('walkover')).toBe('Walkover');

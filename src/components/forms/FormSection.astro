@@ -23,17 +23,19 @@ interface Props {
   /** True when the spam-check key is missing in a non-development build. */
   blocked: boolean;
   tone?: 'default' | 'surface';
+  /** Tighter vertical padding, for a form band that follows another compact band (the registration page). */
+  compact?: boolean;
 }
-const { id, title, route, blocked, tone = 'default' } = Astro.props;
+const { id, title, route, blocked, tone = 'default', compact = false } = Astro.props;
 const headingId = `${id ?? route.replace(/\W+/g, '-')}-title`;
 const text = whatsappTextForPath(route);
 const hasWhatsApp = waLink(site.whatsappNumber, text) !== null;
 ---
-<Section id={id} labelledBy={headingId} tone={tone}>
+<Section id={id} labelledBy={headingId} tone={tone} compact={compact}>
   <h2 id={headingId} class="sr-only">{title}</h2>
   <div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
     <div class="flex min-w-0 flex-col gap-4">
-      <div class="lg:hidden">
+      <div class="ps-form-wa lg:hidden">
         <WhatsAppButton text={text} label="Prefer WhatsApp? Message us" variant="secondary" source="form-top" class="w-full sm:w-auto" />
       </div>
       {blocked ? (
@@ -57,7 +59,7 @@ const hasWhatsApp = waLink(site.whatsappNumber, text) !== null;
         </>
       )}
     </div>
-    <aside class="flex flex-col gap-4 rounded-lg border-2 border-line bg-surface p-4 sm:p-6" aria-label="Good to know">
+    <aside class="ps-card ps-card-accent ps-form-aside flex flex-col gap-4 p-5 pt-6 sm:p-6 sm:pt-7 lg:sticky lg:top-24" aria-label="Good to know">
       <slot name="aside" />
       <div class="hidden lg:block">
         <WhatsAppButton text={text} label="Prefer WhatsApp? Message us" variant="secondary" source="form-side" class="w-full" />
@@ -65,3 +67,47 @@ const hasWhatsApp = waLink(site.whatsappNumber, text) !== null;
     </aside>
   </div>
 </Section>
+
+<style is:global>
+  /* A framed tick-box row (class ps-tick on the <label> that wraps the box), the same look as the choice rows of the enquiry
+     forms (ChoiceField.tsx Tick): the whole row is the tap target, a 2 px line-strong edge (3:1 against the panel), the court
+     tint when ticked, the alert edge when the box has an error. Lives here, with the band that holds every form, so the forms'
+     JavaScript carries one short class name instead of a long class string. */
+  .ps-tick {
+    display: flex;
+    min-height: var(--ps-tap);
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 2px solid var(--ps-line-strong);
+    border-radius: var(--ps-radius-md);
+    background: var(--ps-surface);
+    color: var(--ps-fg);
+    cursor: pointer;
+    transition-property: border-color, background-color;
+    transition-duration: var(--ps-dur-base);
+    transition-timing-function: var(--ps-ease);
+  }
+  .ps-tick:hover {
+    border-color: var(--ps-ink-line);
+  }
+  .ps-tick:has(:checked) {
+    border-color: var(--ps-court-text);
+    background: var(--ps-court-tint);
+  }
+  .ps-tick:has([aria-invalid="true"]) {
+    border-color: var(--ps-live-text);
+    background: var(--ps-live-tint);
+  }
+  .ps-tick > input[type="checkbox"] {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+    margin: 0;
+    accent-color: var(--ps-court);
+    cursor: pointer;
+  }
+  fieldset:disabled .ps-tick {
+    cursor: wait;
+  }
+</style>

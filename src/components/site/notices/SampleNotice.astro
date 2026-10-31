@@ -1,0 +1,29 @@
+---
+// The one shared "sample data" / information notice (role="note"): an info icon and a calm style (the ps-note card: surface with a
+// court accent edge; the ps-note-band strip: the soft court tint, the site's one information tone, recipes in
+// src/styles/components.css), never the alert red, because sample data is a deliberate state of a preview,
+// not a fault. The text is the default slot (start it with <strong>Sample data:</strong>).
+//  - placement "band" (default): a full-width strip right under the site header, above the page hero.
+//  - placement "inline": a note card inside a section, with its own top margin.
+// Pass the page's test hook as a data attribute (for example data-international-sample); it lands on the outer element.
+import Info from '@lucide/astro/icons/info';
+
+interface Props {
+  placement?: 'band' | 'inline';
+  [attr: `data-${string}`]: string | boolean | undefined;
+}
+const { placement = 'band', ...data } = Astro.props;
+---
+{placement === 'band' ? (
+  <div class="ps-note-band" role="note" {...data}>
+    <div class="ps-container ps-note-band-inner">
+      <Info size={20} aria-hidden="true" class="ps-note-icon" />
+      <p><slot /></p>
+    </div>
+  </div>
+) : (
+  <div class="ps-note mt-6" role="note" {...data}>
+    <Info size={20} aria-hidden="true" class="ps-note-icon" />
+    <p><slot /></p>
+  </div>
+)}

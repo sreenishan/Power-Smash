@@ -44,7 +44,7 @@ export function Tournaments() {
     <div className="flex flex-col gap-4">
       <div role="tablist" aria-label="Tournament lists" className="flex flex-wrap gap-2">
         {TABS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-tap rounded-md border-2 px-3 text-small font-bold ${tab === k ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg'}`}>{label}</button>
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`min-h-tap rounded-md border px-3 text-small font-bold ${tab === k ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg'}`}>{label}</button>
         ))}
       </div>
       <p className="text-fg-muted">
@@ -119,7 +119,7 @@ function Candidate({ t, approved }: { t: TournamentCandidate; approved: boolean 
           </fieldset>
         ) : null}
       </Confirm> : null}
-      {gap ? <p role="note" className="mt-2 rounded-lg border-2 border-ps-live bg-ps-live-tint p-3 text-small text-ps-ink">{gap}</p> : null}
+      {gap ? <p role="note" className="mt-2 rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-3 text-small text-ps-ink">{gap}</p> : null}
       {editing ? <DetailsLoader t={t} onDone={() => setEditing(false)} /> : null}
       {permission ? <FilmingPermissionPanel tournamentId={t.id} tournamentName={t.name} onDone={() => setPermission(false)} /> : null}
     </article>
@@ -170,7 +170,7 @@ function DetailsForm({ t, initial, onDone }: { t: TournamentCandidate; initial: 
 
   return (
     <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); review(); }}>
-      <p className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-3 text-small text-ps-ink">{TOURNAMENT_SWITCH_NOTE}</p>
+      <p className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-3 text-small text-ps-ink">{TOURNAMENT_SWITCH_NOTE}</p>
       <Field label="Name" htmlFor={id('name')}>
         <TextInput id={id('name')} value={text('name')} onChange={(v) => set('name', v)} maxLength={TOURNAMENT_LIMITS.name + 20} />
       </Field>
@@ -203,7 +203,7 @@ function DetailsForm({ t, initial, onDone }: { t: TournamentCandidate; initial: 
       </Field>
       {err('endDate')}
       <fieldset>
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">Categories</legend>
+        <legend className="text-small font-semibold text-heading">Categories</legend>
         <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
           {CATEGORIES.map((c) => (
             <label key={c} className="flex min-h-tap items-center gap-2">

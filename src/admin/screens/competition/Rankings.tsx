@@ -57,7 +57,7 @@ function PointsTable({ settings }: { settings: CompetitionSettingsDto }) {
     <section aria-labelledby="points-h" className={`${cardCls} flex flex-col gap-3`}>
       <H2 id="points-h">Points table</H2>
       <p className="flex flex-wrap gap-2">
-        <Badge tone={settings.pointsTable ? 'good' : 'warn'}>{settings.pointsTable ? 'Approved' : 'Not approved yet'}</Badge>
+        <Badge tone={settings.pointsTable ? 'good' : 'neutral'}>{settings.pointsTable ? 'Approved' : 'Not approved yet'}</Badge>
       </p>
       <p className="text-small">{settings.pointsTableSummary}</p>
       <div><Button small onClick={() => setEditing(!editing)}>{editing ? 'Close the points table' : settings.pointsTable ? 'Change the points table' : 'Enter the points table'}</Button></div>
@@ -109,7 +109,7 @@ function PointsForm({ settings, onDone }: { settings: CompetitionSettingsDto; on
         {TOURNAMENT_LEVELS.map((level) => {
           const typed = Object.values(d.levels[level] ?? {}).filter((v) => (v ?? '').trim() !== '').length;
           return (
-            <details key={level} className="rounded-md border border-line p-2" open={typed > 0}>
+            <details key={level} className="ps-admin-row px-3 py-1" open={typed > 0}>
               <summary className="min-h-tap cursor-pointer py-2 font-semibold">{LEVEL_LABEL[level]} tournaments{typed > 0 ? ` (${typed} filled in)` : ''}</summary>
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {FINISHES.map((f) => (
@@ -189,7 +189,7 @@ function Compute({ settings }: { settings: CompetitionSettingsDto }) {
         <div><Button type="submit" variant="primary" busy={act.busy}>Work out the ranking</Button></div>
       </form>
       {done ? (
-        <div role="status" className="rounded-lg border-2 border-ps-court p-3 text-small">
+        <div role="status" className="ps-admin-callout ps-admin-callout-info block">
           <p className="font-semibold">Saved as a draft: {done.rows} {done.rows === 1 ? 'player' : 'players'}. Not published.</p>
           {done.protectedLeftOut > 0 ? <p>{done.protectedLeftOut} protected {done.protectedLeftOut === 1 ? 'player was' : 'players were'} left out (they are never ranked publicly).</p> : null}
           {done.excluded.length > 0 ? <ul aria-label="Results left out" className="mt-1 list-disc pl-5">{done.excluded.map((x) => <li key={x}>{x}</li>)}</ul> : null}

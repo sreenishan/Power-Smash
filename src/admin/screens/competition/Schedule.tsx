@@ -34,7 +34,7 @@ export function TournamentSchedule({ tournamentId }: { tournamentId: string }) {
             {caps.schedule ? <Planner t={t} /> : null}
           </>
         ) : (
-          <p role="alert" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 text-ps-ink">That tournament was not found. Go back and open it again.</p>
+          <p role="alert" className="ps-admin-callout ps-admin-callout-warn">That tournament was not found. Go back and open it again.</p>
         )}
       </LoadState>
     </div>
@@ -102,7 +102,7 @@ export function Courts({ tournamentId }: { tournamentId: string }) {
         <ErrorText text={courtAct.error && !courtAct.fields['label'] ? courtAct.error : null} />
         <div><Button type="submit" variant="primary" busy={courtAct.busy}>Add the court</Button></div>
       </form> : null}
-      {caps.venues ? <details className="rounded-lg border border-line p-3">
+      {caps.venues ? <details className="ps-admin-row px-3 py-1">
         <summary className="min-h-tap cursor-pointer py-2 font-semibold">Add a venue</summary>
         <form aria-label="Add a venue" className="mt-2 flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void addVenue(); }}>
           <Field label="Venue name" htmlFor="venue-name">
@@ -185,9 +185,9 @@ function Planner({ t }: { t: CompetitionTournamentDto }) {
       <p className="text-small text-fg-muted">Gives a time and a court to every match that has no result yet. Matches already given a time stay where they are. A later round waits for the matches that feed it.</p>
       <form aria-label="Plan the order of play" className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void preview(); }}>
         <fieldset className="flex flex-col gap-3" aria-describedby={act.fields['windows'] ? 'plan-windows-error' : undefined}>
-          <legend className="text-small font-bold uppercase tracking-wider text-fg">Playing days (India time, 24-hour clock)</legend>
+          <legend className="text-small font-semibold text-heading">Playing days (India time, 24-hour clock)</legend>
           {windows.map((w, i) => (
-            <div key={i} className="grid grid-cols-1 gap-2 rounded-md border border-line p-2 sm:grid-cols-3">
+            <div key={i} className="grid grid-cols-1 gap-3 rounded-md bg-(--ps-admin-chip-bg) p-3 sm:grid-cols-3">
               <Field label={`Day ${i + 1}: date`} htmlFor={`plan-d${i}`}><Input id={`plan-d${i}`} value={w.date} placeholder="YYYY-MM-DD" maxLength={10} onChange={(v) => setWindow(i, 'date', v)} /></Field>
               <Field label="From" htmlFor={`plan-s${i}`}><Input id={`plan-s${i}`} value={w.start} placeholder="09:00" maxLength={5} onChange={(v) => setWindow(i, 'start', v)} /></Field>
               <Field label="Until" htmlFor={`plan-e${i}`}><Input id={`plan-e${i}`} value={w.end} placeholder="18:00" maxLength={5} onChange={(v) => setWindow(i, 'end', v)} /></Field>
@@ -208,7 +208,7 @@ function Planner({ t }: { t: CompetitionTournamentDto }) {
         <ErrorText id="plan-duration-error" text={act.fields['duration']} />
         <ErrorText id="plan-rest-error" text={act.fields['rest']} />
         <fieldset>
-          <legend className="text-small font-bold uppercase tracking-wider text-fg">Events</legend>
+          <legend className="text-small font-semibold text-heading">Events</legend>
           {t.events.length === 0 ? <p className="text-fg-muted">No events yet.</p> : t.events.map((e) => (
             <label key={e.id} className="flex min-h-tap items-center gap-2">
               <input type="checkbox" className="h-5 w-5" checked={chosenEvents.includes(e.id)} onChange={(ev) => { setEventsLeftOut((l) => toggleLeftOut(l, e.id, ev.target.checked)); setPlan(null); }} />
@@ -218,7 +218,7 @@ function Planner({ t }: { t: CompetitionTournamentDto }) {
         </fieldset>
         <ErrorText text={act.fields['events']} />
         <fieldset>
-          <legend className="text-small font-bold uppercase tracking-wider text-fg">Courts</legend>
+          <legend className="text-small font-semibold text-heading">Courts</legend>
           {courts.length > 0 ? <p className="text-small text-fg-muted">All courts are ticked, including any you add later. Untick a court to leave it out of this plan.</p> : null}
           {courts.length === 0 ? <p className="text-fg-muted">Add courts above first.</p> : courts.map((c) => (
             <label key={c.id} className="flex min-h-tap items-center gap-2">
@@ -267,7 +267,7 @@ function PlanView({ plan }: { plan: ScheduleResultDto }) {
         <Badge tone={plan.conflicts.length > 0 ? 'warn' : 'good'}>{plan.conflicts.length === 0 ? 'No clashes' : `${plan.conflicts.length} ${plan.conflicts.length === 1 ? 'clash' : 'clashes'}`}</Badge>
       </p>
       {plan.conflicts.length > 0 ? (
-        <section aria-labelledby="plan-clashes" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-3 text-ps-ink">
+        <section aria-labelledby="plan-clashes" className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-3 text-ps-ink">
           <h3 id="plan-clashes" className="font-bold">Clashes</h3>
           <ul className="list-disc pl-5">{plan.conflicts.map((c, i) => <li key={`${c.kind}-${i}`}>{c.message}</li>)}</ul>
         </section>

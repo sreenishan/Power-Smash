@@ -65,7 +65,7 @@ const routes = [
 ];
 ---
 <BaseLayout title={meta.title} description={meta.description} organization>
-  <section aria-labelledby="home-title" class="ps-surface-dark ps-hero ps-hero-lg">
+  <section aria-labelledby="home-title" class="ps-surface-dark ps-hero ps-hero-lg ps-hero-home">
     <div class="ps-container lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center lg:gap-12">
       <div class="ps-rise">
         <h1 id="home-title" class="max-w-4xl">{h1}</h1>
@@ -80,12 +80,12 @@ const routes = [
         </div>
       </div>
 
-      <div class="mt-12 sm:mt-16 lg:mt-0">
-        <div class="grid max-w-xl grid-cols-2 gap-4">
+      <div class="ps-hero-stats mt-12 sm:mt-16 lg:mt-0">
+        <div class="grid grid-cols-2 gap-3 sm:gap-4">
           <StatCounter value={site.channel.subscribers} label="Subscribers" />
           <StatCounter value={site.channel.videos} label="Videos" />
         </div>
-        <p class="mt-3 max-w-2xl text-small text-fg-muted">About {site.channel.subscribers} subscribers and {site.channel.videos} videos on the Power Smash YouTube channel (rounded), as of {site.channel.asOf}.</p>
+        <p class="ps-hero-stats-note">About {site.channel.subscribers} subscribers and {site.channel.videos} videos on the Power Smash YouTube channel (rounded), as of {site.channel.asOf}.</p>
       </div>
     </div>
   </section>
@@ -107,8 +107,9 @@ const routes = [
   </Section>
 
   <Section tone="surface" labelledBy="teaser-title">
+    <div class="ps-section-split">
     <SectionHeading id="teaser-title" title="Ways to work with Power Smash" lead="Pick a package, send your details, and we reply with a quote." />
-    <ul class={`mt-8 ${cardGridClass(teaser.length)}`}>
+    <ul class={`ps-section-split-body mt-8 ${cardGridClass(teaser.length)}`}>
       {teaser.map((product) => {
         const target = enquiryTarget(product);
         return (
@@ -118,9 +119,10 @@ const routes = [
         );
       })}
     </ul>
-    <div class="ps-actions mt-8">
+    <div class="ps-actions ps-section-split-aside mt-8">
       <Button href={ROUTES.services} variant="secondary">All services</Button>
       <Button href={ROUTES.pricing} variant="secondary">Pricing</Button>
+    </div>
     </div>
   </Section>
 
@@ -131,15 +133,21 @@ const routes = [
         <ul class="mt-8 grid gap-6 lg:grid-cols-3">
           {teaserTournaments.map((t) => <li><TournamentCard tournament={t} /></li>)}
         </ul>
+        <div class="ps-actions mt-8">
+          <Button href={ROUTES.submitTournament} variant="primary">List your tournament - free</Button>
+          <Button href={ROUTES.book} variant="secondary">Book coverage</Button>
+          <Button href={ROUTES.tournaments} variant="secondary">All tournaments</Button>
+        </div>
       </>
     ) : (
-      <SectionHeading id="tournaments-title" title="Running a tournament?" lead="List it on Power Smash for free, or book coverage for it." />
+      <div class="ps-card ps-cta-panel">
+        <SectionHeading id="tournaments-title" title="Running a tournament?" lead="List it on Power Smash for free, or book coverage for it." />
+        <div class="ps-actions">
+          <Button href={ROUTES.submitTournament} variant="primary" size="lg">List your tournament - free</Button>
+          <Button href={ROUTES.book} variant="secondary" size="lg">Book coverage</Button>
+        </div>
+      </div>
     )}
-    <div class="ps-actions mt-8">
-      <Button href={ROUTES.submitTournament} variant="primary">List your tournament - free</Button>
-      <Button href={ROUTES.book} variant="secondary">Book coverage</Button>
-      {teaserTournaments.length > 0 && <Button href={ROUTES.tournaments} variant="secondary">All tournaments</Button>}
-    </div>
   </Section>
 
   <SponsorStrip name="home-partners-strip" />

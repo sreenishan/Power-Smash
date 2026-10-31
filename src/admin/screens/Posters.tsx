@@ -29,8 +29,8 @@ export function Posters() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-fg-muted">Each poster has a QR code that opens that tournament (or the channel) with tracking, so you can see which venue sent visitors.</p>
-      {!origin.ok ? <p role="alert" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 text-ps-ink">The website address is not set up yet, so no QR code can be made. It is set by the build setting PUBLIC_SITE_URL.</p> : null}
-      {origin.ok && origin.local ? <p role="status" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 text-ps-ink">This is a test address. Do not print these codes.</p> : null}
+      {!origin.ok ? <p role="alert" className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-4 text-ps-ink">The website address is not set up yet, so no QR code can be made. It is set by the build setting PUBLIC_SITE_URL.</p> : null}
+      {origin.ok && origin.local ? <p role="status" className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-4 text-ps-ink">This is a test address. Do not print these codes.</p> : null}
       <LoadState loading={q.loading} error={q.error}>
         {origin.ok && q.data && q.data.length > 0 ? q.data.map((t) => <PosterCard key={t.slug} t={t} origin={origin.origin} />) : <Empty>No posters to make yet. A tournament gets a poster once it is approved.</Empty>}
       </LoadState>

@@ -88,7 +88,7 @@ export function EventFormScreen({ tournamentId, eventId }: { tournamentId: strin
         {tournament && (eventId === null || eventQ.data) ? (
           <EventForm tournamentId={tournament.id} tournamentName={tournament.name} initial={eventQ.data?.event ?? null} hasEntries={(eventQ.data?.entries.length ?? 0) > 0} />
         ) : (
-          <p role="alert" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 text-ps-ink">That tournament was not found. Go back and open it again.</p>
+          <p role="alert" className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-4 text-ps-ink">That tournament was not found. Go back and open it again.</p>
         )}
       </LoadState>
     </div>
@@ -150,7 +150,7 @@ function EventForm({ tournamentId, tournamentName, initial, hasEntries }: { tour
       {junior ? <Note tone="warn">This is a junior event. Nobody in it is ever named on the website (they show as &quot;Protected player&quot;), and it is left out of rankings.</Note> : null}
 
       <fieldset>
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">Format</legend>
+        <legend className="text-small font-semibold text-heading">Format</legend>
         {EVENT_FORMATS.map((fm) => (
           <label key={fm} className="flex min-h-tap items-start gap-2 py-1">
             <input type="radio" name="ev-format" className="mt-1 h-5 w-5" checked={d.format === fm} onChange={() => set('format', fm)} />
@@ -165,7 +165,7 @@ function EventForm({ tournamentId, tournamentName, initial, hasEntries }: { tour
       <ErrorText id={`${id('capacity')}-error`} text={f['capacity']} />
 
       <fieldset aria-describedby="ev-ruleset-words">
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">Scoring rules</legend>
+        <legend className="text-small font-semibold text-heading">Scoring rules</legend>
         {[...RULESET_PRESETS.map((p) => [p.key, p.label] as const), ['custom', 'Other rules (type them below)'] as const].map(([key, label]) => (
           <label key={key} className="flex min-h-tap items-center gap-2">
             <input type="radio" name="ev-ruleset" className="h-5 w-5" checked={d.preset === key} onChange={() => set('preset', key)} />

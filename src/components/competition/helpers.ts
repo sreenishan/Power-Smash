@@ -198,6 +198,29 @@ export function statusBadge(check: LiveCheck & { status?: MatchStatus | null }):
   return { text, tone: 'neutral', isLive: false, stale };
 }
 
+/**
+ * The tone of a plain status chip on a static page (order of play, bracket): one badge system for every list. Never 'live' (a static
+ * page cannot know that a match is live now, D-113): positive (court) = a confirmed finish, ink = needs attention (in progress,
+ * paused, or a special finish: walkover, retired), neutral = everything else. The chip always carries the status words as text.
+ */
+export function matchStatusTone(status: MatchStatus | string | null | undefined): BadgeTone {
+  if (status === 'completed') return 'court';
+  if (status === 'walkover' || status === 'retired' || status === 'live' || status === 'paused') return 'ink';
+  return 'neutral';
+}
+
+const TOURNAMENT_STATUS_TEXT: Record<string, { text: string; tone: BadgeTone }> = {
+  scheduled: { text: 'Scheduled', tone: 'neutral' },
+  completed: { text: 'Completed', tone: 'court' },
+  postponed: { text: 'Postponed', tone: 'ink' },
+  cancelled: { text: 'Cancelled', tone: 'ink' },
+};
+
+/** The status chip of a tournament card; null for a missing or unrecognised status (no chip rather than a guess). */
+export function tournamentStatusChip(status: string | null | undefined): { text: string; tone: BadgeTone } | null {
+  return status != null && Object.prototype.hasOwnProperty.call(TOURNAMENT_STATUS_TEXT, status) ? TOURNAMENT_STATUS_TEXT[status]! : null;
+}
+
 /** The extra word next to a decided match in a bracket or schedule: "Walkover", "Retired", "Abandoned"; empty otherwise. */
 export function outcomeNote(status: MatchStatus | string | null | undefined): string {
   if (status === 'walkover') return 'Walkover';
@@ -329,6 +352,8 @@ export interface ScheduleRow {
   sideA: string;
   sideB: string;
   statusText: string;
+  /** Tone of the status chip (matchStatusTone); neutral when there is no status. */
+  statusTone: BadgeTone;
 }
 
 /** "Court 3" for 3 or "3"; free text such as "Centre court" is kept; nothing -> "Court to be confirmed". */
@@ -376,6 +401,7 @@ export function scheduleRows(items: readonly ScheduleItem[] | null | undefined):
     sideA: sideName(it.a),
     sideB: sideName(it.b),
     statusText: it.status ? statusText(it.status) : '',
+    statusTone: matchStatusTone(it.status),
   }));
 }
 

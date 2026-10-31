@@ -1,9 +1,16 @@
 ---
-// Order of play (Module 15 building block, NOT wired into a route yet). Server-rendered, no client JavaScript.
+// Order of play (Module 15 building block). Server-rendered, no client JavaScript.
 // - Columns: date, time (India time, Asia/Kolkata, via ./helpers.ts on top of src/lib/dates.ts), court, event, round, players, status.
+//   The event and round columns appear only when some row has one (a single-event page has no event column of dashes).
 // - From 640 px up: one table with a caption and column headers. Under 640 px: the same rows as cards (a list); only one of the two
 //   is displayed at a time (display:none hides the other from screen readers as well).
+// - Status as the shared text chip (StatusBadge, matchStatusTone): never "Live" here, a static page cannot know that.
+// - No rows: the shared EmptyState.
 // - Players through ./helpers.ts: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed).
+import MapPin from '@lucide/astro/icons/map-pin';
+import Clock from '@lucide/astro/icons/clock';
+import EmptyState from '../ui/EmptyState.astro';
+import StatusBadge from './StatusBadge.astro';
 import { scheduleRows, type ScheduleItem } from './helpers';
 
 interface Props {
@@ -13,10 +20,15 @@ interface Props {
 }
 const { items, caption } = Astro.props;
 const rows = scheduleRows(items);
+const hasEvent = rows.some((r) => r.eventText !== '');
+const hasRound = rows.some((r) => r.roundText !== '');
+const hasStatus = rows.some((r) => r.statusText !== '');
 ---
 <div class="ps-schedule" data-schedule>
   {rows.length === 0 ? (
-    <p class="text-fg-muted">No matches are scheduled yet.</p>
+    <EmptyState title="No matches are scheduled yet" level={3}>
+      <p>The order of play appears here once the organiser sets the times and courts.</p>
+    </EmptyState>
   ) : (
     <>
       <div class="ps-schedule-wide" role="region" aria-label={caption} tabindex="0">
@@ -27,22 +39,22 @@ const rows = scheduleRows(items);
               <th scope="col">Date</th>
               <th scope="col">Time</th>
               <th scope="col">Court</th>
-              <th scope="col">Event</th>
-              <th scope="col">Round</th>
-              <th scope="col">Players</th>
-              <th scope="col">Status</th>
+              {hasEvent && <th scope="col">Event</th>}
+              {hasRound && <th scope="col">Round</th>}
+              <th scope="col" class="ps-schedule-players">Players</th>
+              {hasStatus && <th scope="col">Status</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr data-schedule-row={r.id}>
-                <td class="ps-num">{r.dateText}</td>
-                <td class="ps-num">{r.timeText}</td>
-                <td>{r.courtText}</td>
-                <td>{r.eventText || '–'}</td>
-                <td>{r.roundText || '–'}</td>
-                <td>{r.sideA} <span class="text-fg-muted">versus</span> {r.sideB}</td>
-                <td>{r.statusText || '–'}</td>
+                <td class="ps-num ps-schedule-nowrap">{r.dateText}</td>
+                <td class="ps-num ps-schedule-nowrap ps-schedule-time">{r.timeText}</td>
+                <td class="ps-schedule-nowrap">{r.courtText}</td>
+                {hasEvent && <td>{r.eventText || '–'}</td>}
+                {hasRound && <td class="ps-schedule-nowrap">{r.roundText || '–'}</td>}
+                <td class="ps-schedule-match">{r.sideA} <span class="ps-schedule-vs">versus</span> {r.sideB}</td>
+                {hasStatus && <td>{r.statusText ? <StatusBadge text={r.statusText} tone={r.statusTone} /> : '–'}</td>}
               </tr>
             ))}
           </tbody>
@@ -52,14 +64,22 @@ const rows = scheduleRows(items);
         <p class="text-small font-bold">{caption} <span class="font-normal text-fg-muted">(times in India time, IST)</span></p>
         <ul class="mt-3 grid gap-3" aria-label={caption}>
           {rows.map((r) => (
-            <li class="ps-card p-4" data-schedule-card={r.id}>
-              <p class="text-small font-bold uppercase tracking-wider text-fg-muted ps-num">{r.dateText} · {r.timeText}</p>
-              <p class="mt-1 font-bold">{r.sideA} <span class="font-normal text-fg-muted">versus</span> {r.sideB}</p>
-              <dl class="ps-schedule-facts mt-2 text-small">
-                <dt>Court</dt><dd>{r.courtText}</dd>
-                {r.eventText && <><dt>Event</dt><dd>{r.eventText}</dd></>}
-                {r.roundText && <><dt>Round</dt><dd>{r.roundText}</dd></>}
-                {r.statusText && <><dt>Status</dt><dd>{r.statusText}</dd></>}
+            <li class="ps-card ps-schedule-card" data-schedule-card={r.id}>
+              <div class="ps-schedule-card-top">
+                <p class="ps-schedule-when">
+                  <Clock size={16} aria-hidden="true" />
+                  <span class="ps-num">
+                    <span class="ps-schedule-card-time">{r.timeText}</span>
+                    <span class="ps-schedule-card-date">{r.dateText}</span>
+                  </span>
+                </p>
+                {r.statusText && <StatusBadge text={r.statusText} tone={r.statusTone} />}
+              </div>
+              <p class="ps-schedule-card-match">{r.sideA} <span class="ps-schedule-vs">versus</span> {r.sideB}</p>
+              <dl class="ps-schedule-facts">
+                <div><dt class="sr-only">Court</dt><dd><MapPin size={16} aria-hidden="true" />{r.courtText}</dd></div>
+                {r.roundText && <div><dt class="sr-only">Round</dt><dd>{r.roundText}</dd></div>}
+                {r.eventText && <div><dt class="sr-only">Event</dt><dd>{r.eventText}</dd></div>}
               </dl>
             </li>
           ))}
@@ -73,7 +93,10 @@ const rows = scheduleRows(items);
   .ps-schedule-wide {
     display: none;
     overflow-x: auto;
-    border-radius: var(--ps-radius-md);
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-lg);
+    background: var(--ps-surface);
+    box-shadow: var(--ps-shadow-card);
   }
   @media (min-width: 40rem) {
     .ps-schedule-wide {
@@ -86,40 +109,117 @@ const rows = scheduleRows(items);
   .ps-schedule-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--ps-surface);
   }
   .ps-schedule-table caption {
-    padding-bottom: 0.5rem;
+    padding: 0.875rem 1rem 0.75rem;
+    border-bottom: 1px solid var(--ps-line);
     text-align: left;
     font-weight: 700;
   }
   .ps-schedule-table th,
   .ps-schedule-table td {
-    padding: 0.625rem 0.75rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--ps-line);
     text-align: left;
-    vertical-align: top;
+    vertical-align: middle;
+  }
+  .ps-schedule-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .ps-schedule-table tbody tr {
+    transition: background-color var(--ps-dur-fast) var(--ps-ease);
+  }
+  .ps-schedule-table tbody tr:hover {
+    background: color-mix(in srgb, var(--ps-fg) 3%, transparent);
   }
   .ps-schedule-table thead th {
+    padding-block: 0.5rem;
     font-size: var(--ps-text-caption);
-    letter-spacing: 0.06em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
     white-space: nowrap;
   }
-  .ps-schedule-table td.ps-num {
+  .ps-schedule-table th.ps-schedule-players {
+    width: 40%;
+  }
+  .ps-schedule-nowrap {
     white-space: nowrap;
   }
-  .ps-schedule-facts {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.125rem 0.75rem;
-  }
-  .ps-schedule-facts dt {
+  .ps-schedule-time {
     font-weight: 700;
+  }
+  .ps-schedule-match {
+    font-weight: 600;
+  }
+  .ps-schedule-vs {
+    font-weight: 400;
     color: var(--ps-fg-muted);
   }
+
+  .ps-schedule-card {
+    padding: 0.875rem 1rem 1rem;
+  }
+  .ps-schedule-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .ps-schedule-when {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .ps-schedule-when :global(svg) {
+    flex: none;
+    margin-top: 0.1875rem;
+    color: var(--ps-link);
+  }
+  .ps-schedule-card-time {
+    display: block;
+    font-family: var(--ps-font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  .ps-schedule-card-date {
+    display: block;
+    font-size: var(--ps-text-small);
+    color: var(--ps-fg-muted);
+  }
+  .ps-schedule-card-match {
+    margin-top: 0.625rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--ps-line);
+    font-weight: 600;
+  }
+  .ps-schedule-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0;
+    margin-top: 0.375rem;
+    font-size: var(--ps-text-small);
+  }
+  .ps-schedule-facts > div + div::before {
+    content: "·" / "";
+    margin-inline: 0.625rem;
+    color: var(--ps-fg-muted);
+  }
+  .ps-schedule-facts > div {
+    display: flex;
+    align-items: center;
+  }
   .ps-schedule-facts dd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
     margin: 0;
+    color: var(--ps-fg-muted);
+  }
+  .ps-schedule-facts dd :global(svg) {
+    color: var(--ps-link);
   }
 </style>

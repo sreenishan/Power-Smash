@@ -18,7 +18,7 @@ export function Live() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-fg-muted">Pin a stream to show it at the top of the Live page. Paste the link from YouTube; you do not need to find the video id yourself.</p>
-      <p className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-3 text-small text-ps-ink">{LIVE_SWITCH_NOTE}</p>
+      <p className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-3 text-small text-ps-ink">{LIVE_SWITCH_NOTE}</p>
       <LoadState loading={q.loading} error={q.error}>
         {q.data ? <LiveForm initial={q.data} /> : null}
       </LoadState>

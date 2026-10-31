@@ -4,7 +4,10 @@
 // and the snapshot date are always shown (the date is required; snapshotText() throws without a real YYYY-MM-DD). Until the owner
 // approves publication (`ownerApproved` exactly true), the table carries a visible draft notice. A page must not publish a ranking
 // before that approval; wiring a route is the lead's job and needs the owner's yes.
+// Broadcast table: the rank in display numerals (the top three in a solid box: the number is the meaning, the box is emphasis),
+// narrow right-aligned number columns, the name taking the free width.
 // Names through ./helpers.ts: "Protected player" unless the caller marks a player `protected: false` (D-012, fail closed).
+import Info from '@lucide/astro/icons/info';
 import { RANKING_DRAFT_LABEL, RANKING_LABEL, isRankingPublished, rankingRows, snapshotText, type RankingItem } from './helpers';
 
 interface Props {
@@ -28,8 +31,10 @@ const hasTie = rows.some((r) => r.tied);
 ---
 <section aria-labelledby={headingId} data-ranking data-ranking-published={published ? 'true' : 'false'}>
   <Tag id={headingId} class="text-h3">{title}</Tag>
-  <p class="mt-2 ps-chip ps-chip-ink" data-ranking-label>{RANKING_LABEL}</p>
-  <p class="mt-2 text-small text-fg-muted ps-num">{snapshot}</p>
+  <div class="ps-rank-meta">
+    <p class="ps-rank-label"><Info size={18} aria-hidden="true" /><span data-ranking-label>{RANKING_LABEL}</span></p>
+    <p class="text-small text-fg-muted ps-num">{snapshot}</p>
+  </div>
   {!published && (
     <p class="mt-3 rounded-md border-2 border-ps-live bg-ps-live-tint p-3 text-small font-bold text-ps-ink" role="note" data-ranking-draft>
       {RANKING_DRAFT_LABEL}
@@ -38,53 +43,134 @@ const hasTie = rows.some((r) => r.tied);
   {rows.length === 0 ? (
     <p class="mt-3 text-fg-muted">No ranked players yet.</p>
   ) : (
-    <div class="mt-3 overflow-x-auto" role="region" aria-labelledby={headingId} tabindex="0">
+    <>
+    <div class="ps-rank-frame" role="region" aria-labelledby={headingId} tabindex="0">
       <table class="ps-ranking-table ps-num">
         <caption class="sr-only">{title}: {RANKING_LABEL}. {snapshot}.</caption>
         <thead>
           <tr>
-            <th scope="col">Rank</th>
-            <th scope="col">Player</th>
-            <th scope="col">Points</th>
-            {hasPlayed && <th scope="col">Played</th>}
+            <th scope="col" class="ps-rank-col">Rank</th>
+            <th scope="col" class="ps-rank-player">Player</th>
+            <th scope="col" class="ps-rank-numcol">Points</th>
+            {hasPlayed && <th scope="col" class="ps-rank-numcol">Played</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr>
-              <td>{r.rankText}{r.tied && <span class="sr-only"> (tied)</span>}</td>
+            <tr class:list={{ 'ps-rank-top': Number(r.rankText.replace('=', '')) <= 3 }}>
+              <td class="ps-rank-col"><span class="ps-rank-num">{r.rankText}</span>{r.tied && <span class="sr-only"> (tied)</span>}</td>
               <th scope="row">{r.name}</th>
-              <td>{r.points}</td>
-              {hasPlayed && <td>{r.played}</td>}
+              <td class="ps-rank-numcol ps-rank-points">{r.points}</td>
+              {hasPlayed && <td class="ps-rank-numcol">{r.played}</td>}
             </tr>
           ))}
         </tbody>
       </table>
-      {hasTie && <p class="mt-2 text-caption text-fg-muted">"=" marks a shared rank.</p>}
     </div>
+    {hasTie && <p class="mt-2 text-caption text-fg-muted">"=" marks a shared rank.</p>}
+    </>
   )}
 </section>
 
 <style>
+  .ps-rank-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    margin-top: 0.75rem;
+  }
+  .ps-rank-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: var(--ps-text-small);
+    font-weight: 600;
+  }
+  .ps-rank-label :global(svg) {
+    flex: none;
+    margin-top: 0.0625rem;
+    color: var(--ps-link);
+  }
+  .ps-rank-frame {
+    max-width: 44rem;
+    margin-top: 1rem;
+    overflow-x: auto;
+    border: 1px solid var(--ps-line);
+    border-radius: var(--ps-radius-lg);
+    background: var(--ps-surface);
+    box-shadow: var(--ps-shadow-card);
+  }
   .ps-ranking-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--ps-surface);
   }
   .ps-ranking-table th,
   .ps-ranking-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.625rem 0.625rem;
     border-bottom: 1px solid var(--ps-line);
     text-align: left;
+    vertical-align: middle;
+  }
+  .ps-ranking-table tbody tr:last-child th,
+  .ps-ranking-table tbody tr:last-child td {
+    border-bottom: 0;
   }
   .ps-ranking-table thead th {
+    padding-block: 0.5rem;
     font-size: var(--ps-text-caption);
-    letter-spacing: 0.06em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--ps-fg-muted);
+    white-space: nowrap;
+  }
+  .ps-ranking-table .ps-rank-col {
+    width: 3rem;
+    padding-right: 0;
+    text-align: center;
+  }
+  .ps-ranking-table th.ps-rank-player {
+    width: 100%;
+  }
+  .ps-ranking-table .ps-rank-numcol {
+    width: 1%;
+    padding-left: 0.25rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+  @media (min-width: 40rem) {
+    .ps-ranking-table th,
+    .ps-ranking-table td {
+      padding-inline: 1rem;
+    }
   }
   .ps-ranking-table tbody th {
     font-weight: 600;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+  }
+  .ps-rank-num {
+    display: inline-flex;
+    min-width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 0.25rem;
+    border-radius: var(--ps-radius-sm);
+    font-family: var(--ps-font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ps-fg);
+  }
+  .ps-rank-top .ps-rank-num {
+    background: var(--ps-fg);
+    color: var(--ps-surface);
+  }
+  .ps-rank-points {
+    font-family: var(--ps-font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
   }
 </style>

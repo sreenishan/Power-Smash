@@ -74,13 +74,27 @@ Buttons (`<Button variant size>`, all already restyled; labels are uppercase dis
 
 Cards: `class="ps-card ps-card-hover p-5 sm:p-6"` (hover lift only when the whole card is a link; make it a link with `after:absolute after:inset-0` on the title link and `relative` on the card; `ps-card` is already `relative`). `ps-card-accent` adds the skewed top tick (packages, route cards). `PackageCard`, `TournamentCard`, `StatCounter`, `FaqList`, `EmptyState` are done. Icon in a card: `<span class="ps-icon-tile"><Icon size={24} aria-hidden="true" /></span>`.
 
-Chips and badges: `ps-chip` + `ps-chip-court | ps-chip-ink | ps-chip-live`. Live uses a red FILL with white text, never red text on dark.
+Chips and badges: ONE vocabulary for the public site, the competition pages and the admin. `ps-chip` (body font, 13 px, bold, sentence case, pill, 26 px tall) + a tone: `ps-chip-neutral` (outline), `ps-chip-court` (done or confirmed, tint), `ps-chip-ink` (solid), `ps-chip-live` (red FILL with white text, never red text on dark). The competition `StatusBadge` and the admin `Badge` (`src/admin/ui.tsx`) are thin wrappers over `ps-chip`: they add a tick (court / good), a dot (neutral, ink, live) or an alert icon (admin warn, danger). The words always carry the meaning.
+
+Information notes (never the alert red; an information note is not an error):
+- `ps-note` + `ps-note-icon`: a note card (surface, court accent edge, Lucide Info 20 px). `ps-note-band` + `ps-note-band-inner`: a full-width strip under the header on the soft court tint. Use the shared `src/components/site/notices/SampleNotice.astro` (`placement="band" | "inline"`, pass the page's `data-*` test hook); the competition, archive and international sample notices all render it.
+- Admin: `ps-admin-callout ps-admin-callout-info` (the same court tint) for information, `ps-admin-callout-warn` (alert edge) only for warnings; the admin preview strip uses the same tint. There is no third tone.
+
+Score cards, brackets, entries: names never break inside themselves (each player in a `white-space: nowrap` span, a doubles pair one player per line, breaking only at " / "); game numbers in fixed narrow columns, Barlow tabular figures; the winner gets a tick, bold text and an accent bar (never colour alone).
+
+Other recipes added in the premium pass (components.css unless noted): `ps-hero-home`, `ps-hero-stats`, `ps-hero-stats-note` (home hero and its framed channel figures), `ps-section-split` (`-body`, `-aside`: a heading row with links at its right end), `ps-cta-panel` (a CTA card: heading left, buttons right), `ps-pkg`, `ps-pkg-head` (package cards whose dividers, prices and buttons line up across a row), `ps-ticks` (a tick list), `ps-form-aside` ("Good to know" card), `ps-form-wa` ("Prefer WhatsApp?" row), `ps-loading` (a pulsing dot, still under reduced motion), `ps-tick` (a framed, full-row tick box; defined in `src/components/forms/FormSection.astro`), and the footer set `ps-footer-nav`, `ps-footer-list`, `ps-social`, `ps-social-link`, `ps-legal-list`.
+
+Breadcrumbs: on phones (below 640 px) a deep trail shows only the parent link with a back chevron; the full trail stays for screen readers and in the JSON-LD. Long hero eyebrows and h1s wrap balanced.
 
 Icons (Lucide): 18 px inside small buttons and meta rows, 20 px in buttons and list ticks, 24 px in icon tiles, 28 px at most for feature icons. Always `aria-hidden="true"` when decorative. Colour: `text-link` (court on light, volt on dark).
 
 Lists of cards: `grid gap-6 md:grid-cols-2 lg:grid-cols-3` (360 px: one column). Equal height cards: the `li` wraps the card, the card has `h-full`.
 
 Forms and panels: unchanged tokens; wrap a form in `<div class="ps-card p-4 sm:p-6">` if you need the premium frame (do not edit the form kit).
+
+## 6a. Dark mode
+
+Dark mode follows the device setting (`prefers-color-scheme`); `data-theme="light"` on `<html>` opts out and `data-theme="dark"` forces it. There is no on-page switch (it would need JavaScript). Every colour comes from the semantic roles, so a component written with them needs nothing extra; the dark values and the measured contrast pairs are in `docs/BRAND.md` ("Dark mode"). Rules: volt fills always keep ink text; court and live FILLS stay the same, only court and live TEXT switches to the bright variants; the admin adds two scoped tokens (`--ps-admin-chip-bg`, `--ps-admin-chip-edge`) with their own dark values in `src/admin/admin.css`.
 
 ## 7. Header and footer
 

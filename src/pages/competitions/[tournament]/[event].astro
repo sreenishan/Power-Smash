@@ -14,6 +14,11 @@ import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import PageHero from '../../../components/ui/PageHero.astro';
 import Section from '../../../components/ui/Section.astro';
+import ClipboardPen from '@lucide/astro/icons/clipboard-pen';
+import Hourglass from '@lucide/astro/icons/hourglass';
+import ShieldCheck from '@lucide/astro/icons/shield-check';
+import EmptyState from '../../../components/ui/EmptyState.astro';
+import SectionHeading from '../../../components/ui/SectionHeading.astro';
 import BracketView from '../../../components/competition/BracketView.astro';
 import EntryList from '../../../components/competition/EntryList.astro';
 import MatchScoreboard from '../../../components/competition/MatchScoreboard.astro';
@@ -44,6 +49,8 @@ const { t, e, source, generatedAt } = Astro.props;
 const now = new Date(generatedAt);
 const updated = updatedText(generatedAt);
 const showFlatEntries = e.groups.length === 0;
+// The draw band shows for a bracket, or for a knockout event still waiting for its draw; the bands below alternate around it.
+const hasDraw = e.bracket !== null || (e.format === 'knockout' && e.groups.length === 0);
 const registration = (await loadRegistrationSite()).pages.find((p) => p.eventId === e.id) ?? null;
 ---
 <BaseLayout
@@ -59,77 +66,86 @@ const registration = (await loadRegistrationSite()).pages.find((p) => p.eventId 
     title={e.title}
     lead={`${e.formatText} · ${tournamentWhen(t)}`}
     crumbs={[{ name: 'Draws and results', href: COMPETITION_ROUTES.index }, { name: t.name, href: t.path }, { name: e.title }]}
-  />
-
-  {e.junior && (
-    <Section compact>
-      <p class="max-w-3xl rounded-md border-2 border-line-strong bg-surface p-3 text-small" role="note" data-junior-note>
-        This is a junior event. To protect young players, no player is named on this page.
-      </p>
-    </Section>
-  )}
-
-  {registration && (
-    <Section compact>
-      <p data-registration-link>
-        <a class="font-semibold underline underline-offset-2" href={registration.path}>Register for this event</a>
-      </p>
-    </Section>
-  )}
+  >
+    {registration && (
+      <a class="ps-btn ps-btn-volt ps-btn-lg" href={registration.path} data-registration-link>
+        <ClipboardPen size={20} aria-hidden="true" />Register for this event
+      </a>
+    )}
+  </PageHero>
 
   {showFlatEntries && (
     <Section labelledBy="entries-title">
-      <h2 id="entries-title" class="text-h3">Entries</h2>
-      <div class="mt-4">
+      {e.junior && (
+        <p class="ps-note mb-10 max-w-3xl" role="note" data-junior-note>
+          <ShieldCheck size={20} aria-hidden="true" class="ps-note-icon" />
+          <span>This is a junior event. To protect young players, no player is named on this page.</span>
+        </p>
+      )}
+      <SectionHeading id="entries-title" title="Entries" />
+      <div class="mt-8">
         {e.drawPublished ? (
           <EntryList caption={`${e.title} entries`} items={e.entries} />
         ) : (
-          <p class="text-fg-muted">The entry list appears here when the draw is published.</p>
+          <EmptyState title="No entry list yet" level={3}>
+            <p>The entry list appears here when the draw is published.</p>
+          </EmptyState>
         )}
       </div>
     </Section>
   )}
 
   {e.groups.length > 0 && (
-    <Section tone="surface" labelledBy="groups-title">
-      <h2 id="groups-title" class="text-h3">Groups</h2>
-      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+    <Section labelledBy="groups-title">
+      {e.junior && (
+        <p class="ps-note mb-10 max-w-3xl" role="note" data-junior-note>
+          <ShieldCheck size={20} aria-hidden="true" class="ps-note-icon" />
+          <span>This is a junior event. To protect young players, no player is named on this page.</span>
+        </p>
+      )}
+      <SectionHeading id="groups-title" title="Groups" />
+      <div class="mt-8 grid items-start gap-6 md:grid-cols-2">
         {e.groups.map((g) => <EntryList caption={g.label} items={g.entries} />)}
       </div>
     </Section>
   )}
 
-  {(e.bracket !== null || (e.format === 'knockout' && e.groups.length === 0)) && (
-    <Section>
+  {hasDraw && (
+    <Section tone="surface">
       <BracketView title={e.format === 'groups_knockout' ? 'Knockout stage' : 'Draw'} rounds={e.bracket ?? []} id="draw" />
     </Section>
   )}
 
   <LiveScores eventId={e.id} />
 
-  <Section tone="surface" labelledBy="schedule-title">
-    <h2 id="schedule-title" class="text-h3">Order of play</h2>
+  <Section tone={hasDraw ? 'default' : 'surface'} labelledBy="schedule-title">
+    <SectionHeading id="schedule-title" title="Order of play" />
     {updated && (
-      <p class="mt-2 text-small text-fg-muted ps-num" data-updated-note>
+      <p class="mt-4 max-w-2xl text-small text-fg-muted ps-num" data-updated-note>
         {updated}. Times, courts and matches shown as in progress may have changed since then.
       </p>
     )}
-    <div class="mt-4">
+    <div class="mt-8">
       <ScheduleTable caption={`${e.title} order of play`} items={e.schedule} />
     </div>
     {e.awaitingCount > 0 && (
-      <p class="mt-3 text-small text-fg-muted" data-awaiting-note>
-        {e.awaitingCount === 1 ? 'One finished match is' : `${e.awaitingCount} finished matches are`} waiting for the result to be confirmed. Results appear once the organiser confirms them.
+      <p class="mt-4 flex max-w-2xl items-start gap-2 text-small text-fg-muted" data-awaiting-note>
+        <Hourglass size={18} aria-hidden="true" class="mt-0.5 shrink-0 text-link" />
+        <span>
+          {e.awaitingCount === 1 ? 'One finished match is' : `${e.awaitingCount} finished matches are`} waiting for the result to be confirmed. Results appear once the organiser confirms them.
+        </span>
       </p>
     )}
   </Section>
 
-  <Section labelledBy="results-title">
-    <h2 id="results-title" class="text-h3">Results</h2>
+  <Section tone={hasDraw ? 'surface' : 'default'} labelledBy="results-title">
+    <SectionHeading id="results-title" title="Results" />
     {e.results.length === 0 ? (
-      <p class="mt-4 text-fg-muted">No confirmed results yet.</p>
+      <EmptyState title="No confirmed results yet" level={3} class="mt-8">
+        <p>Results appear here once the organiser confirms them.</p>
+      </EmptyState>
     ) : (
-      <ul class="mt-4 grid gap-4 lg:grid-cols-2">
+      <ul class="mt-8 grid gap-4 sm:gap-6 lg:grid-cols-2">
         {e.results.map((r) => (
           <li>
             <MatchScoreboard a={r.a} b={r.b} status={r.status} games={r.games} winner={r.winner} round={r.round} court={r.court} live={false} now={now} />
@@ -139,3 +155,4 @@ const registration = (await loadRegistrationSite()).pages.find((p) => p.eventId 
     )}
   </Section>
 </BaseLayout>
+

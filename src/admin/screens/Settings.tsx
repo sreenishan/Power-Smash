@@ -127,7 +127,7 @@ function ModeCard({ k, value }: { k: ProtectedModeKey; value: ProtectedMatchMode
             role="radio"
             aria-checked={value === m}
             onClick={() => (m === value ? setNext(null) : setNext(m))}
-            className={cx('min-h-tap rounded-md border-2 px-4 text-left font-bold', value === m ? 'border-ps-court bg-ps-court-tint text-ps-ink' : 'border-line-strong bg-surface text-fg')}
+            className={cx('min-h-tap rounded-md border px-4 text-left font-bold', value === m ? 'border-ps-court bg-ps-court-tint text-ps-ink' : 'border-line-strong bg-surface text-fg')}
           >
             {MODE_LABEL[m]} {value === m ? '(current)' : ''}
           </button>

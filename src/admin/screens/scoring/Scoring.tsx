@@ -79,8 +79,11 @@ export function LiveSettingsCard({ store }: { store: LiveScoringAdminStore }) {
       <LoadState loading={loading} error={error}>
         {data && (
           <div className="mt-2 flex flex-col gap-3">
-            <p>
-              Now: <Badge tone={data.public ? 'good' : 'neutral'}>{data.public ? 'On' : 'Off'}</Badge> A match shows as &quot;Live&quot; while its last point is less than{' '}
+            <p className="flex items-center gap-2 font-semibold">
+              Now: <Badge tone={data.public ? 'good' : 'neutral'}>{data.public ? 'On' : 'Off'}</Badge>
+            </p>
+            <p className="max-w-prose text-small text-fg-muted">
+              A match shows as &quot;Live&quot; while its last point is less than{' '}
               {Math.round(data.windowSeconds / 60)} minute{data.windowSeconds === 60 ? '' : 's'} old.
             </p>
             <Field label="Minutes before a match stops showing as Live" htmlFor="live-window" hint="1 to 60 minutes. Leave empty to keep it as it is.">
@@ -322,7 +325,7 @@ export function ConsoleBody({
         <p className="mt-2 text-small text-fg-muted">Saved on the server: {scoreLine(d.snapshot)}</p>
       </section>
 
-      <div role="status" aria-live="polite" className="rounded-lg border-2 border-ps-court bg-ps-court-tint p-3 font-bold text-ps-ink">
+      <div role="status" aria-live="polite" className="rounded-lg border border-ps-court border-l-4 bg-ps-court-tint p-3 font-bold text-ps-ink">
         {cues.length > 0 ? cues.map((c) => <p key={c}>{c}</p>) : <p>Ready.</p>}
       </div>
 
@@ -340,7 +343,7 @@ export function ConsoleBody({
 
       {can.firstServer && (
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-small font-bold uppercase tracking-wider">Who serves first?</legend>
+          <legend className="text-small font-semibold text-heading">Who serves first?</legend>
           <div className="grid grid-cols-2 gap-2">
             <Button onClick={() => tap('first_server', 'A')}>{name('A')}</Button>
             <Button onClick={() => tap('first_server', 'B')}>{name('B')}</Button>

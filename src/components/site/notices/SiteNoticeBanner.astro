@@ -3,7 +3,9 @@
 // shows after the next site update). Nothing is shown unless features.siteNotices is on (or, in a developer build, the sample is
 // asked for with PS_NOTICES_SAMPLE=1): src/lib/notices/provider.ts decides, fail closed. Text only (no set:html); a link is a page of
 // this site through path(), or an allow-listed outside link (src/lib/notices/site-notices.ts). No contact data can be in a notice.
+// Look: the shared calm information band (ps-note-band, components.css) with a Lucide Megaphone icon, like the sample notices.
 // Include it once per page, right under the site header (the integrator wires it into src/layouts/BaseLayout.astro).
+import Megaphone from '@lucide/astro/icons/megaphone';
 import { siteNoticesOnce } from '../../../lib/notices/provider';
 import { noticeHref, type PublicSiteNotice } from '../../../lib/notices/site-notices';
 
@@ -14,22 +16,25 @@ interface Props {
 const notices = Astro.props.notices ?? (await siteNoticesOnce());
 ---
 {notices.length > 0 && (
-  <aside aria-label="Notices" class="border-b border-line bg-ps-court-tint/60 text-ps-ink" data-site-notices>
-    <ul class="ps-container flex flex-col gap-2 py-3">
+  <aside aria-label="Notices" class="ps-note-band" data-site-notices>
+    <ul class="ps-container flex flex-col divide-y divide-line">
       {notices.map((n) => {
         const link = noticeHref(n);
         return (
-          <li class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-3" data-notice={n.id}>
-            <strong class="font-semibold">{n.title}</strong>
-            {n.body && <span class="whitespace-pre-line">{n.body}</span>}
-            {link && (
-              <a
-                class="font-semibold underline underline-offset-2"
-                href={link.href}
-                target={link.external ? '_blank' : undefined}
-                rel={link.external ? 'noopener' : undefined}
-              >{n.link_label}{link.external && <span class="sr-only"> (opens in a new tab)</span>}</a>
-            )}
+          <li class="ps-note-band-inner" data-notice={n.id}>
+            <Megaphone size={20} aria-hidden="true" class="ps-note-icon" />
+            <div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3">
+              <strong class="font-semibold">{n.title}</strong>
+              {n.body && <span class="whitespace-pre-line">{n.body}</span>}
+              {link && (
+                <a
+                  class="inline-flex min-h-tap items-center font-semibold underline underline-offset-2 sm:min-h-0"
+                  href={link.href}
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener' : undefined}
+                >{n.link_label}{link.external && <span class="sr-only"> (opens in a new tab)</span>}</a>
+              )}
+            </div>
           </li>
         );
       })}

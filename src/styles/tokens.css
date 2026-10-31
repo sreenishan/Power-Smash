@@ -40,6 +40,27 @@
   --ps-volt-hover: #daf87a; /* volt button hover (ink text 16:1) */
   --ps-ink-raised: #1b3138; /* hovered card inside an ink section */
 
+  /* DERIVED for dark mode (not in spec 5.3). Used only by the dark-mode block below; contrast pairs in docs/BRAND.md. */
+  --ps-night: #0f1b1f; /* page background in dark mode (a step lighter than ink, so ink bands still read as bands) */
+  --ps-fog: #e8eeec; /* body text in dark mode (13.6:1 on ink-soft) */
+  --ps-steel: #6f8489; /* control edges in dark mode (4.07:1 on ink-soft, 3.46:1 on ink-raised) */
+  --ps-court-night: #0f3227; /* court tint in dark mode (fog 11.8:1, court-bright 7.5:1) */
+  --ps-live-night: #3a1714; /* alert tint in dark mode (fog 13.6:1, live-bright 7.8:1) */
+  --ps-court-bright: #5fd3a5; /* court-coloured TEXT in dark mode (8.6:1 on ink-soft); never a fill under white text */
+  --ps-court-bright-hover: #8fe3c1; /* hover of court-bright text */
+  --ps-live-bright: #ff9b91; /* alert TEXT and edges in dark mode (7.8:1 on ink-soft); fills stay --ps-live */
+
+  /* Text-colour roles for the brand utilities (tokens section 2: text-ps-court, text-ps-live, text-ps-ink ...). Light mode
+     keeps the spec colours; the dark-mode block swaps them for readable ones. Fills (bg-ps-court, bg-ps-live) never change. */
+  --ps-ink-text: var(--ps-ink);
+  --ps-ink-line: var(--ps-ink);
+  --ps-court-text: var(--ps-court);
+  --ps-court-deep-text: var(--ps-court-deep);
+  --ps-live-text: var(--ps-live);
+  --ps-surface-hover: var(--ps-white); /* hovered card on the page (components.css) */
+  --ps-lines-on-light: url("/brand/court-lines-ink.svg"); /* court-line motif on a light band */
+  --ps-lines-on-light-opacity: 0.045;
+
   /* Semantic roles (light surface default; .ps-surface-dark and .ps-surface-court re-bind them). */
   --ps-bg: var(--ps-feather);
   --ps-surface: var(--ps-white);
@@ -113,6 +134,63 @@
   --ps-focus-offset: 2px;
 }
 
+/* Dark mode: follows the device setting; data-theme="light" on <html> opts out, data-theme="dark" forces it. The block is
+   written twice (a media query cannot be combined with the attribute selector). Keep the two copies identical. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ps-bg: var(--ps-night);
+    --ps-surface: var(--ps-ink-soft);
+    --ps-fg: var(--ps-fog);
+    --ps-fg-muted: var(--ps-mist);
+    --ps-heading: var(--ps-white);
+    --ps-line: var(--ps-border-on-dark);
+    --ps-line-strong: var(--ps-steel);
+    --ps-link: var(--ps-volt);
+    --ps-link-hover: var(--ps-white);
+    --ps-focus: var(--ps-volt);
+    --ps-court-tint: var(--ps-court-night);
+    --ps-live-tint: var(--ps-live-night);
+    --ps-ink-text: var(--ps-fog);
+    --ps-ink-line: var(--ps-mist);
+    --ps-court-text: var(--ps-court-bright);
+    --ps-court-deep-text: var(--ps-court-bright-hover);
+    --ps-live-text: var(--ps-live-bright);
+    --ps-surface-hover: var(--ps-ink-raised);
+    --ps-lines-on-light: url("/brand/court-lines.svg");
+    --ps-lines-on-light-opacity: 0.06;
+    --ps-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.2);
+    --ps-shadow-raised: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    --ps-shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.45), 0 24px 48px rgb(0 0 0 / 0.5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ps-bg: var(--ps-night);
+  --ps-surface: var(--ps-ink-soft);
+  --ps-fg: var(--ps-fog);
+  --ps-fg-muted: var(--ps-mist);
+  --ps-heading: var(--ps-white);
+  --ps-line: var(--ps-border-on-dark);
+  --ps-line-strong: var(--ps-steel);
+  --ps-link: var(--ps-volt);
+  --ps-link-hover: var(--ps-white);
+  --ps-focus: var(--ps-volt);
+  --ps-court-tint: var(--ps-court-night);
+  --ps-live-tint: var(--ps-live-night);
+  --ps-ink-text: var(--ps-fog);
+  --ps-ink-line: var(--ps-mist);
+  --ps-court-text: var(--ps-court-bright);
+  --ps-court-deep-text: var(--ps-court-bright-hover);
+  --ps-live-text: var(--ps-live-bright);
+  --ps-surface-hover: var(--ps-ink-raised);
+  --ps-lines-on-light: url("/brand/court-lines.svg");
+  --ps-lines-on-light-opacity: 0.06;
+  --ps-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.2);
+  --ps-shadow-raised: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --ps-shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.45), 0 24px 48px rgb(0 0 0 / 0.5);
+}
+
 @media (min-width: 48rem) {
   :root {
     --ps-gutter: 1.5rem; /* 24 px */
@@ -144,6 +222,16 @@
   --color-ps-live-tint: var(--ps-live-tint);
   --color-ps-volt-hover: var(--ps-volt-hover);
   --color-ps-ink-raised: var(--ps-ink-raised);
+
+  /* Text and border colours of the brand utilities read the text roles, so they stay readable in dark mode
+     (Tailwind 4 looks up --text-color-* and --border-color-* before --color-*). Backgrounds keep the raw brand colours. */
+  --text-color-ps-ink: var(--ps-ink-text);
+  --text-color-ps-court: var(--ps-court-text);
+  --text-color-ps-court-deep: var(--ps-court-deep-text);
+  --text-color-ps-live: var(--ps-live-text);
+  --border-color-ps-ink: var(--ps-ink-line);
+  --border-color-ps-live: var(--ps-live-text);
+  --border-color-ps-court: var(--ps-court-text);
 
   /* Semantic colours: these follow the surface they sit on */
   --color-page: var(--ps-bg);

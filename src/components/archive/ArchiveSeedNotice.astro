@@ -4,23 +4,25 @@
 //    refuses to publish made-up players and matches (D-034).
 //  - Real data but the legal switch `features.archivePages` is still off (the protected-player wording of D-012 is not yet approved
 //    by the owner and the lawyer): the same Todo in the strict build only.
+// Look: the shared SampleNotice (info icon, calm court tint), the same as the competition and international sample notices.
+import SampleNotice from '../site/notices/SampleNotice.astro';
 import Todo from '../site/Todo.astro';
 import { features } from '../../content/legal/status';
 
 interface Props {
   source: 'seed' | 'supabase';
+  /** band (default): a full-width strip above the page hero; inline: a note card inside a section (its own top margin). */
+  placement?: 'band' | 'inline';
 }
-const { source } = Astro.props;
+const { source, placement = 'band' } = Astro.props;
 const strict = process.env.PS_STRICT === '1';
 const isSeed = source === 'seed';
 const legalOff = features.archivePages !== true;
 ---
 {isSeed && (
-  <div class="border-b-2 border-ps-live bg-ps-live-tint" role="note" data-archive-sample>
-    <p class="ps-container py-2 text-small font-semibold text-ps-ink">
-      Sample data: the players, matches and tournaments on this page are made up for testing. They are not real people or real videos.
-    </p>
-  </div>
+  <SampleNotice placement={placement} data-archive-sample>
+    <strong>Sample data:</strong> the players, matches and tournaments on this page are made up for testing. They are not real people or real videos.
+  </SampleNotice>
 )}
 {strict && (isSeed || legalOff) && (
   <div class="ps-container py-2">

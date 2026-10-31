@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { InternationalAdminStore, InternationalEventDto, InternationalSettingsDto } from '../../../lib/admin/international/types';
 import { internationalLinksFlag } from '../../../lib/international/in-build';
 import { listText } from '../../../lib/international/link-rules';
-import { Badge, Button, Confirm, Empty, Field, LoadState, cardCls, inputCls, useAdmin, useAsync } from '../../ui';
+import { Badge, Button, Confirm, Empty, Field, Icon, LoadState, btnCls, cardCls, inputCls, useAdmin, useAsync } from '../../ui';
 import { ErrorText, H2, Input, Note, ReasonField, useAction } from '../competition/shared';
 import {
   EMPTY_EVENT_FORM,
@@ -105,8 +105,9 @@ function EventItem({ store, event: e, pageOn, onEdit }: { store: InternationalAd
         <Button small variant={e.published ? 'danger' : 'quiet'} onClick={() => setConfirm(true)}>
           {e.published ? 'Hide' : 'Show'}
         </Button>
-        <a href={e.officialUrl} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-tap items-center text-small font-semibold">
+        <a href={e.officialUrl} target="_blank" rel="noopener noreferrer nofollow" className={btnCls('quiet', true)}>
           Open the official page<span className="sr-only"> (new tab)</span>
+          <Icon name="externalLink" size={16} />
         </a>
       </div>
       {confirm ? (

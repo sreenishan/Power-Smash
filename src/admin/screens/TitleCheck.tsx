@@ -26,7 +26,7 @@ export function TitleCheck() {
         <Empty>Type a title above to see how it is read.</Empty>
       ) : (
         <div className="flex flex-col gap-4" aria-live="polite">
-          {result.ageWarning ? <p role="alert" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 font-semibold text-ps-ink">{result.ageWarning}</p> : null}
+          {result.ageWarning ? <p role="alert" className="rounded-lg border border-ps-live border-l-4 bg-ps-live-tint p-4 font-semibold text-ps-ink">{result.ageWarning}</p> : null}
 
           <section className={cardCls} aria-label="Verdict">
             <p className="flex flex-wrap items-center gap-2">

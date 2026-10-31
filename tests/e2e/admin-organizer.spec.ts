@@ -73,7 +73,8 @@ test.describe('organizer', () => {
     await expect(form.getByText(/Players screen/)).toHaveCount(0);
     await form.getByLabel('Find a player').fill('Samplestone');
     const found = form.getByRole('list', { name: 'Players found' });
-    await expect(found.getByText('Demo Meena Samplestone', { exact: true })).toBeVisible();
+    // the name is shown once on screen; the Choose button repeats it for screen readers only
+    await expect(found.getByRole('listitem').filter({ hasText: 'Demo Meena Samplestone' })).toBeVisible();
     await expect(found.getByRole('button', { name: 'Choose Demo Meena Samplestone' })).toBeVisible();
     // no age label and no naming flag reach an organizer's search (D-012); the entry card shows the badge once entered
     await expect(found.getByText(/Unknown age|Adult|On the site/)).toHaveCount(0);
@@ -86,7 +87,7 @@ test.describe('organizer', () => {
     await expect(dlg.getByText(/cannot be renamed or removed by you/)).toBeVisible();
     await dlg.getByRole('button', { name: 'Add the player' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Demo Newcomer Fakely added as a new player.' })).toBeVisible();
-    await expect(form.getByRole('list', { name: 'Chosen players' }).getByText('Demo Newcomer Fakely', { exact: true })).toBeVisible();
+    await expect(form.getByRole('list', { name: 'Chosen players' }).getByRole('listitem').filter({ hasText: 'Demo Newcomer Fakely' })).toBeVisible();
     await form.getByLabel('Status').selectOption('pending');
     await form.getByRole('button', { name: 'Add the entry' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Entry added.' })).toBeVisible();

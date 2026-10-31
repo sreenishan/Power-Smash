@@ -1,6 +1,12 @@
 ---
-// A match status as a text chip (never colour alone). The caller decides the text and tone through statusBadge() in ./helpers.ts,
-// which is the only place that may produce "Live" (live=true, status live, and a fresh last update). Module 15, not wired yet.
+// A match or tournament status as a text chip (never colour alone). The caller decides the text and tone through ./helpers.ts:
+// statusBadge() (the only place that may produce "Live": live=true, status live, and a fresh last update), matchStatusTone() for
+// static lists, tournamentStatusChip() for tournament cards.
+// One badge system for the whole site (the shared .ps-chip recipe, also used by the admin Badge), the same shape everywhere, the meaning carried by the words:
+//   neutral = not started or anything else (outline), court = a confirmed finish (tint + tick), ink = needs attention (in progress,
+//   paused, walkover, retired, postponed: solid, inverts with the surface), live = red fill, white text, a dot (pulses only without
+//   reduced motion).
+import Check from '@lucide/astro/icons/check';
 import type { BadgeTone } from './helpers';
 
 interface Props {
@@ -8,33 +14,60 @@ interface Props {
   tone: BadgeTone;
 }
 const { text, tone } = Astro.props;
-const toneClass = tone === 'live' ? 'ps-chip-live' : tone === 'court' ? 'ps-chip-court' : tone === 'ink' ? 'ps-chip-ink' : 'ps-comp-chip-neutral';
 ---
-<span class:list={['ps-chip', toneClass]} data-status-badge={tone}>
-  {tone === 'live' && <span aria-hidden="true" class="ps-comp-live-dot"></span>}
+<span class:list={['ps-chip', 'ps-comp-badge', `ps-comp-badge-${tone}`]} data-status-badge={tone}>
+  {tone === 'court' ? <Check size={14} stroke-width={3} aria-hidden="true" /> : <span aria-hidden="true" class="ps-comp-badge-dot"></span>}
   {text}
 </span>
 
 <style>
-  .ps-comp-chip-neutral {
-    border: 1px solid var(--ps-line-strong);
-    background: var(--ps-surface);
-    color: var(--ps-fg);
+  /* Size, type and shape come from the shared .ps-chip recipe (components.css); this file adds the tones and the dot. */
+  .ps-comp-badge {
+    flex: none;
+    white-space: nowrap;
   }
-  .ps-comp-live-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 9999px;
+  .ps-comp-badge-dot {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: var(--ps-radius-pill);
     background: currentColor;
   }
+  /* neutral: an outline on the surface (edge 3:1 with line-strong, text is the full foreground colour) */
+  .ps-comp-badge-neutral {
+    border-color: var(--ps-line-strong);
+    color: var(--ps-fg);
+  }
+  .ps-comp-badge-neutral .ps-comp-badge-dot {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+  /* court: a finished, confirmed result (court on court-tint 5.6:1) */
+  .ps-comp-badge-court {
+    background: var(--ps-court-tint);
+    color: var(--ps-court-text, var(--ps-court));
+  }
+  /* ink: solid, the page's foreground as the fill and its background as the text, so it inverts on a dark surface */
+  .ps-comp-badge-ink {
+    background: var(--ps-fg);
+    color: var(--ps-bg);
+  }
+  .ps-comp-badge-live {
+    background: var(--ps-live);
+    color: var(--ps-white);
+  }
   @media (prefers-reduced-motion: no-preference) {
-    .ps-comp-live-dot {
+    .ps-comp-badge-live .ps-comp-badge-dot {
       animation: ps-comp-pulse 1.6s ease-in-out infinite;
     }
   }
   @keyframes ps-comp-pulse {
     50% {
       opacity: 0.35;
+    }
+  }
+  @media (forced-colors: active) {
+    .ps-comp-badge {
+      border-color: CanvasText;
     }
   }
 </style>

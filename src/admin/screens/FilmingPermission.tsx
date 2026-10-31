@@ -73,7 +73,7 @@ function PermissionForm({ tournamentId, tournamentName, initial, onDone }: { tou
       </Field>
       {err('grantedOn')}
       <fieldset>
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">What it covers</legend>
+        <legend className="text-small font-semibold text-heading">What it covers</legend>
         {([['scopeFilming', 'Filming the matches'], ['scopeYoutube', 'Publishing and earning on YouTube'], ['scopeLiveStream', 'A live stream'], ['scopeSponsorOverlays', 'Sponsor logos on the video']] as const).map(([k, label]) => (
           <label key={k} className="flex min-h-tap items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={f[k]} onChange={(e) => set(k, e.target.checked)} />{label}</label>
         ))}

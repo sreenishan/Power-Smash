@@ -202,12 +202,12 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
     <form ref={formRef} className={`${panelClass} ${stackClass}`} noValidate onSubmit={onSubmit} onFocus={touch} onPointerDown={touch} aria-label={`Register for ${eventTitle}`}>
       {/* disabled until the island has hydrated, like LeadForm: nothing can be typed or sent before the checks are in place */}
       <fieldset role="none" disabled={!ready} className={`m-0 min-w-0 border-0 p-0 ${stackClass}`}>
-      {!ready ? <p className={hintClass}>Loading the form...</p> : null}
+      {!ready ? <p className="ps-loading text-small text-fg-muted">Loading the form...</p> : null}
       {field('player1Name', playersNeeded === 2 ? 'Player 1 full name' : 'Player full name', { autoComplete: 'name', maxLength: REGISTRATION_LIMITS.name.max, hint: 'As it should appear on the entry list. Names are shown on the website only after Power Smash has checked them.' })}
       {playersNeeded === 2 ? field('player2Name', 'Partner full name', { maxLength: REGISTRATION_LIMITS.name.max }) : null}
       {field('phone', 'Contact mobile number', { type: 'tel', autoComplete: 'tel', inputMode: 'tel', maxLength: 32, hint: 'We use it only about this registration. It is never shown on the website.' })}
-      <label className="flex items-start gap-3 text-body">
-        <input type="checkbox" className="mt-1 h-5 w-5" checked={values.whatsappOk} onChange={(ev) => set('whatsappOk', ev.target.checked)} />
+      <label className="ps-tick">
+        <input type="checkbox" checked={values.whatsappOk} onChange={(ev) => set('whatsappOk', ev.target.checked)} />
         <span>This number is on WhatsApp</span>
       </label>
       {field('email', 'Email', { optional: true, type: 'email', autoComplete: 'email', inputMode: 'email', maxLength: REGISTRATION_LIMITS.email.max })}
@@ -221,10 +221,9 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
         : null}
       <ConsentNotice notice={notice} privacyHref={privacyHref} />
       <div className={fieldWrapClass}>
-        <label className="flex items-start gap-3 text-body">
+        <label className="ps-tick">
           <input
             type="checkbox"
-            className="mt-1 h-5 w-5"
             data-field="consent"
             checked={values.consent}
             aria-invalid={errors.consent ? true : undefined}
@@ -241,7 +240,7 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
       </div>
       <Honeypot name={REGISTRATION_HONEYPOT} value={honeypot} onChange={(_n, v) => setHoneypot(v)} />
       <TurnstileWidget mode={turnstileMode} siteKey={turnstileSiteKey} started={started} controllerRef={controllerRef} boxRef={boxRef} onSolved={() => setStatus(null)} />
-      <p role="status" aria-live="polite" className="text-small font-semibold text-fg">
+      <p role="status" aria-live="polite" className="-my-3 text-small font-semibold text-fg">
         {status ?? ''}
       </p>
       {problem ? (

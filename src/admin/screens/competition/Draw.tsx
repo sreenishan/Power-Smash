@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { CompetitionEventDetail, GenerateDrawResult, PublishDrawResult, MatchSyncOutcome } from '../../../lib/admin/competition/types';
 import { formatInstantIst } from '../../../lib/dates';
 import { gamesText, isByeMatch, isWinner, outcomeNote, seedText, slotText, type BracketColumn, type BracketMatchView } from '../../../components/competition/helpers';
-import { Badge, Button, Confirm, Field, cardCls, cx, useAdmin } from '../../ui';
+import { Badge, Button, Confirm, Field, Icon, cardCls, cx, useAdmin } from '../../ui';
 import { bracketMatchSummary, COMP_LIMITS, compHash, DRAW_STATUS_LABEL, groupPreview, knockoutPreview, parseDrawNumber, parseInRange, UPDATE_MATCHES_LABEL, type PreviewMode } from './logic';
 import { ErrorText, H2, Input, Note, useAction, byRole } from './shared';
 import { SyncOutcomeNote } from './UpdateMatches';
@@ -21,7 +21,7 @@ export function DrawTab({ detail }: { detail: CompetitionEventDetail }) {
       {draw ? (
         <section aria-labelledby="draw-h" className={`${cardCls} flex flex-col gap-3`}>
           <H2 id="draw-h">The draw</H2>
-          <p className="flex flex-wrap gap-2">
+          <p className="flex flex-wrap gap-1.5">
             <Badge tone={published ? 'good' : 'warn'}>{DRAW_STATUS_LABEL[draw.status]}</Badge>
             <Badge>{`Draw number ${draw.seed}`}</Badge>
           </p>
@@ -41,7 +41,7 @@ export function DrawTab({ detail }: { detail: CompetitionEventDetail }) {
           {outcome ? <SyncOutcomeNote outcome={outcome} detail={detail} /> : null}
         </section>
       ) : (
-        <p className="text-fg-muted">No draw yet. {confirmed} confirmed {confirmed === 1 ? 'entry' : 'entries'}.</p>
+        <p className="ps-admin-empty">No draw yet. {confirmed} confirmed {confirmed === 1 ? 'entry' : 'entries'}.</p>
       )}
       {!published ? <MakeDraw detail={detail} onMade={setMade} /> : null}
     </div>
@@ -174,10 +174,10 @@ export function DrawPreview({ detail }: { detail: CompetitionEventDetail }) {
   return (
     <div className="flex flex-col gap-3">
       <fieldset>
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">Show</legend>
-        <div className="flex flex-wrap gap-x-4">
-          <label className="flex min-h-tap items-center gap-2"><input type="radio" name="draw-mode" className="h-5 w-5" checked={mode === 'owner'} onChange={() => setMode('owner')} />Your view (all names)</label>
-          <label className="flex min-h-tap items-center gap-2"><input type="radio" name="draw-mode" className="h-5 w-5" checked={mode === 'public'} onChange={() => setMode('public')} />What the website will show</label>
+        <legend className="text-small font-semibold text-heading">Show</legend>
+        <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="ps-admin-row flex min-h-tap cursor-pointer items-center gap-3 px-3 py-2 has-[:checked]:border-ps-court has-[:checked]:bg-ps-court-tint has-[:checked]:font-semibold"><input type="radio" name="draw-mode" className="h-5 w-5" checked={mode === 'owner'} onChange={() => setMode('owner')} />Your view (all names)</label>
+          <label className="ps-admin-row flex min-h-tap cursor-pointer items-center gap-3 px-3 py-2 has-[:checked]:border-ps-court has-[:checked]:bg-ps-court-tint has-[:checked]:font-semibold"><input type="radio" name="draw-mode" className="h-5 w-5" checked={mode === 'public'} onChange={() => setMode('public')} />What the website will show</label>
         </div>
       </fieldset>
       {mode === 'public' ? <p className="text-small text-fg-muted">Players who are not confirmed adults, and everyone in a junior event, show as &quot;Protected player&quot;. Only confirmed results show a winner or a score.</p> : null}
@@ -190,7 +190,7 @@ function KnockoutView({ detail, mode }: { detail: CompetitionEventDetail; mode: 
   const { columns, problems, unconfirmed } = knockoutPreview(detail.draw!.slots, detail.entries, detail.matches, mode);
   const pending = new Set(unconfirmed);
   return (
-    <div className="flex flex-col gap-3" data-testid={`draw-preview-${mode}`}>
+    <div className="flex flex-col gap-5" data-testid={`draw-preview-${mode}`}>
       {problems.length > 0 ? <ErrorText text={problems.join(' ')} /> : null}
       {pending.size > 0 ? <p className="text-small text-fg-muted">A result marked &quot;not confirmed yet&quot; is saved but not confirmed: the winner moves on, and the website shows it, only after you confirm it under Matches.</p> : null}
       {columns.map((c) => <RoundList key={c.code} column={c} pending={pending} />)}
@@ -202,8 +202,8 @@ function RoundList({ column, pending }: { column: BracketColumn; pending: Readon
   const headingId = `round-${column.code}`;
   return (
     <section aria-labelledby={headingId}>
-      <h3 id={headingId} className="font-bold">{column.label}</h3>
-      <ol className="mt-1 flex flex-col gap-2">
+      <h3 id={headingId} className="ps-admin-vs !text-small">{column.label}</h3>
+      <ol className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {column.matches.map((m) => <BracketLine key={m.id} m={m} pending={pending.has(m.id)} />)}
       </ol>
     </section>
@@ -217,21 +217,24 @@ function BracketLine({ m, pending }: { m: BracketMatchView; pending: boolean }) 
     const win = isWinner(s, m.winner, m.status);
     const seed = slot.kind === 'entry' ? seedText(slot.seed) : '';
     return (
-      <span className={cx('block break-words', win && 'font-bold')}>
-        {seed ? `${seed} ` : ''}
-        {slotText(slot)}
-        {win ? (pending ? ' (winner, not confirmed yet)' : ' (winner)') : ''}
+      <span className={cx('ps-admin-match-side', win && 'is-winner')}>
+        {seed ? <span className="ps-num shrink-0 text-small font-semibold text-fg-muted">{seed}</span> : null}
+        <span className="ps-admin-match-name">
+          {slotText(slot)}
+          {win ? <span className="sr-only">{pending ? ' (winner, not confirmed yet)' : ' (winner)'}</span> : ''}
+        </span>
+        {win ? <Icon name="check" size={18} /> : null}
       </span>
     );
   };
   const note = outcomeNote(m.status);
   const score = gamesText(m.games);
   return (
-    <li aria-label={pending ? `${bracketMatchSummary(m)}. Not confirmed yet.` : bracketMatchSummary(m)} className="rounded-md border border-line bg-surface p-2">
+    <li aria-label={pending ? `${bracketMatchSummary(m)}. Not confirmed yet.` : bracketMatchSummary(m)} className="ps-admin-match">
       {side('A')}
       {side('B')}
-      {bye ? <span className="block text-small text-fg-muted">Goes through without a match (bye)</span> : null}
-      {!bye && (score || note) ? <span className="block text-small text-fg-muted">{[note, score, pending ? 'not confirmed yet' : ''].filter(Boolean).join(' · ')}</span> : null}
+      {bye ? <span className="ps-admin-match-foot block">Goes through without a match (bye)</span> : null}
+      {!bye && (score || note) ? <span className="ps-admin-match-foot ps-num block">{[note, score, pending ? 'not confirmed yet' : ''].filter(Boolean).join(' · ')}</span> : null}
     </li>
   );
 }
@@ -242,9 +245,9 @@ function GroupsView({ detail, mode }: { detail: CompetitionEventDetail; mode: Pr
     <div className="flex flex-col gap-3" data-testid={`draw-preview-${mode}`}>
       {groups.map((g) => (
         <section key={g.label} aria-label={g.label}>
-          <h3 className="font-bold">{g.label}</h3>
-          <ol className="mt-1 list-decimal pl-6">
-            {g.names.map((n, i) => <li key={`${g.label}-${i}`} className="break-words">{n}</li>)}
+          <h3 className="ps-admin-vs !text-small">{g.label}</h3>
+          <ol className="ps-admin-list mt-2">
+            {g.names.map((n, i) => <li key={`${g.label}-${i}`} className="!justify-start break-words"><span className="ps-num w-6 shrink-0 text-small font-semibold text-fg-muted">{i + 1}</span><span className="min-w-0">{n}</span></li>)}
           </ol>
         </section>
       ))}

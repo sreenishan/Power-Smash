@@ -109,6 +109,24 @@ export function formatInstantIst(iso: string): string {
   return `${instantFormat.format(d)} (India time)`;
 }
 
+let shortInstantFormat: Intl.DateTimeFormat | null = null;
+
+/** "20 Oct 2026, 11:30 am" style (India time, no seconds), for admin lists such as the inbox. Throws on an unreadable instant. */
+export function formatShortInstantIst(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) throw new RangeError('Not an instant');
+  shortInstantFormat ??= new Intl.DateTimeFormat('en-IN', {
+    timeZone: TIME_ZONE,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return shortInstantFormat.format(d);
+}
+
 // ----------------------------------------------------------------------------- India time for forms (UTC+05:30 all year: India has no daylight saving)
 
 const IST_OFFSET = '+05:30';

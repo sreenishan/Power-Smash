@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { DuplicatePairDto, PlayerSummary } from '../../lib/admin/types';
 import { PROFILE_ADULT_ONLY, PROFILE_LIMITS, validatePlayerProfile, type PlayerProfileFields } from '../../lib/admin/player-profile';
+import { formatShortInstantIst } from '../../lib/dates';
 import { AGE_EXPLAIN, AGE_LABEL } from '../messages';
-import { AgeBadge, Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, cx, inputCls, useAdmin, useAsync, useBusy } from '../ui';
+import { AgeBadge, Badge, Button, Confirm, Empty, Field, LoadState, TextInput, cardCls, inputCls, useAdmin, useAsync, useBusy } from '../ui';
 
 type Tab = 'search' | 'duplicates' | 'requests';
 const TAB_LABEL: Record<Tab, string> = { search: 'Find players', duplicates: 'Possible duplicates', requests: 'Player requests' };
@@ -11,14 +12,13 @@ export function Players() {
   const [tab, setTab] = useState<Tab>('search');
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label="Player tools" className="flex flex-wrap gap-2">
+      <div role="tablist" aria-label="Player tools" className="ps-admin-seg">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
           <button
             key={t}
             role="tab"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={cx('min-h-tap rounded-md border-2 px-4 font-bold', tab === t ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}
           >
             {TAB_LABEL[t]}
           </button>
@@ -361,7 +361,7 @@ function Requests() {
           q.data.map((r) => (
             <article key={r.id} className={cardCls}>
               <p className="font-bold">{KIND[r.kind]}</p>
-              <p className="text-small text-fg-muted">{new Date(r.receivedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+              <p className="text-small text-fg-muted">{formatShortInstantIst(r.receivedAt)}</p>
               <p className="mt-1">{r.summary}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button small variant="primary" busy={busy} onClick={() => void decide(r.id, 'resolve')}>Mark as done</Button>

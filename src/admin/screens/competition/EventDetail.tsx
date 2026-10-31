@@ -2,7 +2,7 @@
 // What shows depends on the signed-in role (accounts/access.ts competitionUiFor): a scorer sees only the matches, with the result form;
 // an organizer sees the three tabs of the tournaments given to them. The server refuses anything else anyway.
 import type { CompetitionEventDetail } from '../../../lib/admin/competition/types';
-import { Badge, LoadState, cx, useAdmin, useAsync } from '../../ui';
+import { Badge, btnCls, Icon, LoadState, cardCls, useAdmin, useAsync } from '../../ui';
 import { DrawTab } from './Draw';
 import { EntriesTab } from './Entries';
 import { compHash, EVENT_STATUS_LABEL, EVENT_TAB_LABEL, EVENT_TABS, eventTitle, FORMAT_LABEL, rulesetWords, type EventTab } from './logic';
@@ -40,26 +40,28 @@ export function EventDetailView({ detail: d, tab: asked }: { detail: Competition
   const eventId = d.event.id;
   return (
     <>
-      <section aria-labelledby="ev-title" className="flex flex-col gap-2">
-        <h2 id="ev-title" className="text-h3 font-bold text-heading">{eventTitle(d.event)}</h2>
-        <p className="text-small text-fg-muted">{d.tournament.name}</p>
-        <p className="flex flex-wrap gap-2">
+      <section aria-labelledby="ev-title" className={`${cardCls} flex flex-col gap-3`}>
+        <div>
+          <p className="ps-admin-code">{d.tournament.name}</p>
+          <h2 id="ev-title" className="mt-1 text-h3 font-bold text-heading">{eventTitle(d.event)}</h2>
+        </div>
+        <p className="flex flex-wrap gap-1.5">
           <Badge>{FORMAT_LABEL[d.event.format]}</Badge>
           <Badge tone={d.event.status === 'open' ? 'good' : 'neutral'}>{EVENT_STATUS_LABEL[d.event.status]}</Badge>
           <Badge>{d.event.capacity === null ? 'No limit on places' : `${d.event.capacity} places`}</Badge>
           {d.event.isJunior ? <Badge tone="warn">Junior: nobody named on the site</Badge> : null}
         </p>
-        <p className="text-small">{rulesetWords(d.event.ruleset)}</p>
-        {caps.editEvent ? <p><a href={compHash({ view: 'editEvent', eventId })} className="inline-flex min-h-tap items-center font-semibold">Change the event details</a></p> : null}
+        <p className="max-w-prose border-l-2 border-line pl-3 text-small text-fg-muted">{rulesetWords(d.event.ruleset)}</p>
+        {caps.editEvent ? <p><a href={compHash({ view: 'editEvent', eventId })} className={btnCls('quiet', true)}><Icon name="pencil" size={18} />Change the event details</a></p> : null}
         {caps.updateMatches ? <UpdateMatches detail={d} /> : null}
         <PublicSwitchNote />
       </section>
       {tabs.length > 1 ? (
         <nav aria-label="Parts of this event">
-          <ul className="flex flex-wrap gap-2">
+          <ul className="ps-admin-seg">
             {tabs.map((t) => (
               <li key={t}>
-                <a href={compHash({ view: 'event', eventId, tab: t })} aria-current={tab === t ? 'page' : undefined} className={cx('inline-flex min-h-tap items-center rounded-md border-2 px-3 text-small font-bold no-underline', tab === t ? 'border-ps-court bg-ps-court text-ps-white' : 'border-line-strong bg-surface text-fg')}>
+                <a href={compHash({ view: 'event', eventId, tab: t })} aria-current={tab === t ? 'page' : undefined}>
                   {EVENT_TAB_LABEL[t]}
                 </a>
               </li>

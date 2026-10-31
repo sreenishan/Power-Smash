@@ -5,7 +5,7 @@ import type { CompetitionEventDetail, CompetitionMatchDto, ResultStatus } from '
 import { maxGames, type Ruleset } from '../../../lib/competition/scoring';
 import type { Side } from '../../../lib/competition/types';
 import { gamesText, statusText } from '../../../components/competition/helpers';
-import { Badge, Button, Confirm, Empty, Field, cardCls, inputCls, useAdmin } from '../../ui';
+import { Badge, Button, Confirm, Empty, Field, Icon, cardCls, cx, inputCls, useAdmin } from '../../ui';
 import {
   compHash,
   confirmResultNotice,
@@ -41,7 +41,7 @@ export function ResultsTab({ detail }: { detail: CompetitionEventDetail }) {
   }
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex min-h-tap items-center gap-2">
+      <label className="ps-admin-row flex min-h-tap cursor-pointer items-center gap-3 px-3 py-2 font-medium">
         <input type="checkbox" className="h-5 w-5" checked={waitingOnly} onChange={(e) => setWaitingOnly(e.target.checked)} />
         Only matches without a confirmed result
       </label>
@@ -76,17 +76,21 @@ function MatchCard({ m, detail }: { m: CompetitionMatchDto; detail: CompetitionE
   };
   return (
     <article aria-label={`Match ${m.label}`} className={cardCls}>
-      <p className="font-bold">{m.label}</p>
-      <p className="mt-1 break-words">{sides.a}</p>
-      <p className="text-small text-fg-muted">versus</p>
-      <p className="break-words">{sides.b}</p>
-      <p className="mt-2 flex flex-wrap gap-2">
-        <Badge>{statusText(m.status)}</Badge>
-        {HAS_RESULT.has(m.status) ? <Badge tone={m.confirmed ? 'good' : 'warn'}>{m.confirmed ? 'Result confirmed' : 'Result not confirmed yet'}</Badge> : null}
-      </p>
-      <p className="mt-1 text-small">{whenText(m.scheduledAt)}{m.courtLabel ? ` · ${m.courtLabel}` : ' · No court'}</p>
-      {score ? <p className="mt-1">Score: {score}{m.winnerSide ? ` · winner: ${m.winnerSide === 'A' ? sides.a : sides.b}` : ''}</p> : m.status === 'walkover' && m.winnerSide ? <p className="mt-1">Walkover to {m.winnerSide === 'A' ? sides.a : sides.b}</p> : null}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="ps-admin-code">{m.label}</p>
+        <p className="flex flex-wrap gap-1.5">
+          <Badge>{statusText(m.status)}</Badge>
+          {HAS_RESULT.has(m.status) ? <Badge tone={m.confirmed ? 'good' : 'warn'}>{m.confirmed ? 'Result confirmed' : 'Result not confirmed yet'}</Badge> : null}
+        </p>
+      </div>
+      <div className="ps-admin-match mt-3">
+        <p className={cx('ps-admin-match-side', m.winnerSide === 'A' && 'is-winner')}><span className="ps-admin-match-name">{sides.a}</span>{m.winnerSide === 'A' ? <Icon name="check" size={18} /> : null}</p>
+        <p className="ps-admin-vs px-3">versus</p>
+        <p className={cx('ps-admin-match-side !border-t-0', m.winnerSide === 'B' && 'is-winner')}><span className="ps-admin-match-name">{sides.b}</span>{m.winnerSide === 'B' ? <Icon name="check" size={18} /> : null}</p>
+        <p className="ps-admin-match-foot ps-num">{whenText(m.scheduledAt)}{m.courtLabel ? ` · ${m.courtLabel}` : ' · No court'}</p>
+      </div>
+      {score ? <p className="mt-3">Score: <span className="ps-admin-score">{score}</span>{m.winnerSide ? ` · winner: ${m.winnerSide === 'A' ? sides.a : sides.b}` : ''}</p> : m.status === 'walkover' && m.winnerSide ? <p className="mt-3 font-semibold">Walkover to {m.winnerSide === 'A' ? sides.a : sides.b}</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2">
         {canRecord ? <Button small variant={canConfirm ? 'quiet' : 'primary'} onClick={() => setOpen(open === 'result' ? null : 'result')}>{open === 'result' ? 'Close the result form' : HAS_RESULT.has(m.status) ? 'Change the result' : 'Record result'}</Button> : null}
         {canConfirm ? <Button small variant="primary" onClick={() => setOpen('confirm')}>Confirm result</Button> : null}
         {canTime ? <Button small onClick={() => setOpen(open === 'time' ? null : 'time')}>{open === 'time' ? 'Close time and court' : 'Time and court'}</Button> : null}
@@ -147,9 +151,9 @@ function ResultForm({ m, ruleset, sides, onDone }: { m: CompetitionMatchDto; rul
   return (
     <form aria-label={`Result of ${m.label}`} className="mt-3 flex flex-col gap-3 border-t border-line pt-3" onSubmit={(e) => { e.preventDefault(); void save(); }}>
       <fieldset>
-        <legend className="text-small font-bold uppercase tracking-wider text-fg">How did it end?</legend>
+        <legend className="text-small font-semibold text-heading">How did it end?</legend>
         {RESULT_STATUSES.map((s) => (
-          <label key={s} className="flex min-h-tap items-start gap-2 py-1">
+          <label key={s} className="ps-admin-row mt-2 flex min-h-tap cursor-pointer items-start gap-3 px-3 py-2 has-[:checked]:border-ps-court has-[:checked]:bg-ps-court-tint">
             <input type="radio" name={`${p}-status`} className="mt-1 h-5 w-5" checked={d.status === s} onChange={() => update({ ...d, status: s, walkoverWinner: null, retiringSide: null, games: s === 'walkover' ? [] : d.games.length === 0 ? emptyResultDraft(1).games : d.games })} />
             <span><span className="font-semibold">{RESULT_STATUS_LABEL[s]}</span><span className="block text-small text-fg-muted">{RESULT_STATUS_HELP[s]}</span></span>
           </label>
@@ -176,7 +180,7 @@ function ResultForm({ m, ruleset, sides, onDone }: { m: CompetitionMatchDto; rul
           </div>
         </>
       ) : null}
-      <div id={`${p}-check`} aria-live="polite" className="rounded-md border-2 border-line-strong p-3 text-small">
+      <div id={`${p}-check`} aria-live="polite" className="ps-admin-row p-3 text-small">
         {!touched ? <p>Type the scores; they are checked against the rules of this event as you type.</p> : check.ok ? (
           <p className="font-semibold">Looks right. {outcomeSentence(check, sides, d.status)}</p>
         ) : (

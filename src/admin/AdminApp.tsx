@@ -13,7 +13,10 @@ import type { Actor, UndoDescriptor } from '../lib/admin/types';
 import './admin.css';
 import { Login, type LoginApi } from './Login';
 import { hashFor, messageFor, parseHash, ROUTE_TITLE, ROUTES_ADMIN, TAB_LABEL, TAB_ROUTES, tabFor, type AdminRoute } from './messages';
-import { AdminContext, Button, cx, type AdminCtx } from './ui';
+import { AdminContext, Button, cx, Icon, type AdminCtx, type IconName } from './ui';
+
+/** The icon beside each tab label (decorative; the label is the name). */
+const TAB_ICON: Partial<Record<AdminRoute, IconName>> = { dashboard: 'home', inbox: 'inbox', videos: 'video', players: 'users', more: 'menu', competitions: 'trophy', scoring: 'activity', registrations: 'clipboard', international: 'globe', notices: 'bell' };
 
 // Every area is its own lazy chunk: the owner phone downloads only the area it opens (admin JS budget).
 const SCREENS: Record<AdminRoute, ComponentType> = {
@@ -216,18 +219,25 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
 
   return (
     <AdminContext.Provider value={ctx}>
-      <div className={cx('mx-auto flex min-h-screen max-w-2xl flex-col', notice ? 'pb-20' : 'pb-28')}>
+      <div className="ps-admin-shell">
+      <div className={cx('ps-admin-column', notice ? 'pb-20' : 'pb-28 lg:pb-12')}>
         {mode === 'preview' ? (
-          <p role="status" className="bg-ps-live-tint p-3 text-center text-small font-semibold text-ps-ink">
-            Preview with made-up data. Nothing here is real and nothing is saved or sent.
-            {actor.role !== 'owner' ? ` You are seeing what ${actor.role === 'organizer' ? 'an organizer' : 'a scorer'} sees.` : ''}
+          <p role="status" className="ps-admin-preview">
+            <Icon name="info" size={18} />
+            <span>
+              Preview with made-up data. Nothing here is real and nothing is saved or sent.
+              {actor.role !== 'owner' ? ` You are seeing what ${actor.role === 'organizer' ? 'an organizer' : 'a scorer'} sees.` : ''}
+            </span>
           </p>
         ) : null}
-        <header className="ps-surface-dark flex items-center justify-between gap-3 border-b-4 border-ps-volt bg-ps-ink px-4 py-3">
-          <h1 className="text-h3 font-bold text-ps-white">{ROUTE_TITLE[shown]}</h1>
+        <header className="ps-surface-dark ps-admin-header flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="ps-admin-eyebrow" aria-hidden="true">Power Smash admin</span>
+            <h1 className="mt-1 text-h3 font-bold text-ps-white">{ROUTE_TITLE[shown]}</h1>
+          </div>
           {mode === 'live' ? <Button small onClick={signOut}>Sign out</Button> : null}
         </header>
-        <main className="flex-1 px-4 pt-5" id="admin-main">
+        <main className="flex-1 px-4 pt-6" id="admin-main">
           {!owner && tabs.length > 0 ? (
             <Suspense fallback={null}>
               <StaffNotices store={client} />
@@ -246,26 +256,32 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
             can always be scrolled clear of it, however long the message. pb-20 while it shows matches bottom-20; w-full keeps the old width.
             min-w-0 lets a long one-word name wrap instead of pushing Close off the screen (the page would scroll sideways). */}
         {notice ? (
-          <div role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('sticky bottom-20 z-20 mx-auto mt-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-lg border-2 p-3 shadow-overlay', notice.tone === 'error' ? 'border-ps-live bg-ps-live-tint text-ps-ink' : 'border-ps-court bg-surface text-fg')}>
-            <span className="min-w-0">{notice.text}</span>
-            <span className="flex gap-2">
+          <div role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('ps-admin-toast mx-auto mt-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-lg border p-3 shadow-overlay', notice.tone === 'error' ? 'border-ps-live border-l-4 bg-ps-live-tint text-ps-ink' : 'border-line border-l-4 border-l-ps-court bg-surface text-fg')}>
+            <span className="flex min-w-0 items-start gap-2">
+              <Icon name={notice.tone === 'error' ? 'alert' : 'check'} size={20} className={notice.tone === 'error' ? 'mt-0.5 text-ps-live' : 'mt-0.5 text-ps-court'} />
+              <span className="min-w-0">{notice.text}</span>
+            </span>
+            <span className="flex shrink-0 gap-2">
               {notice.undo ? <Button small onClick={() => void undo()}>Undo</Button> : null}
               <Button small onClick={() => setNotice(null)}>Close</Button>
             </span>
           </div>
         ) : null}
 
-        <nav aria-label="Admin sections" className="fixed inset-x-0 bottom-0 z-10 border-t border-ps-ink-soft bg-ps-ink shadow-overlay">
-          <ul className="mx-auto flex max-w-2xl">
+        <nav aria-label="Admin sections" className="ps-admin-nav">
+          <p className="ps-admin-brand" aria-hidden="true">Power Smash<small>Admin</small></p>
+          <ul>
             {tabs.map((r) => (
-              <li key={r} className="flex-1">
-                <a href={hashFor(r)} aria-current={(owner ? tabFor(shown) : shown) === r ? 'page' : undefined} className={cx('flex min-h-tap items-center justify-center px-1 py-3 text-center text-small font-bold no-underline', (owner ? tabFor(shown) : shown) === r ? 'border-t-4 border-ps-volt bg-ps-ink-soft text-ps-volt' : 'border-t-4 border-transparent text-ps-mist')}>
-                  {TAB_LABEL[r]}
+              <li key={r}>
+                <a href={hashFor(r)} aria-current={(owner ? tabFor(shown) : shown) === r ? 'page' : undefined}>
+                  <Icon name={TAB_ICON[r] ?? 'menu'} size={20} />
+                  <span>{TAB_LABEL[r]}</span>
                 </a>
               </li>
             ))}
           </ul>
         </nav>
+      </div>
       </div>
     </AdminContext.Provider>
   );
