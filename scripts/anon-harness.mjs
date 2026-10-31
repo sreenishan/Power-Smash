@@ -88,7 +88,8 @@ export const MANIFEST = [
   { name: 'draw_slots', pk: 'draw_id', pkSample: NIL_UUID },
   { name: 'competition_matches', pk: 'id', pkSample: NIL_UUID },
   { name: 'match_games', pk: 'match_id', pkSample: NIL_UUID },
-  { name: 'match_score_events', pk: 'id', pkSample: '0' },
+  // not `id`: it is GENERATED ALWAYS, so a write naming it fails with 428C9 (HTTP 400) before the permission check and hides the denial
+  { name: 'match_score_events', pk: 'match_id', pkSample: NIL_UUID },
   { name: 'ranking_snapshots', pk: 'id', pkSample: NIL_UUID },
   { name: 'ranking_entries', pk: 'snapshot_id', pkSample: NIL_UUID },
   { name: 'organizer_assignments', pk: 'id', pkSample: NIL_UUID },

@@ -196,6 +196,7 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
 
 ### Fixed
 
+- **The anonymous-access test reported two false leaks on the dev database (2026-10-31).** After the dev project was brought to migration 0023, the test said anyone could write to the rally log (`match_score_events`). They cannot: its write probe named the table's automatic number column, which the database rejects for a different reason before it checks permissions. The test now probes an ordinary column and a new check stops this from happening again. Result on dev: 83 tables and views, 0 leaks, sign-ups disabled.
 *Milestones M2 and M3 (review fix wave; 41 findings, dispositions in `docs/SPEC_AUDIT.md` section 10)*
 
 - **Children's ages in brackets were missed.** `(U15)`, `[U-15]`, `(Junior)`, `15U`, `Sub-Jr`, `15 years`, other-script digits and similar are now minor signals; unmapped age words ask for review (B2-1, B2-2).

@@ -123,6 +123,19 @@ describe('the anon harness manifest matches the migrations', () => {
       expect(table, m.name).toMatch(new RegExp(`\\b${m.pk}\\b`));
     }
   });
+
+  it('never probes writes through an always-generated column (it answers 428C9 / HTTP 400 before the permission check)', () => {
+    const all = readdirSync('supabase/migrations')
+      .filter((f) => f.endsWith('.sql'))
+      .map((f) => readFileSync(`supabase/migrations/${f}`, 'utf8').replace(/--.*$/gm, ''))
+      .join('\n');
+    for (const m of (MANIFEST as Array<{ name: string; pk: string; schema?: string }>).filter((e) => !e.schema)) {
+      const table = new RegExp(`create table public\\.${m.name} \\(([\\s\\S]*?)\\n\\);`).exec(all)?.[1] ?? '';
+      const column = table.split('\n').find((line) => new RegExp(`^\\s*${m.pk}\\s`).test(line)) ?? '';
+      expect(column, `${m.name}.${m.pk}`).not.toBe('');
+      expect(column, `${m.name}.${m.pk}`).not.toMatch(/generated always/i);
+    }
+  });
 });
 
 describe('S-16: the default-privilege revoke and the all-tables assertions', () => {
