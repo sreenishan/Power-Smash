@@ -93,9 +93,17 @@ export function convertChoices(r: Pick<RegistrationDto, 'names'>, choices: reado
   });
 }
 
-/** What the owner can do next with a registration. */
-export function nextSteps(r: Pick<RegistrationDto, 'status' | 'needsVerification'>): { verify: boolean; convert: boolean; reject: boolean } {
-  const open = r.status === 'submitted' || r.status === 'payment_verified';
+/**
+ * Still waiting for the owner: submitted or payment verified, and NOT cleared by the keep-for clean-up (0025). A cleared registration
+ * is closed: its typed names are gone, so it cannot become an entry (the database refuses any change to it too).
+ */
+export function isWaiting(r: Pick<RegistrationDto, 'status' | 'anonymisedAt'>): boolean {
+  return (r.status === 'submitted' || r.status === 'payment_verified') && !r.anonymisedAt;
+}
+
+/** What the owner can do next with a registration (nothing once it was cleared after the keep-for period). */
+export function nextSteps(r: Pick<RegistrationDto, 'status' | 'needsVerification' | 'anonymisedAt'>): { verify: boolean; convert: boolean; reject: boolean } {
+  const open = isWaiting(r);
   return { verify: open, convert: open && !r.needsVerification, reject: open };
 }
 
@@ -104,3 +112,6 @@ export function settingsSummary(enabled: boolean): string {
     ? 'Registration is switched on here. Visitors can register only for events you open below, and only once the website switch is on too.'
     : 'Registration is switched off. Nobody can register on the website.';
 }
+
+/** Shown instead of the phone once the keep-for period removed a registration's contact details (0025, D-127). */
+export const CONTACT_REMOVED_TEXT = 'Contact details removed after the keep-for period';

@@ -31,7 +31,10 @@ describe('supabase SQL bundles', () => {
   });
 
   it('end with the last check\'s ok row, use LF only and carry no secret-shaped text, no psql meta-command and no role change', () => {
-    expect(b.checksSql.trimEnd().endsWith("select 'ok: 0023_notifications assertions passed' as result;")).toBe(true);
+    // the last check file's own closing line (a new migration adds its check at the end; no number is written here)
+    const lastCheck = readFileSync(join(ROOT, 'supabase', 'checks', b.checkFiles[b.checkFiles.length - 1]!), 'utf8').trimEnd().split(/\n/).pop()!;
+    expect(lastCheck).toMatch(/^select 'ok: [0-9]{4}_[a-z0-9_]+ assertions passed' as result;$/);
+    expect(b.checksSql.trimEnd().endsWith(lastCheck)).toBe(true);
     for (const sql of [b.migrationsSql, b.checksSql]) {
       expect(sql).not.toContain('\r');
       expect(sql).not.toMatch(/sb_secret_|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY|postgres(ql)?:\/\/[^\s:@/]+:[^\s@/]+@/i);

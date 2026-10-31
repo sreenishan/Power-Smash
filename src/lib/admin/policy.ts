@@ -8,6 +8,7 @@ import { ACCOUNT_ACTIONS } from './accounts/access';
 import { REGISTRATION_ACTION_KINDS } from './registration/schemas';
 import { INTERNATIONAL_ACTION_KINDS } from './international/schemas';
 import { NOTICES_ACTION_KINDS } from './notices/schemas';
+import { RETENTION_ACTION_KINDS } from '../retention/schemas';
 
 // ----------------------------------------------------------------------------- actions
 
@@ -104,6 +105,10 @@ export const ADMIN_ACTIONS = {
   'competition.saveVenue': ownerWrite,
   'competition.saveCourt': ownerWrite,
   'competition.approvePointsTable': ownerWrite,
+  // an organizer's player search and new provisional player (0024, D-117/D-122): the owner here; assigned organizers through the
+  // per-tournament check (accounts/access.ts SCOPED_ACTION_NEEDS 'run', then app.require_competition_access). Scorers never.
+  'competition.searchPlayers': ownerRead,
+  'competition.createPlayer': ownerWrite,
   // live scoring (D-113, 0021): reads and the two scoring writes reach assigned organizers and scorers through the per-tournament
   // check (accounts/access.ts SCOPED_ACTION_NEEDS, then app.require_competition_access); the live switch stays owner only
   'competition.liveMatches': ownerRead,
@@ -121,6 +126,8 @@ export const ADMIN_ACTIONS = {
   // site notices and the email updates list (D-114, 0023): owner only, except notices.staff (organizers and scorers read it too,
   // decided by accounts/access.ts STAFF_WIDE_ACTIONS; no tournament is involved)
   ...kinds(NOTICES_ACTION_KINDS, (k) => (k.kind === 'read' ? ownerRead : ownerWrite)),
+  // keep-for periods of registrations and email sign-ups (D-028, 0025): owner only; the clean-up itself runs only from the workflow
+  ...kinds(RETENTION_ACTION_KINDS, (k) => (k === 'read' ? ownerRead : ownerWrite)),
 } as const satisfies Record<string, ActionPolicy>;
 
 export type AdminActionName = keyof typeof ADMIN_ACTIONS;
@@ -268,6 +275,10 @@ export const RLS_MATRIX = {
   'notify_subscribers': { private: true, grants: OWNER_READ_RPC_WRITE },
   'notify_settings': { private: true, grants: OWNER_READ_RPC_WRITE },
   'site_notices': { private: true, grants: OWNER_READ_RPC_WRITE },
+  // 0025_platform_retention.sql (D-028, D-127): keep-for periods (owner RPC writes) and the hashes of deleted unsubscribed addresses
+  // (written only by the retention job; the owner never reads them: the summary RPC returns their count)
+  'retention_settings': { private: true, grants: OWNER_READ_RPC_WRITE },
+  'notify_unsubscribe_hashes': { private: true, grants: NONE },
   // Worker-only plumbing: no admin access at all
   'events': { private: true, grants: NONE },
   'outbound_clicks': { private: true, grants: NONE },

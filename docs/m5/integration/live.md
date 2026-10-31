@@ -147,7 +147,7 @@ Add `'public_competition_live'` to the allow-list array of later views (next to 
 
 ## 5. Test probes for the integrator (after wiring)
 - Handler: owner token, `competition.liveScore` with a stale `expectedSeq` -> the STALE code with the database sentence in `errors.form`; same key twice -> 200 `duplicate: true`; an editor -> 403; body with an extra field -> 400 (strict schema).
-- Endpoint on a preview with all three switches on and one fictional match scored: `GET /api/live-scores/<event-id>` -> 200, `cache-control: public, s-maxage=30, stale-while-revalidate=15`, `"isLive": true`; after `LIVE_SCORES_ENABLED` is unset (new deployment) -> `{"live": false}`; `GET /api/live-scores/ms` -> 400 `no-store`.
+- Endpoint on a preview with all three switches on and one fictional match scored: `GET /api/live-scores/<event-id>` -> 200, `"isLive": true`, and a second request within 30 seconds shows `x-vercel-cache: HIT` (or `STALE`). The browser never sees `s-maxage`: Vercel strips it and sends `public, max-age=0, must-revalidate` (VF-V13), so do not look for it; after `LIVE_SCORES_ENABLED` is unset (new deployment) -> `{"live": false}`; `GET /api/live-scores/ms` -> 400 `no-store`.
 - Event page with `features.liveScores` on and a uuid event: the region is hidden until a match is live; `PS_E2E_LIVE_PAGE=<that page> npm run e2e -- tests/e2e/live-scores.spec.ts`.
 - JS budget: the event page's live script is about 2 KB gzip (`tests/live-scores/client.test.ts` measures the esbuild bundle: 4,255 bytes raw, 1,961 bytes gzip on 2026-10-31); run `check:js-budget` on a build with the flag on.
 

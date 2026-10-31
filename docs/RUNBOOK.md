@@ -214,12 +214,20 @@ To activate (owner approval, then operator): the Vercel **Pro** plan must be act
 | Job | State | Rule |
 |---|---|---|
 | YouTube 30-day purge | **[built]** as sync step and `admin_purge_stale_api_data` (migration 0009), runs after every sync | D-081 |
-| Closed leads anonymised after 24 months; event documents 30 days after the event | **[not built]** (M4 deliverable: scheduled workflow with a dry-run report and dated-fixture test) | Spec 15.4, D-028 |
+| Closed leads anonymised after 24 months; rate-limit hits and daily salts after 2 days | **[built, off]** `admin_run_retention` (migration 0010), first step of `retention.yml`, weekly when `RETENTION_ENABLED=true` | Spec 15.4, D-028 |
+| Event documents 30 days after the event | **[not built]** (the function reports `not_built`; the lawyer holds the rule back, D-019) | Spec 15.4, D-028 |
+| Closed registrations (anonymised if they became entries or a payment was recorded, deleted otherwise) and unconfirmed or unsubscribed email sign-ups (deleted; a hash of an unsubscribed address is kept so an import never re-adds it ONLY while the owner's "remember as a code" box is ticked, off by default, lawyer to decide) | **[built, off]** `admin_run_platform_retention` (migration 0025), second step of `retention.yml`, weekly when `RETENTION_ENABLED=true`. Does nothing until the owner sets a period in the admin (Settings, "How long to keep registrations and email sign-ups"). | D-028, D-127; periods are owner settings with no default, decided by the lawyer |
 | `events` and `outbound_clicks` 90 days, `rate_limit_hits`, `daily_salts`, `placement_impression_seen` | **[not built]** | D-028, D-044, R-31 |
 | `payment_events` redaction after 90 days | Not applicable (`paymentRecords` off) | D-028 |
 | `erasure_log` re-applied after a restore | **[not built]** | D-050 |
 
 R-31: the retention job must run before the first record reaches its stated age (about 90 days after G1 for `events`). Set the Supabase storage alert at 70 percent of the 500 MB Free database.
+
+Operator note for registrations and email sign-ups (0025). Before the first real run:
+
+1. Start the Retention workflow by hand with `dry_run` ticked (the default), and read the counts in the log. The admin Settings screen shows the same preview ("What the next clean-up would remove").
+2. `registrations_without_event_date` greater than 0 means some tournaments have no dates. Those registrations are never removed until a date is added.
+3. Both periods are empty until the owner types what the lawyer decided; an empty period removes nothing. There is no "run now" button in the admin: the job runs only from the workflow.
 
 ## 14. Rollback, deploy, promote and change a setting (Vercel)
 
@@ -252,10 +260,10 @@ Common checklist for every flag: (1) the feature really exists and works; (2) th
 | `archivePages` | Player, match and tournament pages; protected-player wording | Owner approved D-012 modes and D-078; lawyer saw junior text (OT-28); `PS_ARCHIVE_SOURCE=supabase` build with real data; anon and privacy tests green; "Sample data" banner gone |
 | `competitionPages` | Draw, order-of-play, result and local-ranking pages under /competitions/ (D-115, D-116) | Owner approved the naming rule (only owner-confirmed adults named; juniors, unknown age and school or college events shown as "Protected player"); lawyer re-read the privacy wording (G1 checklist); `PS_COMPETITION_SOURCE=supabase` build with real data; anon and privacy tests green; "Sample data" notice gone |
 | `organizerAccounts` | Invited organizers and scorers (D-108): a privacy row about their accounts, and "entered by Power Smash or by invited organizers and scorers" on competition and live score wording | Only together with `ORGANIZER_ACCOUNTS_ENABLED=true` (15b) and the owner's "Turn access on" on the admin Accounts screen; owner yes and lawyer re-read; Supabase's invitation email text read by the owner |
-| `registrations` | Registration pages `/register/<tournament>/<event>/` (D-111) and their privacy wording | Lawyer re-read the notice in `src/lib/registration/consent.ts`; retention decided and a purge built; `competitionPages` on; `REGISTRATION_ENABLED=true` (15b); a test registration on preview shows no phone in the Telegram alert |
+| `registrations` | Registration pages `/register/<tournament>/<event>/` (D-111) and their privacy wording | Lawyer re-read the notice in `src/lib/registration/consent.ts`; keep-for period decided by the lawyer and entered in the admin (section 13; the purge is built, 0025); `competitionPages` on; `REGISTRATION_ENABLED=true` (15b); a test registration on preview shows no phone in the Telegram alert |
 | `liveScores` | Near-live scores on event pages (D-113) | `LIVE_SCORES_ENABLED=true` (15b) and the owner's "Turn live scores on"; a preview shows the endpoint is cached (`x-vercel-cache: HIT`) |
 | `internationalLinks` | The /international/ page (D-112) | `PS_INTERNATIONAL_SOURCE=supabase` in the release build; every link opens the official page; lawyer re-read the "Links to other websites" paragraph |
-| `emailNotifications` | The email updates sign-up (D-114) | Sending domain verified (OT-40), `EMAIL_ENABLED` and `NOTIFY_SUBSCRIBE_ENABLED` on (15b); lawyer re-read the sign-up notice and privacy paragraph; a real one-click unsubscribe tried from a test inbox; decide the retention period |
+| `emailNotifications` | The email updates sign-up (D-114) | Sending domain verified (OT-40), `EMAIL_ENABLED` and `NOTIFY_SUBSCRIBE_ENABLED` on (15b); lawyer re-read the sign-up notice and privacy paragraph; a real one-click unsubscribe tried from a test inbox; keep-for period for unconfirmed and unsubscribed sign-ups decided and entered (section 13) |
 | `siteNotices` | The notice banner and the WhatsApp Channel button (D-114) | `PS_NOTICES_SOURCE=supabase` in the release build; a real channel link in `site.whatsappChannelUrl` (OT-09). Previews show real notices only while this flag is on. A notice's start and end times apply at the next site update: press "Publish now" just after a start or end time (D-125). /alerts/ changes to "Stay updated" only with `emailNotifications` |
 | `requestVerification` | One-time code for requesters | Code flow built and tested |
 | `ageProofChecks` | Age proof viewed and deleted | D-015 approved; deletion proven |

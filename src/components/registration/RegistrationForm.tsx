@@ -184,7 +184,6 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
           inputMode={o.inputMode}
           maxLength={o.maxLength}
           value={values[name]}
-          disabled={!ready}
           aria-invalid={err ? true : undefined}
           aria-describedby={[hintId, errId].filter(Boolean).join(' ') || undefined}
           className={`${inputClass} ${err ? inputErrorClass : ''}`}
@@ -208,7 +207,7 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
       {playersNeeded === 2 ? field('player2Name', 'Partner full name', { maxLength: REGISTRATION_LIMITS.name.max }) : null}
       {field('phone', 'Contact mobile number', { type: 'tel', autoComplete: 'tel', inputMode: 'tel', maxLength: 32, hint: 'We use it only about this registration. It is never shown on the website.' })}
       <label className="flex items-start gap-3 text-body">
-        <input type="checkbox" className="mt-1 h-5 w-5" checked={values.whatsappOk} disabled={!ready} onChange={(ev) => set('whatsappOk', ev.target.checked)} />
+        <input type="checkbox" className="mt-1 h-5 w-5" checked={values.whatsappOk} onChange={(ev) => set('whatsappOk', ev.target.checked)} />
         <span>This number is on WhatsApp</span>
       </label>
       {field('email', 'Email', { optional: true, type: 'email', autoComplete: 'email', inputMode: 'email', maxLength: REGISTRATION_LIMITS.email.max })}
@@ -228,7 +227,6 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
             className="mt-1 h-5 w-5"
             data-field="consent"
             checked={values.consent}
-            disabled={!ready}
             aria-invalid={errors.consent ? true : undefined}
             aria-describedby={errors.consent ? fid('consent-err') : undefined}
             onChange={(ev) => set('consent', ev.target.checked)}
@@ -259,7 +257,7 @@ export default function RegistrationForm({ eventId, eventTitle, playersNeeded, f
           </span>
         </div>
       ) : null}
-      <button type="submit" className={buttonPrimary} disabled={!ready || busy} aria-busy={busy || undefined}>
+      <button type="submit" className={buttonPrimary} disabled={busy} aria-busy={busy || undefined}>
         {busy ? 'Sending...' : 'Send registration'}
       </button>
       </fieldset>

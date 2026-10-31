@@ -144,6 +144,9 @@ function userIdFromJwt(token: string): string | null {
 // for a new password (PUT /user), signs in again with it, and the person must enrol a TOTP factor (aal2) before anything works.
 // UNVERIFIED against a live project (none exists yet): the fragment shape, PKCE instead of the fragment, and whether PUT /user
 // needs a re-authentication on this project's settings. See docs/m5/integration/accounts.md.
+// Documented (VF-S3, VF-S4, VF-S7, checked 2026-10-31): GET /auth/v1/verify (type invite) redirects with exactly this fragment;
+// the link lasts as long as "Email OTP Expiration" (1 hour by default); mail link scanners can use the link up before the person
+// clicks it; and PUT /user fails if the project's "Require current password when updating" setting is on (keep it off).
 
 export interface InviteRedirect {
   accessToken: string;
@@ -199,7 +202,12 @@ export async function setInvitedPassword(cfg: GoTrueConfig, accessToken: string,
 // The owner's invitation goes through the Supabase Auth admin API with the SECRET key, from the Vercel admin function only (never the
 // browser; this factory takes the key from the caller, which reads it through runtime-env). Documented endpoints, UNVERIFIED against a
 // live project: POST /auth/v1/invite {email} (?redirect_to=...) answers the new user (id); PUT /auth/v1/admin/users/<id>
-// {ban_duration} blocks sign-in. Sign-ups stay disabled in the project; an admin invitation is expected to work regardless (unverified).
+// {ban_duration} blocks sign-in. Sign-ups stay disabled in the project; the Auth README says invites are then the only way to create
+// users (VF-S1, VF-S5, VF-S6, checked 2026-10-31). The built-in Supabase mail sender delivers only to project team members, so an
+// invitation reaches nobody else until custom SMTP is set (VF-S5).
+// HEADER QUESTION (VF-S9, 2026-10-31): Supabase's API-key docs say to send an `sb_secret_` key on the `apikey` header ONLY; on
+// `Authorization: Bearer` "the platform tries to parse it as a JWT" and may answer `Invalid JWT`. The headers below send it on both.
+// Not changed here (no live project to test): try both forms on the dev project before ORGANIZER_ACCOUNTS_ENABLED is set.
 
 export interface GoTrueAdminConfig {
   /** `https://<ref>.supabase.co` */

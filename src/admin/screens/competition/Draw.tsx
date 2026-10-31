@@ -7,7 +7,7 @@ import { formatInstantIst } from '../../../lib/dates';
 import { gamesText, isByeMatch, isWinner, outcomeNote, seedText, slotText, type BracketColumn, type BracketMatchView } from '../../../components/competition/helpers';
 import { Badge, Button, Confirm, Field, cardCls, cx, useAdmin } from '../../ui';
 import { bracketMatchSummary, COMP_LIMITS, compHash, DRAW_STATUS_LABEL, groupPreview, knockoutPreview, parseDrawNumber, parseInRange, UPDATE_MATCHES_LABEL, type PreviewMode } from './logic';
-import { ErrorText, H2, Input, Note, useAction } from './shared';
+import { ErrorText, H2, Input, Note, useAction, byRole } from './shared';
 import { SyncOutcomeNote } from './UpdateMatches';
 
 export function DrawTab({ detail }: { detail: CompetitionEventDetail }) {
@@ -79,7 +79,7 @@ function MakeDraw({ detail, onMade }: { detail: CompetitionEventDetail; onMade: 
         separateClubs: fmt === 'knockout' && separate,
         seeds: s ?? 0,
         ...(fmt === 'groups_knockout' ? { groupCount: g, advancePerGroup: a } : {}),
-        reason: again ? 'Draw made again by owner' : 'Draw made by owner',
+        reason: again ? `Draw made again ${byRole(actor.role)}` : `Draw made ${byRole(actor.role)}`,
       }),
     );
     if (!r) return;
@@ -130,7 +130,7 @@ function Publish({ detail, onDone }: { detail: CompetitionEventDetail; onDone: (
   const act = useAction();
   const draw = detail.draw!;
   const go = async () => {
-    const r = await act.run(() => client.competitionPublishDraw(actor, { eventId: detail.event.id, drawId: draw.id, reason: 'Draw published by owner' }));
+    const r = await act.run(() => client.competitionPublishDraw(actor, { eventId: detail.event.id, drawId: draw.id, reason: `Draw published ${byRole(actor.role)}` }));
     setAsking(false);
     if (!r) return;
     onDone(r);

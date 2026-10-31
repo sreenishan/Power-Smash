@@ -123,14 +123,28 @@ export function validateGame(score: Readonly<GameScore>, ruleset: Readonly<Rules
     const before = winner === 'A' ? `${w - 1}-${l}` : `${l}-${w - 1}`;
     return fail([`${s}: the game would already have ended at ${before}.`]);
   }
+  if (!isReachableOpenScore(w - 1, l, ruleset)) {
+    return fail([`${s}: the game would already have ended when one side first reached ${l} points.`]);
+  }
   return { valid: true, winner, reasons: [] };
+}
+
+/**
+ * Can an open (not yet over) score be reached without the game ending on the way? To get both sides to `lo` points, one side must first
+ * lead lo to lo - 1; if that score already ends the game (a winning lead of 1, a local variation), no higher level score exists. With the
+ * Laws (win by 2) every open score is reachable.
+ */
+function isReachableOpenScore(a: number, b: number, ruleset: Readonly<Ruleset>): boolean {
+  const lo = Math.min(a, b);
+  return lo === 0 || !isGameOver(lo, lo - 1, ruleset);
 }
 
 /** True when a score is a possible point in an UNFINISHED game (reachable and not yet over). */
 export function isValidInProgressGame(score: Readonly<GameScore>, ruleset: Readonly<Ruleset> = DEFAULT_RULESET): boolean {
-  // Any open score is reachable: play level to the lower score, then the leader's points; none of those steps can end the game.
+  // An open score is reachable when the lower score could be reached level (see isReachableOpenScore): play level to the lower score,
+  // then the leader's points; none of those steps can end the game.
   if (validateRuleset(ruleset).length > 0) return false;
-  return scoreShapeReasons(score).length === 0 && !isGameOver(score.a, score.b, ruleset);
+  return scoreShapeReasons(score).length === 0 && !isGameOver(score.a, score.b, ruleset) && isReachableOpenScore(score.a, score.b, ruleset);
 }
 
 /**

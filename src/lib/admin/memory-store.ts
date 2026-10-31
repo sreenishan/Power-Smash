@@ -25,7 +25,7 @@ import { COMP_SEED, createCompetitionSeed, createMemoryCompetitionBackend, empty
 import { COMPETITION_STORE_METHODS, type CompetitionAdminStore } from './competition/types';
 import { createAccountsService } from './accounts/service';
 import { createMemoryAccountsBackend, createMemoryScopeDeps, emptyAccountsState, type MemoryAccountsState } from './accounts/memory-backend';
-import type { ScopeDeps } from './accounts/scoped-store';
+import { createScopedCompetitionStore, createScopedLiveScoringStore, type ScopeDeps } from './accounts/scoped-store';
 import { ACCOUNTS_STORE_METHODS, type AccountsBackend, type AccountsStore } from './accounts/types';
 import { createLiveScoringService } from './live-scoring/service';
 import { createMemoryLiveScoringBackend, emptyLiveState, type MemoryLiveState } from './live-scoring/memory-backend';
@@ -39,6 +39,8 @@ import type { InternationalAdminStore } from './international/types';
 import { createNoticesService } from './notices/service';
 import { createMemoryNoticesBackend } from './notices/memory-backend';
 import type { NoticesAdminStore } from './notices/types';
+import { createMemoryRetentionBackend, createRetentionService } from './retention/service';
+import type { RetentionAdminStore } from './retention/types';
 import {
   failResult,
   okResult,
@@ -291,9 +293,46 @@ const rnd = (): string => crypto.randomUUID();
 /** The owner id the memory accounts backend knows by default (the preview signs in as this owner). */
 export const MEMORY_PREVIEW_OWNER_ID = 'preview-owner';
 
+/** The made-up organizer and scorer of the preview (`/admin/?preview-as=organizer`), both given the seed's Demo Open Cup. */
+export const PREVIEW_STAFF = {
+  organizer: '9b000000-0000-4000-8000-0000000000a1',
+  scorer: '9b000000-0000-4000-8000-0000000000a2',
+} as const;
+
+/**
+ * The preview as an organizer or scorer would see it (fictional data, no network): the made-up account is given the seed's Demo Open
+ * Cup, and the client answers like the admin function does for that role (accounts/scoped-store.ts before the store; everything else
+ * is refused, as in handler.ts storeFor). Lets the owner, and the e2e tests, see the organizer and scorer screens without real accounts.
+ */
+export function previewAs(store: MemoryAdminStore, role: 'organizer' | 'scorer'): { client: AdminClient; actor: Actor } {
+  const actor: Actor = { userId: PREVIEW_STAFF[role], role };
+  const st = (store.state.accounts ??= emptyAccountsState(MEMORY_PREVIEW_OWNER_ID));
+  if (!st.accounts.some((a) => a.id === actor.userId)) {
+    const at = new Date(0).toISOString();
+    st.accounts.push({ id: actor.userId, role, displayName: role === 'organizer' ? 'Demo Preview Organizer' : 'Demo Preview Scorer', createdAt: at, disabledAt: null });
+    st.assignments.push({ id: `${actor.userId}-t1`, profileId: actor.userId, tournamentId: SEED_IDS.t1, role, createdAt: at, revokedAt: null });
+  }
+  st.organizerAccess = true;
+  const deps = store.scopeDeps();
+  const scoped: Record<string, unknown> = {
+    ...createScopedCompetitionStore(store, actor, deps),
+    ...createScopedLiveScoringStore(store, actor, deps),
+    noticesStaff: () => store.noticesStaff(),
+  };
+  const client = new Proxy({}, {
+    get(_t, key) {
+      if (typeof key === 'string' && Object.prototype.hasOwnProperty.call(scoped, key)) return scoped[key];
+      const v = Reflect.get(store, key) as unknown;
+      // every other area is the owner's: refused, as the admin function refuses it
+      return typeof v === 'function' ? async () => failResult('FORBIDDEN') : v;
+    },
+  }) as unknown as AdminClient;
+  return { client, actor };
+}
+
 // The wave 4 and 5 areas are plain services delegated in the constructor (like the competition methods); this merges their method
 // types into the class.
-export interface MemoryAdminStore extends AccountsStore, LiveScoringAdminStore, RegistrationAdminStore, InternationalAdminStore, NoticesAdminStore {}
+export interface MemoryAdminStore extends AccountsStore, LiveScoringAdminStore, RegistrationAdminStore, InternationalAdminStore, NoticesAdminStore, RetentionAdminStore {}
 
 export class MemoryAdminStore implements AdminClient {
   readonly state: MemoryState;
@@ -335,6 +374,18 @@ export class MemoryAdminStore implements AdminClient {
             .map((p) => p.id);
         },
         audit: (actor, action, entity, entityId, reason) => this.audit(actor, action, entity, entityId, reason),
+        // an organizer's search and new player (0024): the active suppressions, by id or matching name
+        suppressed: (p) =>
+          this.state.suppressions.some((x) => x.releasedAt === null && ((x.kind === 'player_id' && p.id !== '' && x.key === p.id) || (x.kind === 'name_normalized' && x.key === p.nameNormalized))),
+        // D-012: a new player is provisional, hidden, unknown age, opaque slug (the same defaults as the database columns)
+        addPlayer: (p) => {
+          const id = this.newId();
+          this.state.identity.players.push({
+            id, slug: `p-${id.replace(/[^0-9a-f]/gi, '').slice(-16).padStart(16, '0').toLowerCase()}`, displayName: p.displayName, ageStatus: 'unknown', ageSignals: [],
+            nameKey: null, latinKey: null, provisional: true, consentStatus: 'unknown', visibility: 'hidden', mergedInto: null,
+          });
+          return id;
+        },
         markDirty: () => this.markDirty(),
         now: () => this.now(),
         newId: () => this.newId(),
@@ -413,6 +464,8 @@ export class MemoryAdminStore implements AdminClient {
     define(registration);
     define(international);
     define(notices);
+    // keep-for periods (D-028, 0025): both start empty, as in the database
+    define(createRetentionService(createMemoryRetentionBackend({ now: () => this.now() })));
   }
 
   // competitions (D-108 to D-114): set in the constructor from the shared service over the memory backend
@@ -438,6 +491,8 @@ export class MemoryAdminStore implements AdminClient {
   declare readonly competitionSaveVenue: CompetitionAdminStore['competitionSaveVenue'];
   declare readonly competitionSaveCourt: CompetitionAdminStore['competitionSaveCourt'];
   declare readonly competitionApprovePointsTable: CompetitionAdminStore['competitionApprovePointsTable'];
+  declare readonly competitionSearchPlayers: CompetitionAdminStore['competitionSearchPlayers'];
+  declare readonly competitionCreatePlayer: CompetitionAdminStore['competitionCreatePlayer'];
 
   // ------------------------------------------------------------ helpers
   private audit(actor: Actor, action: string, entity: string, entityId: string | null, reason: string | null): void {

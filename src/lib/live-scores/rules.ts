@@ -36,9 +36,10 @@ export const LIVE_IDLE_POLL_MS = 300_000;
  * Cache header of a successful answer: shared caches keep it for 30 s and may serve it 15 s longer while fetching a new one. Kept
  * short on purpose: a player the owner protects or removes during a match can stay named in a cached answer for at most about 45 s
  * (D-124). The page asks every 60 s, so a fresher cache costs at most two database reads a minute per event.
- * UNVERIFIED for Vercel: no fact in docs/VERIFIED_FACTS.md or docs/m3/vercel-facts.md confirms how Vercel's CDN treats s-maxage and
- * stale-while-revalidate on a function response (check on a preview: the second request within a minute should show
- * `x-vercel-cache: HIT`). Errors are never cached (NO_STORE).
+ * Vercel's docs (VF-V12 to VF-V14, checked 2026-10-31) say a function answer with s-maxage is cached per region and per deployment,
+ * that a query string is part of the cache key, and that Vercel strips s-maxage and stale-while-revalidate before the browser (the
+ * browser sees `public, max-age=0, must-revalidate`). Still to see on a preview: the second request within 30 s shows
+ * `x-vercel-cache: HIT` (or STALE); do not expect s-maxage in the answer. Errors are never cached (NO_STORE).
  */
 export const LIVE_SCORES_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=15';
 export const NO_STORE = 'no-store';

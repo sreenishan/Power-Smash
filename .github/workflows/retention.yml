@@ -10,11 +10,15 @@
 #   - deletes rate-limit hits older than 2 days and daily salts older than 2 days,
 #   - never touches suppression tombstones, the audit log, consent evidence or lead timelines.
 # Event documents (30 days after the event) are not built yet and the lawyer holds the rule back (D-019): the function reports "not_built".
+# A second step calls public.admin_run_platform_retention (migration 0025): closed registrations and unconfirmed or unsubscribed email
+# sign-ups older than the keep-for periods the OWNER sets in the admin. Both periods start empty (= remove nothing); the lawyer decides.
 # DRY RUN: a manual run has the input dry_run (default true). A dry run changes nothing and prints COUNTS ONLY. The weekly scheduled run is real.
 # The log never contains contact data: the function returns only numbers.
 #
 # Security notes: `contents: read` only, no checkout, no third-party action. The secret key goes into curl through standard input
 # (--config -), never on a command line; do not add `set -x`.
+# The key goes on the `apikey` header ONLY, as in src/lib/supabase/rest.ts: Supabase says an sb_secret_ key is not a JWT and sent as
+# `Authorization: Bearer` it may be refused with "Invalid JWT" (docs/VERIFIED_FACTS.md VF-S9, read 2026-10-31).
 name: Retention
 
 on:
@@ -73,7 +77,6 @@ jobs:
           url = "${base}/rest/v1/rpc/admin_run_retention"
           request = "POST"
           header = "apikey: ${SUPABASE_SECRET_KEY}"
-          header = "Authorization: Bearer ${SUPABASE_SECRET_KEY}"
           header = "Content-Type: application/json"
           data = "{\"p_actor\":\"retention-workflow\",\"p_dry_run\":${dry}}"
           EOF
@@ -84,5 +87,48 @@ jobs:
           fi
           # Print only the counts the function returns (numbers and the dry-run flag).
           if [ "$dry" = true ]; then echo "DRY RUN (nothing changed). Counts:"; else echo "Retention run done. Counts:"; fi
+          cat "$result"
+          echo
+
+      # Migration 0025: old registrations and email sign-ups, after the keep-for periods the OWNER sets in the admin (no default: while a
+      # period is empty the function removes nothing of that kind and says so with null). Same switch, same dry-run input, same key.
+      - name: Run the registrations and sign-ups retention function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SECRET_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_SECRET_KEY is not set. Nothing was changed."
+            exit 1
+          fi
+          if ! printf '%s' "$SUPABASE_URL" | grep -Eq '^https://[a-z0-9]{20}\.supabase\.co/?$'; then
+            echo "::error::SUPABASE_URL is not a https://<project-ref>.supabase.co address. The key was not sent."
+            exit 1
+          fi
+          case "$DRY_RUN" in
+            true) dry=true ;;
+            false) dry=false ;;
+            *) echo "::error::Unexpected dry-run value."; exit 1 ;;
+          esac
+          base="${SUPABASE_URL%/}"
+          result="$(mktemp)"
+          trap 'rm -f "$result"' EXIT
+          status="$(curl --silent --show-error --max-time 60 --output "$result" --write-out '%{http_code}' --config - <<EOF
+          url = "${base}/rest/v1/rpc/admin_run_platform_retention"
+          request = "POST"
+          header = "apikey: ${SUPABASE_SECRET_KEY}"
+          header = "Content-Type: application/json"
+          data = "{\"p_actor\":\"retention-workflow\",\"p_dry_run\":${dry}}"
+          EOF
+          )"
+          if [ "$status" != "200" ]; then
+            echo "::error::The registrations and sign-ups retention function answered HTTP ${status}. Nothing is known to have changed; see the run in Supabase logs."
+            exit 1
+          fi
+          # Counts only (numbers, the two periods in days or null, and the dry-run flag).
+          if [ "$dry" = true ]; then echo "DRY RUN (nothing changed). Registrations and sign-ups counts:"; else echo "Registrations and sign-ups retention done. Counts:"; fi
           cat "$result"
           echo

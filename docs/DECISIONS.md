@@ -1709,6 +1709,46 @@ Worker notes use overlapping ids (Shell P-1 to P-6 and Legal P-1 to P-5, Forms P
 - **Decision (lead, 2026-10-31; proposed).** Pages are static and nothing publishes the site on a schedule yet, so a notice's start and end times take effect at the first site update after them. The notice form says so and tells the owner to press "Publish now" just after a start or end time; the RUNBOOK repeats it. A scheduled rebuild is a later option (it needs the deploy workflow live).
 - **Status.** built, switched off.
 
+## D-126 Organizer player search and new players; screens per role (amends D-117)
+
+- **Context.** D-117 left organizers without a player search ("a scoped search is a follow-up") and showed them every "On the site" badge as protected.
+- **Decision (lead, 2026-10-31; proposed, the owner confirms).**
+  - **Search (migration 0024, `competition.searchPlayers`):** an organizer searches players only for a tournament assigned to them; the owner may search for any. At least 3 letters, at most 25 a page, offset capped at 500. A result holds the player id and the name, nothing else (no naming flag: it would tell an organizer who is a confirmed adult); merged and suppressed players never appear.
+  - **Protected players are not listed to organizers who never dealt with them (review 2026-10-31, D-012).** The owner finds every player holding the typed letters. An organizer finds by PART of the name only a player the public site already names (adult_confirmed and public), a player already entered in an event of that tournament, or a new player added for it; any other player (unknown age, minors, the video archive) only by the FULL name typed exactly, which the organizer already knows (so juniors can still be entered and duplicates avoided). Every organizer search writes an audit row with the tournament id, the query length and the page offset (never the query), and an organizer gets at most 120 searches in 10 minutes. **The owner confirms the exact-full-name rule is acceptable** (PLATFORM_CHECKLIST).
+  - **New player (`competition.createPlayer`):** offered whenever no found player has exactly the typed name (so "Ravi" can be added while "Ravi Shankar" exists); starts provisional, hidden and of unknown age (never named); refused when the name holds an "@" or 7 or more digits, and refused with ONE neutral sentence ("this name cannot be added here; choose the player from the list, or ask the owner") when the name exists, belongs to a hidden player or is on the removal list, so an organizer cannot learn that someone asked to be removed. The audit keeps ids and field names, never the name. An organizer can never edit an existing player.
+  - **"On the site" badge for a found player:** not shown in the organizer search; it shows on the entry card once the player is entered (from the event preview below).
+  - **"On the site" badges for organizers** use the same naming rule as the owner's (D-116); if that check fails, nobody is shown as named. Scorers still see names masked (D-124).
+  - **Screens per role:** organizers do not see rankings, the points table or adding a venue; scorers see only the scoring console and the match list with "Record result". An owner-only address shows a plain sentence. The More list is filtered by role. The reason saved with a change says "by organizer" or "by scorer". Hiding is never the protection: the server and the database refuse anyway (D-117).
+  - **Preview as a role:** the no-backend preview opens as an organizer or scorer with `/admin/?preview-as=organizer|scorer` (made-up data, the same refusals as the server). It does nothing on a real admin.
+- **Status.** built (migration 0024), switched off with the organizer accounts.
+
+## D-127 Keep-for periods: registrations and email sign-ups (extends D-028; amends D-118 "no purge yet")
+
+- **Decision (lead, 2026-10-31; proposed; the lawyer decides the numbers).**
+  - Both periods are **owner settings with no default** (`retention_settings`, migration 0025): an empty period means never remove. The admin screen (Settings) never suggests a number; the limits on what may be typed are 7 to 3650 days for registrations and 1 to 3650 for sign-ups.
+  - **Registrations:** the clock starts at the later of the end of the event's last day (India time) and the moment the registration was closed. Converted ones, or any with a verified payment, are **anonymised** (the entry, fee, amount, reference, status and consent evidence stay; names as typed, phone, email, payment reference and IP hash go). Everything else is **deleted**. A registration whose tournament has no date is never removed, only counted.
+  - **A cleared registration is frozen (review 2026-10-31):** a database trigger refuses any change to an anonymised row, so the owner can no longer verify, convert (which would have made a player called "Anonymised") or reject it; the admin lists it as closed with "Contact details removed after the keep-for period". The check on anonymised rows covers the partner name too.
+  - **Email sign-ups:** active subscribers are never touched. What happens is decided by the CURRENT status: pending ones (never confirmed, or signed up again after an unsubscribe and not confirmed) are deleted once the link has expired and the period has passed; unsubscribed ones after the period.
+  - **Keeping a code of a deleted unsubscribed address is its own switch, OFF by default (review 2026-10-31): pending the lawyer.** `retention_settings.keep_unsubscribe_hash` (a box on the Settings card, audited). Off: the address is deleted and nothing is kept. On: a plain SHA-256 of the address is kept (`notify_unsubscribe_hashes`, no id, no time, no link) so a future import never re-adds it. That hash is pseudonymous, not anonymous (anyone holding a list of addresses can test it), has no end date and stays even if the person later signs up again; a keyed hash (HMAC with a secret outside the database) is the alternative if the lawyer wants one. **The lawyer decides whether to switch it on.** Signing up again on the site still works through double opt-in either way.
+  - **One list per run:** the real run locks the due rows (and the outbox rows of due sign-ups) and then takes ONE list, used for the hash, the counts and the deletes, so the audit counts always agree.
+  - The job is the second step of the existing weekly `retention.yml` (same `RETENTION_ENABLED` switch, same main-only rule, same dry-run input). There is no "run now" in the admin; the summary's dry run is the preview. The answer and the one audit row hold counts only.
+- **Status.** built (migration 0025, admin Settings card), switched off.
+
+## D-128 Leftover review findings of waves A to 5 (amends D-110, D-116, D-120)
+
+- **Context.** A pass over every low and medium review finding of the platform waves that was not fixed in its own wave (2026-10-31).
+- **Decision (lead, 2026-10-31; proposed).**
+  - **One game-score rule:** statistics ask the scoring engine whether a game score is a finished game (`gameWinner` uses `validateGame`), and both refuse a score that could not be reached without the game ending earlier (with a winning lead of 1, 22-21 and 30-29 are refused). The Laws default is unchanged.
+  - **Repeated match ids in statistics:** the first decided, confirmed and valid copy counts; when no copy is usable, the first copy. Other copies count as repeated.
+  - **Local ranking:** a missing counted result counts as 0 points in a tie (the same as a 0-point result); the kept result for a repeated tournament and the players shown never depend on input order; the points table is a required argument (no example table by default; the admin passes the owner-approved table, D-110).
+  - **Email 409:** a Resend 409 is never "sent". `concurrent_idempotent_requests` (or an unreadable 409) is retried later with the same key; `invalid_idempotent_request` is a permanent failure (VF-R2).
+  - **Dates:** the competition time-of-day helpers moved into `src/lib/dates.ts` (D-030).
+  - **Secret key header (VF-S9):** both steps of `retention.yml` send the secret key on `apikey` only, as `src/lib/supabase/rest.ts` already does; the Auth admin calls in `gotrue.ts` and `config.ts` stay as they are until the dev project shows which form the Auth service accepts.
+  - **Vendor facts read through a summary** are marked "unverified (summarised: ...)" in VERIFIED_FACTS section J until someone reads the page itself.
+  - **Resend error bodies** are read through a capped stream reader (at most 2 KB, never buffered beyond it).
+  - **Accepted, not changed:** a result recorded but not yet confirmed may be recorded again, so the owner or organizer can fix a mistake before confirming (`admin_record_result`, 0019); a confirmed result can never be changed this way. The outbox payload rule of 0017 stands as reconciled by D-120 (`{event, revision}` only).
+- **Status.** built.
+
 ## M2/M3 proposal id map
 
 Worker notes and reviews for the M2/M3 wave use their own ids; this map shows where each landed. Items marked "not a decision" are build facts or owner inputs.

@@ -16,16 +16,17 @@ const list = (ids: readonly string[]): string => `(${ids.map((x) => enc(x)).join
 
 export const REGISTRATION_COLUMNS = {
   event_registrations:
-    'id,ref,event_id,player1_name,player2_name,contact_phone,contact_email,whatsapp_ok,payment_reference,fee_paise_at_submit,status,payment_verified_amount_paise,payment_verified_at,entry_id,converted_at,rejected_reason,rejected_at,revision,created_at',
+    'id,ref,event_id,player1_name,player2_name,contact_phone,contact_email,whatsapp_ok,payment_reference,fee_paise_at_submit,status,payment_verified_amount_paise,payment_verified_at,entry_id,converted_at,rejected_reason,rejected_at,revision,created_at,anonymised_at',
   tournament_events: 'id,tournament_id,category,age_group,is_junior,status,capacity,registration_open,entry_fee_paise,tournaments(name,level,is_minor_signal)',
   competition_settings: 'registration_enabled,registration_payment_instructions,registration_upi_id,registration_payee_name',
   players: 'id,display_name,age_status,name_normalized',
 } as const;
 
 type RegDb = {
-  id: string; ref: string; event_id: string; player1_name: string; player2_name: string | null; contact_phone: string; contact_email: string | null;
+  id: string; ref: string; event_id: string; player1_name: string; player2_name: string | null; contact_phone: string | null; contact_email: string | null;
   whatsapp_ok: boolean; payment_reference: string | null; fee_paise_at_submit: number | null; status: RegistrationStatus; payment_verified_amount_paise: number | null;
   payment_verified_at: string | null; entry_id: string | null; converted_at: string | null; rejected_reason: string | null; rejected_at: string | null; revision: number; created_at: string;
+  anonymised_at?: string | null;
 };
 type EventDb = {
   id: string; tournament_id: string; category: string; age_group: string | null; is_junior: boolean; status: string; capacity: number | null;
@@ -37,6 +38,7 @@ const rowOf = (r: RegDb): RegistrationRow => ({
   whatsappOk: r.whatsapp_ok, paymentReference: r.payment_reference, feePaiseAtSubmit: r.fee_paise_at_submit, status: r.status,
   verifiedAmountPaise: r.payment_verified_amount_paise, verifiedAt: r.payment_verified_at, entryId: r.entry_id, convertedAt: r.converted_at,
   rejectedReason: r.rejected_reason, rejectedAt: r.rejected_at, revision: r.revision, createdAt: r.created_at,
+  anonymisedAt: r.anonymised_at ?? null,
 });
 
 // Junior the way 0020 decides it (app.registration_event_is_junior): the event, a minor signal (unknown counts) or school/college level.

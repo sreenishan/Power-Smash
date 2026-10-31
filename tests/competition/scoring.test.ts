@@ -328,3 +328,22 @@ describe('live scoring', () => {
     expect(validateMatch(scoreline(s), rules).valid).toBe(true);
   });
 });
+
+describe('a winning lead of 1 (a local variation): no score past the first decided point', () => {
+  const winBy1 = { ...DEFAULT_RULESET, winBy: 1, pointCap: null, intervalAt: null, changeEndsInDecidingGameAt: null };
+  it('21-20 ends the game, so 22-21 and 21-21 can never happen', () => {
+    expect(validateGame({ a: 21, b: 20 }, winBy1).valid).toBe(true);
+    expect(validateGame({ a: 22, b: 21 }, winBy1).valid).toBe(false);
+    expect(validateGame({ a: 22, b: 21 }, winBy1).reasons[0]).toMatch(/already have ended/);
+    expect(isValidInProgressGame({ a: 21, b: 21 }, winBy1)).toBe(false);
+    expect(isValidInProgressGame({ a: 20, b: 20 }, winBy1)).toBe(true);
+  });
+  it('with a cap above the points to win, 30-29 is refused too (the game ended at 21-20)', () => {
+    expect(validateGame({ a: 30, b: 29 }, { ...winBy1, pointCap: 30 }).valid).toBe(false);
+  });
+  it('the Laws default is unchanged (every open score reachable)', () => {
+    expect(validateGame({ a: 30, b: 28 }).valid).toBe(true);
+    expect(validateGame({ a: 30, b: 29 }).valid).toBe(true);
+    expect(isValidInProgressGame({ a: 29, b: 29 })).toBe(true);
+  });
+});

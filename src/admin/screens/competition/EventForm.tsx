@@ -25,7 +25,7 @@ import {
   RULESET_PRESETS,
   rulesetWords,
 } from './logic';
-import { BackLink, ErrorText, Input, Note, useAction } from './shared';
+import { BackLink, ErrorText, Input, Note, useAction, byRole } from './shared';
 
 interface Draft {
   category: Category;
@@ -122,7 +122,7 @@ function EventForm({ tournamentId, tournamentName, initial, hasEntries }: { tour
         ruleset,
         capacity: cap,
         status: d.status,
-        reason: initial ? 'Event changed by owner' : 'Event added by owner',
+        reason: initial ? `Event changed ${byRole(actor.role)}` : `Event added ${byRole(actor.role)}`,
       }),
     );
     if (!r) return;

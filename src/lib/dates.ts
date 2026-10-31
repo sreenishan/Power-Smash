@@ -135,3 +135,35 @@ export function splitIst(instant: string | null | undefined): { date: string; ti
   if (Number.isNaN(d.getTime())) return { date: '', time: '' };
   return { date: isoParts.format(d), time: hhmmIst.format(d) };
 }
+
+// ----------------------------------------------------------------------------- India time of day (moved here from src/components/competition/helpers.ts, D-030)
+
+const timeOfDayIst = new Intl.DateTimeFormat('en-IN', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit', hour12: true });
+
+function instantDate(instant: string | Date): Date | null {
+  const d = instant instanceof Date ? new Date(instant.getTime()) : typeof instant === 'string' ? new Date(instant) : null;
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+}
+
+/** An ISO instant has a date, a time and a zone (Z or +hh:mm). A bare date or a zone-less time is refused: it would be read in the server's zone. */
+export function isZonedInstant(value: unknown): value is string {
+  return typeof value === 'string' && ZONED_INSTANT.test(value) && instantDate(value) !== null;
+}
+
+/** "4:30 pm IST" for an instant (shown in India time whatever the machine's zone). Null for anything that is not a zoned instant. */
+export function formatTimeIst(instant: string | Date | null | undefined): string | null {
+  if (instant == null) return null;
+  if (typeof instant === 'string' && !isZonedInstant(instant)) return null;
+  const d = instantDate(instant);
+  if (!d) return null;
+  return `${timeOfDayIst.format(d).replace(/\u202f/g, ' ').toLowerCase()} IST`;
+}
+
+/** The India calendar date (YYYY-MM-DD) of an instant, or null. */
+export function istDateOf(instant: string | Date | null | undefined): string | null {
+  if (instant == null) return null;
+  if (typeof instant === 'string' && !isZonedInstant(instant)) return null;
+  const d = instantDate(instant);
+  if (!d) return null;
+  return isoParts.format(d);
+}

@@ -12,9 +12,13 @@
 //   configurable). Results after asOf are ignored (not yet in the window), not errors.
 // - Best N: only an entry's best `bestN` results in the window count (default 4, an assumption, configurable). Higher points
 //   first; equal points: the more recent result first, then the tournament id. If an entry has two results for one tournament
-//   (a data error), only the best is kept and the other is reported.
-// - Ties (documented rule, in order): more total points; then the better best counted result, then second best, and so on;
-//   then the more recent latest counted result. Entries still equal SHARE the position (1, 1, 3) and are listed by entry id.
+//   (a data error), only the best is kept and the other is reported; "best" is fully ordered (points, date, then the further finish,
+//   then the level and the players), so the kept result and the entry's players never depend on the input order.
+// - Ties (documented rule, in order): more total points; then the better best counted result, then second best, and so on (a
+//   missing result counts as 0 points, the same as a result worth 0); then the more recent latest counted result. Entries still
+//   equal SHARE the position (1, 1, 3) and are listed by entry id.
+// - The points table is REQUIRED (no default): the admin passes the owner-approved table (D-110). DEFAULT_POINTS_TABLE stays an
+//   explicit export for tests and previews only.
 // - Entries with 0 points are still listed (they played in the window) at the bottom by the same rules.
 import { addDays, isIsoDate } from '../../dates';
 import type { IsoDate } from '../types';
@@ -137,7 +141,7 @@ export function describeRankingFormula(table: PointsTable = DEFAULT_POINTS_TABLE
   return [
     `Points come from the table "${table.label}" (${status}): each tournament level gives fixed points for how far a player or pair got (winner, runner-up, semifinal, quarterfinal and so on).`,
     `Only results from the last ${windowDays} days up to the ranking date count, and only each entry's best ${bestN} ${bestN === 1 ? 'result' : 'results'}.`,
-    'Ties: more points first; then the better best result, then the second best, and so on; then the more recent latest result. Entries still equal share the position.',
+    'Ties: more points first; then the better best result, then the second best, and so on (a missing result counts as 0 points); then the more recent latest result. Entries still equal share the position.',
     'Walkovers and match details do not change points: only the round reached counts.',
     RANKING_DISCLAIMER,
   ].join(' ');
@@ -146,10 +150,18 @@ export function describeRankingFormula(table: PointsTable = DEFAULT_POINTS_TABLE
 /** The formula with the default table and options. */
 export const RANKING_FORMULA_DESCRIPTION: string = describeRankingFormula();
 
+const cmpText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+/** Best first. A total order on everything a scored result holds, so no choice depends on the input order. */
 function compareScored(x: ScoredResult, y: ScoredResult): number {
   if (x.points !== y.points) return y.points - x.points;
   if (x.date !== y.date) return x.date > y.date ? -1 : 1;
-  return x.tournamentId < y.tournamentId ? -1 : x.tournamentId > y.tournamentId ? 1 : 0;
+  return cmpText(x.tournamentId, y.tournamentId) || FINISHES.indexOf(x.finish) - FINISHES.indexOf(y.finish) || cmpText(x.level, y.level);
+}
+
+/** Two results of one entry for one tournament: the better one (compareScored, then the players list, so the choice is order-free). */
+function compareSources(x: { scored: ScoredResult; source: RankingResult }, y: { scored: ScoredResult; source: RankingResult }): number {
+  return compareScored(x.scored, y.scored) || cmpText(JSON.stringify(x.source.players ?? []), JSON.stringify(y.source.players ?? []));
 }
 
 /** Tie comparison (without the entry id): negative = x ranks higher, 0 = shared position. */
@@ -157,8 +169,8 @@ function compareRows(x: RankingRow, y: RankingRow): number {
   if (x.points !== y.points) return y.points - x.points;
   const n = Math.max(x.counted.length, y.counted.length);
   for (let i = 0; i < n; i += 1) {
-    const px = x.counted[i]?.points ?? -1;
-    const py = y.counted[i]?.points ?? -1;
+    const px = x.counted[i]?.points ?? 0;
+    const py = y.counted[i]?.points ?? 0;
     if (px !== py) return py - px;
   }
   const lx = latest(x.counted);
@@ -184,7 +196,7 @@ function validResult(r: RankingResult): boolean {
  * A local ranking snapshot: best-N results within the rolling window, points from the table, the documented tie rule.
  * Throws RangeError for a bad asOf date, bad options or a malformed points table.
  */
-export function localRanking(results: readonly RankingResult[], pointsTable: PointsTable = DEFAULT_POINTS_TABLE, options: RankingOptions): RankingSnapshot {
+export function localRanking(results: readonly RankingResult[], pointsTable: PointsTable, options: RankingOptions): RankingSnapshot {
   if (!isIsoDate(options.asOf)) throw new RangeError('asOf must be a calendar date YYYY-MM-DD');
   const windowDays = options.windowDays ?? DEFAULT_WINDOW_DAYS;
   const bestN = options.bestN ?? DEFAULT_BEST_N;
@@ -196,7 +208,7 @@ export function localRanking(results: readonly RankingResult[], pointsTable: Poi
   const windowStart = addDays(options.asOf, -(windowDays - 1));
   const excluded: RankingExclusion[] = [];
   // entry -> tournament -> best scored result (with its source)
-  const perEntry = new Map<string, { players: readonly string[]; byTournament: Map<string, { scored: ScoredResult; source: RankingResult }> }>();
+  const perEntry = new Map<string, { byTournament: Map<string, { scored: ScoredResult; source: RankingResult }> }>();
 
   for (const r of results) {
     if (!validResult(r)) {
@@ -213,11 +225,10 @@ export function localRanking(results: readonly RankingResult[], pointsTable: Poi
       continue;
     }
     const scored: ScoredResult = { tournamentId: r.tournamentId, level: r.level, finish: r.finish, date: r.date, points: row[r.finish] ?? 0 };
-    const entry = perEntry.get(r.entryId) ?? { players: r.players ? [...r.players] : [], byTournament: new Map() };
-    if (entry.players.length === 0 && r.players) entry.players = [...r.players];
+    const entry = perEntry.get(r.entryId) ?? { byTournament: new Map() };
     const existing = entry.byTournament.get(r.tournamentId);
     if (existing === undefined) entry.byTournament.set(r.tournamentId, { scored, source: r });
-    else if (compareScored(scored, existing.scored) < 0) {
+    else if (compareSources({ scored, source: r }, existing) < 0) {
       excluded.push({ result: existing.source, reason: 'duplicate_tournament' });
       entry.byTournament.set(r.tournamentId, { scored, source: r });
     } else excluded.push({ result: r, reason: 'duplicate_tournament' });
@@ -226,13 +237,16 @@ export function localRanking(results: readonly RankingResult[], pointsTable: Poi
 
   const rows: RankingRow[] = [];
   for (const [entryId, entry] of perEntry) {
-    const all = [...entry.byTournament.values()].map((v) => v.scored).sort(compareScored);
+    const kept = [...entry.byTournament.values()].sort(compareSources);
+    const all = kept.map((v) => v.scored);
     const counted = all.slice(0, bestN);
+    // The players shown: from the best kept result that names them (deterministic: `kept` is fully ordered).
+    const players = kept.find((v) => (v.source.players?.length ?? 0) > 0)?.source.players ?? [];
     rows.push({
       position: 0,
       tied: false,
       entryId,
-      players: entry.players,
+      players: [...players],
       points: counted.reduce((sum, s) => sum + s.points, 0),
       counted,
       notCounted: all.slice(bestN),

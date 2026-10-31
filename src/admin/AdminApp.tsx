@@ -8,7 +8,7 @@ import { env } from '../config/env';
 import { createGoTrue, parseInviteRedirect, setInvitedPassword, type AuthSession, type InviteRedirect } from '../lib/admin/gotrue';
 import { canEnrolTotp, createHttpAdminStore, sessionRole, type AdminClient } from '../lib/admin/http-store';
 import { navAreasFor } from '../lib/admin/accounts/access';
-import { MemoryAdminStore } from '../lib/admin/memory-store';
+import { MemoryAdminStore, previewAs } from '../lib/admin/memory-store';
 import type { Actor, UndoDescriptor } from '../lib/admin/types';
 import './admin.css';
 import { Login, type LoginApi } from './Login';
@@ -65,9 +65,18 @@ export default function AdminApp() {
   return LIVE ? <LiveApp /> : <PreviewApp />;
 }
 
+/** `?preview-as=organizer` or `?preview-as=scorer` shows the preview as that role would see it (made-up data; preview mode only). */
+export function previewRoleFrom(search: string): 'organizer' | 'scorer' | null {
+  const v = new URLSearchParams(search).get('preview-as');
+  return v === 'organizer' || v === 'scorer' ? v : null;
+}
+
 function PreviewApp() {
-  const client = useMemo<AdminClient>(() => new MemoryAdminStore(), []);
-  const actor = useMemo<Actor>(() => ({ userId: 'preview-owner', role: 'owner' }), []);
+  const { client, actor } = useMemo<{ client: AdminClient; actor: Actor }>(() => {
+    const store = new MemoryAdminStore();
+    const role = previewRoleFrom(typeof location === 'undefined' ? '' : location.search);
+    return role ? previewAs(store, role) : { client: store, actor: { userId: 'preview-owner', role: 'owner' } };
+  }, []);
   return <Shell client={client} actor={actor} mode="preview" signOut={() => undefined} />;
 }
 
@@ -211,6 +220,7 @@ function Shell({ client, actor, mode, signOut }: { client: AdminClient; actor: A
         {mode === 'preview' ? (
           <p role="status" className="bg-ps-live-tint p-3 text-center text-small font-semibold text-ps-ink">
             Preview with made-up data. Nothing here is real and nothing is saved or sent.
+            {actor.role !== 'owner' ? ` You are seeing what ${actor.role === 'organizer' ? 'an organizer' : 'a scorer'} sees.` : ''}
           </p>
         ) : null}
         <header className="ps-surface-dark flex items-center justify-between gap-3 border-b-4 border-ps-volt bg-ps-ink px-4 py-3">

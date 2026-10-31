@@ -10,7 +10,8 @@ import { knockoutFeeders, planDraw, planMatchSync } from './draw';
 import { isJuniorScope, rankingFromResults } from './ranking';
 import { checkResult } from './result';
 import { rankingProtectedMessage } from './messages';
-import { describePointsTable, eventProblems, playersPerEntry, pointsTableProblems } from './validate';
+import { normalizeName } from '../../parser/normalize';
+import { describePointsTable, eventProblems, newPlayerNameProblem, ORGANIZER_PLAYER_LIMITS, playersPerEntry, pointsTableProblems, SEARCH_TOO_SHORT } from './validate';
 import {
   CompetitionError,
   type CompDrawRow,
@@ -96,6 +97,23 @@ export function createCompetitionService(b: CompetitionBackend, opts: Competitio
     return new Set(unique.filter((id) => !named.has(id)));
   }
 
+  /**
+   * Which entered players competition pages may name, for the "On the site" preview. The owner asks the owner RPC; an organizer asks the
+   * scoped one for this event (0024, 'run' access), so both see the same truth. Anyone else (a scorer, no actor) gets nobody: fail
+   * closed. A refusal of the organizer's scoped read is also nobody named, never an error page.
+   */
+  async function namedForEvent(actor: Actor | null, eventId: string, ids: readonly string[]): Promise<string[]> {
+    if (actor?.role === 'organizer') {
+      try {
+        const named = new Set(await b.eventNamedPlayerIds(actor, eventId));
+        return ids.filter((id) => named.has(id));
+      } catch {
+        return [];
+      }
+    }
+    return actor?.role === 'scorer' ? [] : b.rankablePlayerIds(actor, [...ids]);
+  }
+
   async function loadEvent(eventId: string): Promise<CompEventRow> {
     const [event] = await b.listEvents({ ids: [eventId] });
     if (!event) throw new CompetitionError('NOT_FOUND');
@@ -169,7 +187,7 @@ export function createCompetitionService(b: CompetitionBackend, opts: Competitio
         // The competition naming rule (app.competition_named_players through the backend), the same one the public views use, so
         // "On the site:" in the admin tells the owner the truth. Fail closed: no verified actor or an unknown player = protected.
         const entryPlayerIds = [...players.keys()];
-        const named = new Set(entryPlayerIds.length === 0 ? [] : await b.rankablePlayerIds(actor ?? null, entryPlayerIds));
+        const named = new Set(entryPlayerIds.length === 0 ? [] : await namedForEvent(actor ?? null, event.id, entryPlayerIds));
         const entryDtos: CompetitionEntryDto[] = entries.map((e) => {
           const ps = e.players.map((id) => {
             const p = players.get(id);
@@ -512,6 +530,31 @@ export function createCompetitionService(b: CompetitionBackend, opts: Competitio
         const label = input.label.trim();
         if (label.length < 1 || label.length > 40) return refuse('The court name must be 1 to 40 characters, for example "Court 1".', 'label');
         return okResult(await b.saveCourt(actor, input.id, { tournamentId: input.tournamentId, venueId: input.venueId, label, sort: input.sort }, input.reason));
+      }),
+
+    competitionSearchPlayers: (actor, input) =>
+      guard(async () => {
+        const q = normalizeName(input.q) ?? '';
+        if (q.length < ORGANIZER_PLAYER_LIMITS.queryMin) return refuse(SEARCH_TOO_SHORT, 'q');
+        if (q.length > ORGANIZER_PLAYER_LIMITS.queryMax) return refuse('Type a shorter part of the name.', 'q');
+        const limit = Math.min(Math.max(1, Math.trunc(input.limit)), ORGANIZER_PLAYER_LIMITS.pageMax);
+        const offset = Math.min(Math.max(0, Math.trunc(input.offset)), ORGANIZER_PLAYER_LIMITS.offsetMax);
+        if (!(await b.getTournament(input.tournamentId))) return failResult('NOT_FOUND');
+        const page = await b.searchPlayersForTournament(actor, input.tournamentId, q, limit, offset);
+        // only the two fields leave the server, whatever the backend returned (no naming flag: D-012)
+        return okResult({ items: page.items.map((p) => ({ id: p.id, displayName: p.displayName })), hasMore: page.hasMore === true });
+      }),
+
+    competitionCreatePlayer: (actor, input) =>
+      guard(async () => {
+        const problem = newPlayerNameProblem(input.name);
+        if (problem) return refuse(problem, 'name');
+        const name = input.name.trim();
+        const nameNormalized = normalizeName(name);
+        if (nameNormalized === null) return refuse("Type the player's full name.", 'name');
+        if (!(await b.getTournament(input.tournamentId))) return failResult('NOT_FOUND');
+        const p = await b.createProvisionalPlayer(actor, input.tournamentId, { name, nameNormalized }, input.reason);
+        return okResult({ id: p.id, displayName: p.displayName, named: false });
       }),
 
     competitionApprovePointsTable: (actor, input) =>

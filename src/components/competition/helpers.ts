@@ -10,9 +10,8 @@
 //   freshness window (default 5 minutes, LIVE_FRESHNESS_MS_DEFAULT, a product choice, not a vendor fact). Otherwise no live label.
 // - Rankings are local and unofficial: the ranking label below is always shown, with the snapshot date, and a ranking stays
 //   marked as a draft until the owner approves publication (`ownerApproved` exactly true).
-// - Times are shown in India time (Asia/Kolkata, TIME_ZONE from src/lib/dates.ts). dates.ts has no time-of-day formatter yet;
-//   formatTimeIst below uses the same zone and locale. TODO(lead): move formatTimeIst into src/lib/dates.ts if it is wanted elsewhere.
-import { formatDate, isIsoDate, TIME_ZONE } from '../../lib/dates';
+// - Times are shown in India time (Asia/Kolkata) through src/lib/dates.ts (formatTimeIst, istDateOf; D-030).
+import { formatDate, formatTimeIst, isIsoDate, isZonedInstant, istDateOf } from '../../lib/dates';
 import { categoryLabel, roundLabel as archiveRoundLabel, ROUND_ORDER } from '../../lib/archive/labels';
 import type { GameScore, MatchStatus, RoundCode, Side } from '../../lib/competition/types';
 
@@ -98,34 +97,12 @@ export function bracketRoundRank(code: string): number {
 
 // ------------------------------------------------------------------ India time
 
-const timeFmt = new Intl.DateTimeFormat('en-IN', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit', hour12: true });
+// formatTimeIst, istDateOf and isZonedInstant live in src/lib/dates.ts (D-030: one date module); re-exported for the components.
+export { formatTimeIst, isZonedInstant, istDateOf };
 
 function toDate(instant: string | Date): Date | null {
   const d = instant instanceof Date ? new Date(instant.getTime()) : typeof instant === 'string' ? new Date(instant) : null;
   return d && !Number.isNaN(d.getTime()) ? d : null;
-}
-
-/** An ISO instant has a date, a time and a zone (Z or +hh:mm). A bare date or a zone-less time is refused: it would be read in the server's zone. */
-export function isZonedInstant(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(value) && toDate(value) !== null;
-}
-
-/** "4:30 pm IST" for an instant (shown in India time whatever the build machine's zone). Null for anything that is not a zoned instant. */
-export function formatTimeIst(instant: string | Date | null | undefined): string | null {
-  if (instant == null) return null;
-  if (typeof instant === 'string' && !isZonedInstant(instant)) return null;
-  const d = toDate(instant);
-  if (!d) return null;
-  return `${timeFmt.format(d).replace(/ /g, ' ').toLowerCase()} IST`;
-}
-
-/** The India calendar date (YYYY-MM-DD) of an instant, or null. */
-export function istDateOf(instant: string | Date | null | undefined): string | null {
-  if (instant == null) return null;
-  if (typeof instant === 'string' && !isZonedInstant(instant)) return null;
-  const d = toDate(instant);
-  if (!d) return null;
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 
 /** "30 October 2026" from an India calendar date or an instant (through src/lib/dates.ts); null when unreadable. */

@@ -9,6 +9,8 @@ import { Badge, Button, Confirm, Empty, Field, LoadState, cardCls, inputCls, use
 import { ErrorText, H2, Input, Note, ReasonField, reasonProblem, useAction } from '../competition/shared';
 import {
   AGE_WORDS,
+  CONTACT_REMOVED_TEXT,
+  isWaiting,
   STATUS_LABEL,
   choicesNamePublicly,
   convertChoices,
@@ -173,8 +175,8 @@ function EventCard({ store, e, onOpen }: { store: RegistrationAdminStore; e: Reg
 
 function EventRegistrations({ store, eventId, onBack }: { store: RegistrationAdminStore; eventId: string; onBack: () => void }) {
   const { data, error, loading } = useAsync(() => store.registrationList({ eventId }), [eventId]);
-  const open = data?.registrations.filter((r) => r.status === 'submitted' || r.status === 'payment_verified') ?? [];
-  const done = data?.registrations.filter((r) => r.status === 'converted' || r.status === 'rejected') ?? [];
+  const open = data?.registrations.filter((r) => isWaiting(r)) ?? [];
+  const done = data?.registrations.filter((r) => !isWaiting(r)) ?? [];
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -188,12 +190,13 @@ function EventRegistrations({ store, eventId, onBack }: { store: RegistrationAdm
             {open.length === 0 ? <Empty>No registrations waiting.</Empty> : open.map((r) => <RegistrationCard key={r.id} store={store} r={r} />)}
             {done.length > 0 ? (
               <details className="rounded-lg border border-line p-3">
-                <summary className="min-h-tap cursor-pointer py-2 font-semibold">Added and rejected ({done.length})</summary>
+                <summary className="min-h-tap cursor-pointer py-2 font-semibold">Added, rejected and cleared ({done.length})</summary>
                 <ul className="mt-2 flex flex-col gap-1">
                   {done.map((r) => (
                     <li key={r.id}>
                       {r.ref} · {r.names.map((n) => n.typed).join(' & ')} · {STATUS_LABEL[r.status]}
                       {r.rejectedReason ? ` (${r.rejectedReason})` : ''}
+                      {r.anonymisedAt ? ` · ${CONTACT_REMOVED_TEXT}` : ''}
                     </li>
                   ))}
                 </ul>
@@ -262,10 +265,14 @@ function RegistrationCard({ store, r }: { store: RegistrationAdminStore; r: Regi
         <dt className="font-semibold">Player{r.names.length > 1 ? 's' : ''}</dt>
         <dd>{r.names.map((n) => n.typed).join(' & ')}</dd>
         <dt className="font-semibold">Phone</dt>
-        <dd className="ps-num">
-          {r.phone}
-          {r.whatsappOk ? ' (WhatsApp)' : ''}
-        </dd>
+        {r.phone === null || r.anonymisedAt ? (
+          <dd>{CONTACT_REMOVED_TEXT}</dd>
+        ) : (
+          <dd className="ps-num">
+            {r.phone}
+            {r.whatsappOk ? ' (WhatsApp)' : ''}
+          </dd>
+        )}
         {r.email ? (
           <>
             <dt className="font-semibold">Email</dt>

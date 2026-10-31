@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { CompetitionEventDetail, MatchSyncOutcome } from '../../../lib/admin/competition/types';
 import { Button, useAdmin } from '../../ui';
 import { compHash, syncOutcomeLines, syncOutcomeNotice, UPDATE_MATCHES_LABEL, UPDATE_MATCHES_REASON } from './logic';
-import { ErrorText, useAction } from './shared';
+import { byRole, ErrorText, useAction } from './shared';
 
 export function UpdateMatches({ detail }: { detail: CompetitionEventDetail }) {
   const { client, actor, notify, bump } = useAdmin();
@@ -14,7 +14,7 @@ export function UpdateMatches({ detail }: { detail: CompetitionEventDetail }) {
   const published = detail.draw !== null && detail.draw.status !== 'draft';
   if (!published) return null;
   const go = async () => {
-    const r = await act.run(() => client.competitionSyncMatches(actor, { eventId: detail.event.id, reason: UPDATE_MATCHES_REASON }));
+    const r = await act.run(() => client.competitionSyncMatches(actor, { eventId: detail.event.id, reason: UPDATE_MATCHES_REASON.replace(/by owner$/, byRole(actor.role)) }));
     if (!r) return;
     setOutcome(r);
     notify(syncOutcomeNotice(r));

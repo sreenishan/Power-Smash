@@ -2,7 +2,11 @@ import { useState } from 'react';
 import type { ProtectedMatchMode } from '../../lib/archive/types';
 import { PROTECTED_MODE_KEYS, type ProtectedModeKey } from '../../lib/admin/types';
 import { MODE_LABEL } from '../messages';
-import { Confirm, LoadState, cardCls, cx, useAdmin, useAsync, useBusy } from '../ui';
+import { Button, Confirm, Field, LoadState, cardCls, cx, useAdmin, useAsync, useBusy } from '../ui';
+import type { RetentionSummaryDto } from '../../lib/admin/retention/types';
+import type { KeepDaysField } from '../../lib/retention/platform';
+import { ErrorText, H2, Input, ReasonField, useAction } from './competition/shared';
+import { RETENTION_TEXT, checkRetentionForm, currentPeriodText, dueNowLines, retentionFormChanged, retentionFormFrom, retentionSavedText, type RetentionForm } from './retention-logic';
 
 const TITLE: Record<ProtectedModeKey, string> = {
   unknown_match_mode: 'Players whose age is not known',
@@ -22,6 +26,79 @@ export function Settings() {
       <LoadState loading={q.loading} error={q.error}>
         {q.data ? PROTECTED_MODE_KEYS.map((k) => <ModeCard key={k} k={k} value={q.data![k]} />) : null}
       </LoadState>
+      <RetentionCard />
+    </div>
+  );
+}
+
+const KEEP_FIELDS: readonly KeepDaysField[] = ['registrationKeepDays', 'subscriberKeepDays'];
+
+/** Keep-for periods (0025, D-028): both empty until the owner types what the lawyer decided. No number is ever suggested. */
+function RetentionCard() {
+  const { client, actor } = useAdmin();
+  const q = useAsync(() => client.retentionSummary(actor), []);
+  return (
+    <section className={cardCls} aria-labelledby="retention-h">
+      <H2 id="retention-h">{RETENTION_TEXT.title}</H2>
+      <p className="mt-1 text-small text-fg-muted">{RETENTION_TEXT.intro}</p>
+      <LoadState loading={q.loading} error={q.error}>
+        {q.data ? <RetentionFields summary={q.data} /> : null}
+      </LoadState>
+    </section>
+  );
+}
+
+function RetentionFields({ summary }: { summary: RetentionSummaryDto }) {
+  const { client, actor, notify, bump } = useAdmin();
+  const act = useAction();
+  const [form, setForm] = useState<RetentionForm>(() => retentionFormFrom(summary));
+  const [reason, setReason] = useState('');
+  const [local, setLocal] = useState<{ form?: string; reason?: string }>({});
+  const save = async () => {
+    const checked = checkRetentionForm(form);
+    const r = reason.trim();
+    const next = { form: checked.ok ? undefined : checked.problems.join(' '), reason: r.length < 3 || r.length > 500 ? 'Write a short reason (3 to 500 characters).' : undefined };
+    setLocal(next);
+    if (!checked.ok || next.reason) return;
+    const res = await act.run(() => client.retentionSave(actor, { ...checked.value, reason: r }));
+    if (!res) return;
+    setReason('');
+    notify(retentionSavedText(res.fields));
+    bump();
+  };
+  const formError = local.form ?? act.fields.form ?? act.error;
+  return (
+    <div className="mt-3 flex flex-col gap-4">
+      {KEEP_FIELDS.map((k) => (
+        <Field key={k} label={RETENTION_TEXT.fields[k].label} htmlFor={`retention-${k}`} hint={`${RETENTION_TEXT.fields[k].help} ${RETENTION_TEXT.lawyerNote}. Leave it empty to keep everything.`}>
+          <Input id={`retention-${k}`} value={form[k]} inputMode="numeric" maxLength={5} errorId="retention-form-error" error={formError} onChange={(v) => setForm({ ...form, [k]: v })} />
+          <span className="text-small text-fg-muted">{currentPeriodText(summary[k])}</span>
+        </Field>
+      ))}
+      <div className="flex flex-col gap-1">
+        <label className="flex min-h-tap items-center gap-3 font-semibold" htmlFor="retention-keep-hash">
+          <input id="retention-keep-hash" type="checkbox" className="h-5 w-5" checked={form.keepUnsubscribeHash} aria-describedby="retention-keep-hash-help" onChange={(ev) => setForm({ ...form, keepUnsubscribeHash: ev.target.checked })} />
+          {RETENTION_TEXT.keepUnsubscribeHash.label}
+        </label>
+        <p id="retention-keep-hash-help" className="text-small text-fg-muted">{RETENTION_TEXT.keepUnsubscribeHash.help}</p>
+        <span className="text-small text-fg-muted">{summary.keepUnsubscribeHash ? 'Now: ticked, a code is kept' : 'Now: unticked, nothing is kept'}</span>
+      </div>
+      <ErrorText id="retention-form-error" text={formError} />
+      <ReasonField id="retention-reason" value={reason} onChange={setReason} error={local.reason ?? act.fields.reason} />
+      <div>
+        <Button variant="primary" busy={act.busy} disabled={!retentionFormChanged(form, summary)} onClick={() => void save()}>
+          Save
+        </Button>
+      </div>
+      <section aria-labelledby="retention-due-h" className="rounded-md border border-line p-3">
+        <h3 id="retention-due-h" className="text-body font-bold text-heading">What the next clean-up would remove</h3>
+        <ul className="mt-2 list-disc pl-5 text-small">
+          {dueNowLines(summary).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-small text-fg-muted">The clean-up runs once a week, only while its switch is on. There is no button to run it from here.</p>
+      </section>
     </div>
   );
 }

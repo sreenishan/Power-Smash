@@ -39,6 +39,13 @@ describe('retention.yml', () => {
     expect(code).toContain('/rest/v1/rpc/admin_run_retention');
   });
 
+  it('puts the secret key on the apikey header only, never as a Bearer token (VF-S9, as src/lib/supabase/rest.ts does)', () => {
+    expect(code.match(/header = "apikey: \$\{SUPABASE_SECRET_KEY\}"/g)).toHaveLength(2);
+    expect(code).not.toMatch(/Authorization: Bearer \$\{?SUPABASE_SECRET_KEY/i);
+    const sync = readFileSync('.github/workflows/sync.yml', 'utf8');
+    expect(sync).not.toMatch(/Authorization: Bearer \$\{?SUPABASE_SECRET_KEY/i);
+  });
+
   it('fails on any answer other than HTTP 200 and prints only what the function returns', () => {
     expect(code).toContain('if [ "$status" != "200" ]');
     expect(code).toContain('cat "$result"');

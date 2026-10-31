@@ -2,8 +2,14 @@
 // domain is verified (OT-07, OT-40). Before that: Telegram only, and the confirmation screen shows a WhatsApp link.
 //
 // Resend: POST https://api.resend.com/emails, `Authorization: Bearer`, JSON body {from, to, subject, text|html, reply_to},
-// optional `Idempotency-Key` (max 256 chars, 24 h), 429 on rate limit, 409 on an idempotency conflict
+// optional `Idempotency-Key` (1 to 256 chars, kept 24 h), 429 on rate limit
 // (https://resend.com/docs/api-reference/emails/send-email, checked 2026-10-21; free plan 100 mails a day, VF-F1).
+// Idempotency (VF-R2, https://resend.com/docs/dashboard/emails/idempotency-keys, checked 2026-10-31): a repeat with the same key AND
+// the same payload gets the first answer again and nothing is sent twice. A 409 is NOT "already accepted": it is either
+// `invalid_idempotent_request` (same key, different payload) or `concurrent_idempotent_requests` (the first request with that key is
+// still running and may yet fail). So a 409 is never "sent" (D-128): `concurrent_idempotent_requests` (or an unreadable 409) is a
+// temporary failure, retried later with the same key and payload (within 24 hours Resend then answers with the first result, without
+// sending again); `invalid_idempotent_request` is a permanent failure (the key was used for different content), never retried.
 // We send TEXT only: nothing the visitor typed is ever interpreted as markup. The only visitor-derived values are the
 // sanitised first name and the reference; addresses and subjects are checked for CR/LF and angle brackets.
 import { sanitisedFirstName, normaliseEmail } from '../security/text';
@@ -12,6 +18,61 @@ import { KIND_LABELS, buildAlertText, type AlertLead, type AlertTextOptions } fr
 import type { LeadKind } from '../contracts/lead-constants';
 
 export const RESEND_URL = 'https://api.resend.com/emails';
+
+/** The most of a Resend error body that is ever read (bytes). A longer body is cut off and reads as "unknown error". */
+export const RESEND_ERROR_BODY_MAX = 2048;
+
+/**
+ * Reads at most `max` bytes of a response body, then stops reading (the rest is never buffered). Returns null when the body says it is
+ * longer (content-length) or turns out longer than `max`.
+ */
+export async function readCappedText(res: Response, max: number): Promise<string | null> {
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined);
+    return null;
+  }
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > max) {
+        await reader.cancel().catch(() => undefined);
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const all = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    all.set(c, at);
+    at += c.byteLength;
+  }
+  return new TextDecoder().decode(all);
+}
+
+/**
+ * The `name` of a Resend error body (for example 'concurrent_idempotent_requests'), or null. Reads at most RESEND_ERROR_BODY_MAX bytes
+ * (a capped stream read: a larger body is never buffered); never logged.
+ */
+async function resendErrorName(res: Response): Promise<string | null> {
+  try {
+    const text = await readCappedText(res, RESEND_ERROR_BODY_MAX);
+    if (text === null) return null;
+    const name = (JSON.parse(text) as { name?: unknown }).name;
+    return typeof name === 'string' && /^[a-z_]{1,64}$/.test(name) ? name : null;
+  } catch {
+    return null;
+  }
+}
 
 export type EmailResult = { ok: true } | { ok: false; reason: 'unconfigured' | 'invalid' | 'rate_limited' | 'rejected' | 'unavailable' };
 
@@ -92,7 +153,8 @@ export async function sendEmail(o: SendEmailOptions): Promise<EmailResult> {
       body: JSON.stringify({ from, to, subject, text: o.message.text, ...(replyTo ? { reply_to: replyTo } : {}), ...(extra && Object.keys(extra).length > 0 ? { headers: extra } : {}) }),
       signal,
     });
-    if (res.ok || res.status === 409) return { ok: true }; // 409: the same idempotency key was already accepted
+    if (res.ok) return { ok: true };
+    if (res.status === 409) return (await resendErrorName(res)) === 'invalid_idempotent_request' ? { ok: false, reason: 'rejected' } : { ok: false, reason: 'unavailable' };
     if (res.status === 429) return { ok: false, reason: 'rate_limited' };
     return { ok: false, reason: res.status >= 500 ? 'unavailable' : 'rejected' };
   } catch {

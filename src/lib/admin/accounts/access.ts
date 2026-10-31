@@ -3,8 +3,8 @@
 // protection, and a TS mistake still meets the SQL check.
 //
 //   owner      everything, as before.
-//   organizer  the Competitions area for the tournaments assigned to them: events, entries, draws, matches, courts, the order of play,
-//              results including confirming them. NOT rankings, the points table, venues, settings, or anything outside competitions.
+//   organizer  the Competitions area for the tournaments assigned to them: events, entries (with their own player search and new
+//              provisional players, 0024), draws, matches, courts, the order of play, results including confirming them. NOT rankings, the points table, venues, settings, or anything outside competitions.
 //   scorer     record results (never confirm, never publish) for matches of the tournaments assigned to them, and read what that needs.
 //   editor     unchanged (off, D-007); never a competition role.
 import type { ActionPolicy } from '../policy';
@@ -41,6 +41,9 @@ const ORGANIZER: Readonly<Record<string, AccessNeed>> = {
   'competition.recordResult': 'score',
   'competition.confirmResult': 'run',
   'competition.saveCourt': 'run',
+  // 0024: find a player to enter, or add a new provisional one (never edit an existing player)
+  'competition.searchPlayers': 'run',
+  'competition.createPlayer': 'run',
   ...LIVE_SCOPED,
 };
 
@@ -149,12 +152,19 @@ export interface CompetitionCapabilities {
   confirmResult: boolean;
   /** A scorer sees "Protected player" for anyone who is not a confirmed adult, and for everyone in a junior event (D-109). */
   seesProtectedNames: boolean;
+  /**
+   * Which player search the Entries screen uses: the owner's full Players search ('owner'), the organizer's scoped search of 0024
+   * ('tournament': id, name and the naming flag only), or none.
+   */
+  playerSearch: 'owner' | 'tournament' | null;
+  /** May add a NEW provisional, hidden, unknown-age player when nobody matches (0024). The owner adds players on the Players screen. */
+  createPlayer: boolean;
 }
 
 /** The buttons and sub-pages of the Competitions area for a role. Derived from the same map the server enforces. */
 export function competitionUiFor(role: PlatformRole): CompetitionCapabilities {
   if (role === 'owner') {
-    return { rankings: true, venues: true, addEvent: true, editEvent: true, entries: true, draw: true, schedule: true, courts: true, updateMatches: true, editMatch: true, recordResult: true, confirmResult: true, seesProtectedNames: true };
+    return { rankings: true, venues: true, addEvent: true, editEvent: true, entries: true, draw: true, schedule: true, courts: true, updateMatches: true, editMatch: true, recordResult: true, confirmResult: true, seesProtectedNames: true, playerSearch: 'owner', createPlayer: false };
   }
   const can = (action: string): boolean => isScopedRole(role) && scopedNeed(role, action) !== null;
   return {
@@ -171,5 +181,7 @@ export function competitionUiFor(role: PlatformRole): CompetitionCapabilities {
     recordResult: can('competition.recordResult'),
     confirmResult: can('competition.confirmResult'),
     seesProtectedNames: role === 'organizer',
+    playerSearch: can('competition.searchPlayers') ? 'tournament' : null,
+    createPlayer: can('competition.createPlayer'),
   };
 }

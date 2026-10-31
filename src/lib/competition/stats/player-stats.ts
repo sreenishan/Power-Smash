@@ -4,7 +4,9 @@
 // Rules and decisions:
 // - Only DECIDED, CONFIRMED matches count (types.ts: DECIDED_STATUSES, MatchResult.confirmed). Matches with no result, an
 //   `abandoned` result, an unconfirmed result, broken data (bad date, wrong side size for the category, a player twice, a decided
-//   status without a winner) or a repeated match id (the first one wins) are excluded and COUNTED by reason in `limitations`.
+//   status without a winner) or a repeated match id are excluded and COUNTED by reason in `limitations`. A repeated id keeps ONE copy
+//   for everybody: the first copy that is decided, confirmed and valid (so a corrected, confirmed copy wins over an earlier broken or
+//   unconfirmed one); when no copy is usable, the first copy. The other copies count as `duplicate_id` for the players they name.
 // - "Played" = `completed` + `retired` (a retirement is a match that was started; the side that did not retire wins it).
 //   A `walkover` is NOT played: it is reported separately (walkovers won / lost) and is not in won, lost, win % or recent form.
 // - Games and points come only from `completed` matches whose game scores are a full, valid record of the match (every game a
@@ -19,6 +21,7 @@
 // - Ordering (recent form, head-to-head list): by date, then the optional `order` number (a match's place in the day), then id.
 // - The caller decides visibility: protected players (D-012) must be filtered out BEFORE any figure here is shown publicly.
 import { isIsoDate } from '../../dates';
+import { validateGame } from '../scoring';
 import { DECIDED_STATUSES } from '../types';
 import type { Category, DecidedStatus, GameScore, IsoDate, MatchResult, RoundCode, Side } from '../types';
 
@@ -159,39 +162,50 @@ function structurallyValid(m: StatsMatch): boolean {
   return new Set(all).size === all.length;
 }
 
+/** Why a match copy cannot be used, or null when it is decided, confirmed and valid. The same for every player. */
+function unusableReason(match: StatsMatch): Exclude<ExclusionReason, 'duplicate_id'> | null {
+  const r = match.result;
+  if (r === null) return 'no_result';
+  if (!isDecided(r.status)) return 'not_decided';
+  if (!r.confirmed) return 'unconfirmed';
+  if (r.winner === null || !structurallyValid(match)) return 'invalid_match';
+  return null;
+}
+
+/** For each match id, the index of the copy that counts: the first usable copy, else the first copy (input order otherwise). */
+function chosenCopies(matches: readonly StatsMatch[]): Map<string, number> {
+  const chosen = new Map<string, number>();
+  const usable = new Set<string>();
+  matches.forEach((m, i) => {
+    const ok = unusableReason(m) === null;
+    if (!chosen.has(m.id) || (ok && !usable.has(m.id))) {
+      chosen.set(m.id, i);
+      if (ok) usable.add(m.id);
+    }
+  });
+  return chosen;
+}
+
 function screen(matches: readonly StatsMatch[], involves: (m: StatsMatch) => boolean): Screened {
   const excluded = emptyExclusions();
   const usable: UsableMatch[] = [];
-  const seen = new Set<string>();
+  const chosen = chosenCopies(matches);
   let considered = 0;
-  for (const match of matches) {
-    const duplicate = seen.has(match.id);
-    seen.add(match.id);
-    if (!involves(match)) continue;
+  matches.forEach((match, i) => {
+    if (!involves(match)) return;
     considered += 1;
-    if (duplicate) {
+    if (chosen.get(match.id) !== i) {
       excluded.duplicate_id += 1;
-      continue;
+      return;
     }
+    const reason = unusableReason(match);
     const r = match.result;
-    if (r === null) {
-      excluded.no_result += 1;
-      continue;
-    }
-    if (!isDecided(r.status)) {
-      excluded.not_decided += 1;
-      continue;
-    }
-    if (!r.confirmed) {
-      excluded.unconfirmed += 1;
-      continue;
-    }
-    if (r.winner === null || !structurallyValid(match)) {
-      excluded.invalid_match += 1;
-      continue;
+    if (reason !== null || r === null || r.winner === null || !isDecided(r.status)) {
+      excluded[reason ?? 'invalid_match'] += 1;
+      return;
     }
     usable.push({ match, status: r.status, winner: r.winner, games: r.games, discipline: disciplineOf(match.category) });
-  }
+  });
   usable.sort(compareUsable);
   return { usable, considered, excluded };
 }
@@ -221,24 +235,14 @@ function validRules(r: GameRules): boolean {
   );
 }
 
-/** The side that won a legally finished game, or null when the score is not a finished game under the rules. */
+/**
+ * The side that won a legally finished game, or null when the score is not a finished game under the rules. One rule for the whole
+ * platform: this asks the scoring engine (src/lib/competition/scoring validateGame), so a score is valid here exactly when it is valid
+ * there (for example, with a winning lead of 1, 22-21 is refused because the game ended at 21-20).
+ */
 export function gameWinner(game: GameScore, rules: GameRules = DEFAULT_GAME_RULES): Side | null {
-  const { a, b } = game;
-  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a === b) return null;
-  const hi = Math.max(a, b);
-  const lo = Math.min(a, b);
-  const side: Side = a > b ? 'A' : 'B';
-  const cap = rules.pointCap;
-  if (cap !== null && hi > cap) return null;
-  if (hi < rules.pointsToWin) return null;
-  if (cap !== null && hi === cap) {
-    // At the cap the next point wins outright (Law 7.4); it must not have been already won before (lead of winBy earlier).
-    if (cap === rules.pointsToWin) return lo < hi ? side : null;
-    return hi - lo >= 1 && hi - lo <= rules.winBy && lo >= rules.pointsToWin - 1 ? side : null;
-  }
-  if (hi === rules.pointsToWin) return hi - lo >= rules.winBy ? side : null;
-  // Beyond pointsToWin (deuce): the game ends the moment the lead reaches winBy.
-  return hi - lo === rules.winBy ? side : null;
+  if (!validRules(rules)) return null;
+  return validateGame(game, { ...rules, intervalAt: null, changeEndsInDecidingGameAt: null }).winner;
 }
 
 /** True when the games are a full, valid record of a completed match won by `winner`. */

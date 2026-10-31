@@ -39,7 +39,11 @@ export function ScoringScreen({ store, storage = null }: { store: LiveScoringAdm
     <ScoringConsole store={store} matchId={matchId} onBack={() => setMatchId(null)} storage={storage} />
   ) : (
     <div className="flex flex-col gap-6">
-      <Note>Score a match point by point from your phone. The website shows the score only while live scores are switched on below AND on the website, and only as &quot;Live&quot; while points keep arriving.</Note>
+      {actor.role === 'owner' ? (
+        <Note>Score a match point by point from your phone. The website shows the score only while live scores are switched on below AND on the website, and only as &quot;Live&quot; while points keep arriving.</Note>
+      ) : (
+        <Note>Score your matches point by point from your phone. Only the matches of the tournaments given to you are listed. Whether the website shows live scores is the owner&apos;s choice, not yours.</Note>
+      )}
       {/* the live switch is the owner's alone (admin_set_live_scores stays owner only); organizers and scorers only score */}
       {actor.role === 'owner' ? <LiveSettingsCard store={store} /> : null}
       <MatchList store={store} onOpen={setMatchId} />

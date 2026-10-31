@@ -41,7 +41,7 @@ describe.skipIf(!up)('local PostgreSQL: migrations and privileges', () => {
 
   afterAll(() => {
     if (up) dropDb(DB);
-  });
+  }, 60_000);
 
   it('applies both migrations and the check files report ok', () => {
     // later migrations add tables (0004-0006 archive, 0007 placements): the M1 tables must still be there, nothing is asserted about the others here

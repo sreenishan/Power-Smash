@@ -53,9 +53,10 @@ describe.skipIf(!up)('admin_run_retention on the local PostgreSQL', () => {
     dropDb(DB);
     apply(DB, { quiet: true });
   }, 120_000);
+  // dropping the scratch database takes longer than the 10 s default on the 2-core dev PC once 25 migrations are applied
   afterAll(() => {
     if (up) dropDb(DB);
-  });
+  }, 60_000);
 
   const run = (dry: boolean, role = 'service_role'): string => {
     const r = psql(DB, `begin; set local role ${role}; select public.admin_run_retention('fake-actor', ${dry}); commit`);

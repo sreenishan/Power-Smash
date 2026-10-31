@@ -121,6 +121,9 @@ export const MANIFEST = [
   { name: 'site_notices', pk: 'id', pkSample: NIL_UUID },
   { name: 'public_site_notices', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true },
   { name: 'public_notify_settings', pk: 'email_subscribe_open', pkSample: 'false', schema: 'api', expectSelect: true },
+  // 0025_platform_retention.sql: the owner's retention periods and the unsubscribed-address hashes are denied
+  { name: 'retention_settings', pk: 'id', pkSample: '0' },
+  { name: 'notify_unsubscribe_hashes', pk: 'email_sha256', pkSample: '__no_such_hash__' },
   // Later milestones add their tables here, for example:
   //   { name: 'players', pk: 'id', pkSample: NIL_UUID }                                  (base table: must be denied)
   //   { name: 'public_players', pk: 'id', pkSample: NIL_UUID, schema: 'api', expectSelect: true }  (api view: select allowed, writes denied)

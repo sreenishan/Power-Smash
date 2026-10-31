@@ -22,7 +22,8 @@ export interface RegistrationRow {
   eventId: string;
   player1Name: string;
   player2Name: string | null;
-  phone: string;
+  /** null once the keep-for period removed the contact details (0025, anonymisedAt set). */
+  phone: string | null;
   email: string | null;
   whatsappOk: boolean;
   paymentReference: string | null;
@@ -37,6 +38,8 @@ export interface RegistrationRow {
   rejectedAt: string | null;
   revision: number;
   createdAt: string;
+  /** When the retention job removed the names as typed and the contact details (0025); null or absent = never. */
+  anonymisedAt?: string | null;
 }
 
 /** An event as the Registrations screen lists it. */

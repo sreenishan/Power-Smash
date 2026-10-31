@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildAckEmail, buildOwnerAlertEmail, RESEND_URL, safeMailbox, sendEmail } from '../../src/lib/notify/email';
+import { buildAckEmail, buildOwnerAlertEmail, readCappedText, RESEND_ERROR_BODY_MAX, RESEND_URL, safeMailbox, sendEmail } from '../../src/lib/notify/email';
 
 const msg = { from: 'Power Smash <hello@mail.example.test>', to: 'a@example.test', subject: 'Hello', text: 'Body' };
 
-function capture(status = 200) {
+function capture(status = 200, body: unknown = { id: 'x' }) {
   const calls: Array<{ url: string; headers: Record<string, string>; body: Record<string, unknown> }> = [];
   const f = (async (url: string, init?: RequestInit) => {
     const headers: Record<string, string> = {};
     new Headers(init?.headers).forEach((v, k) => (headers[k] = v));
     calls.push({ url, headers, body: JSON.parse(String(init?.body)) });
-    return new Response(JSON.stringify({ id: 'x' }), { status });
+    return new Response(JSON.stringify(body), { status });
   }) as unknown as typeof fetch;
   return { calls, f };
 }
@@ -52,13 +52,39 @@ describe('sendEmail (Resend REST)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('maps failures to small codes; a repeated idempotency key (409) counts as sent', async () => {
-    expect(await sendEmail({ fetch: capture(409).f, apiKey: 'k', message: msg })).toEqual({ ok: true });
+  it('maps failures to small codes; a 409 is never "sent" (VF-R2)', async () => {
+    // the same key still in flight: try again later (Resend then answers with the first result, without sending twice)
+    expect(await sendEmail({ fetch: capture(409, { name: 'concurrent_idempotent_requests', message: 'x' }).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'unavailable' });
+    // the key was used for different content: a permanent failure, never retried
+    expect(await sendEmail({ fetch: capture(409, { name: 'invalid_idempotent_request', message: 'x' }).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'rejected' });
+    // an unreadable 409 body: temporary
+    expect(await sendEmail({ fetch: capture(409, 'not json').f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'unavailable' });
     expect(await sendEmail({ fetch: capture(429).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'rate_limited' });
     expect(await sendEmail({ fetch: capture(403).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'rejected' });
     expect(await sendEmail({ fetch: capture(500).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'unavailable' });
     expect(await sendEmail({ fetch: (async () => { throw new Error('x'); }) as unknown as typeof fetch, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'unavailable' });
     expect(await sendEmail({ fetch: capture().f, apiKey: null, message: msg })).toEqual({ ok: false, reason: 'unconfigured' });
+  });
+});
+
+describe('the 409 body is read with a cap', () => {
+  it('reads a small body, refuses a declared or streamed body over the cap without buffering the rest', async () => {
+    expect(await readCappedText(new Response('{"name":"x"}'), RESEND_ERROR_BODY_MAX)).toBe('{"name":"x"}');
+    expect(await readCappedText(new Response('abc', { headers: { 'content-length': String(RESEND_ERROR_BODY_MAX + 1) } }), RESEND_ERROR_BODY_MAX)).toBeNull();
+    // a body with no length that never ends: the reader stops after the cap instead of buffering it all
+    let pulled = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull(c) {
+        pulled += 1;
+        c.enqueue(new Uint8Array(512).fill(32));
+      },
+    });
+    expect(await readCappedText(new Response(endless), RESEND_ERROR_BODY_MAX)).toBeNull();
+    expect(pulled).toBeLessThan(20);
+  });
+  it('a 409 with an oversized body is a temporary failure, never "sent"', async () => {
+    const big = { name: 'invalid_idempotent_request', message: 'x'.repeat(RESEND_ERROR_BODY_MAX * 2) };
+    expect(await sendEmail({ fetch: capture(409, big).f, apiKey: 'k', message: msg })).toEqual({ ok: false, reason: 'unavailable' });
   });
 });
 

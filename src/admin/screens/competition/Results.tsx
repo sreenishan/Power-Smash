@@ -19,7 +19,7 @@ import {
   whenText,
   type ResultDraft,
 } from './logic';
-import { ErrorText, Input, useAction } from './shared';
+import { ErrorText, Input, OwnerJob, useAction, useCompetitionCaps, byRole } from './shared';
 import { istInstant, splitIst } from '../../../lib/dates';
 
 const RESULT_STATUSES: readonly ResultStatus[] = ['completed', 'walkover', 'retired', 'abandoned'];
@@ -27,13 +27,16 @@ const EDITABLE = new Set(['scheduled', 'ready', 'postponed']);
 const HAS_RESULT = new Set(['completed', 'walkover', 'retired', 'abandoned']);
 
 export function ResultsTab({ detail }: { detail: CompetitionEventDetail }) {
+  const caps = useCompetitionCaps();
   const [waitingOnly, setWaitingOnly] = useState(false);
   const list = detail.matches.filter((m) => !waitingOnly || !m.confirmed);
   if (detail.matches.length === 0) {
-    return (
+    return caps.draw ? (
       <Empty>
         No matches yet. They are made when you publish the draw. <a href={compHash({ view: 'event', eventId: detail.event.id, tab: 'draw' })}>Go to the draw</a>.
       </Empty>
+    ) : (
+      <Empty>No matches yet. They appear here when the organizer publishes the draw.</Empty>
     );
   }
   return (
@@ -42,9 +45,12 @@ export function ResultsTab({ detail }: { detail: CompetitionEventDetail }) {
         <input type="checkbox" className="h-5 w-5" checked={waitingOnly} onChange={(e) => setWaitingOnly(e.target.checked)} />
         Only matches without a confirmed result
       </label>
-      <p className="text-small text-fg-muted">
-        Set times for many matches at once under <a href={compHash({ view: 'tournament', tournamentId: detail.tournament.id })}>Courts and schedule</a>.
-      </p>
+      {caps.schedule ? (
+        <p className="text-small text-fg-muted">
+          Set times for many matches at once under <a href={compHash({ view: 'tournament', tournamentId: detail.tournament.id })}>Courts and schedule</a>.
+        </p>
+      ) : null}
+      {!caps.confirmResult ? <OwnerJob>You record results. The organizer or the owner checks each one and confirms it; times and courts are set by them too.</OwnerJob> : null}
       {list.length === 0 ? <Empty>Every result is confirmed.</Empty> : list.map((m) => <MatchCard key={m.id} m={m} detail={detail} />)}
     </div>
   );
@@ -52,15 +58,17 @@ export function ResultsTab({ detail }: { detail: CompetitionEventDetail }) {
 
 function MatchCard({ m, detail }: { m: CompetitionMatchDto; detail: CompetitionEventDetail }) {
   const { client, actor, notify, bump } = useAdmin();
+  const caps = useCompetitionCaps();
   const [open, setOpen] = useState<'result' | 'time' | 'confirm' | null>(null);
   const act = useAction();
   const sides = matchSides(m, detail.entries);
   const bothKnown = m.sideA !== null && m.sideB !== null;
-  const canRecord = !m.confirmed && bothKnown && m.status !== 'cancelled';
-  const canConfirm = !m.confirmed && HAS_RESULT.has(m.status);
+  const canRecord = caps.recordResult && !m.confirmed && bothKnown && m.status !== 'cancelled';
+  const canConfirm = caps.confirmResult && !m.confirmed && HAS_RESULT.has(m.status);
+  const canTime = caps.editMatch && !m.confirmed && EDITABLE.has(m.status);
   const score = gamesText(m.games);
   const confirm = async () => {
-    const r = await act.run(() => client.competitionConfirmResult(actor, { matchId: m.id, expectedRevision: m.revision, reason: 'Result confirmed by owner' }));
+    const r = await act.run(() => client.competitionConfirmResult(actor, { matchId: m.id, expectedRevision: m.revision, reason: `Result confirmed ${byRole(actor.role)}` }));
     setOpen(null);
     if (!r) return;
     notify(confirmResultNotice(r));
@@ -81,11 +89,11 @@ function MatchCard({ m, detail }: { m: CompetitionMatchDto; detail: CompetitionE
       <div className="mt-3 flex flex-wrap gap-2">
         {canRecord ? <Button small variant={canConfirm ? 'quiet' : 'primary'} onClick={() => setOpen(open === 'result' ? null : 'result')}>{open === 'result' ? 'Close the result form' : HAS_RESULT.has(m.status) ? 'Change the result' : 'Record result'}</Button> : null}
         {canConfirm ? <Button small variant="primary" onClick={() => setOpen('confirm')}>Confirm result</Button> : null}
-        {!m.confirmed && EDITABLE.has(m.status) ? <Button small onClick={() => setOpen(open === 'time' ? null : 'time')}>{open === 'time' ? 'Close time and court' : 'Time and court'}</Button> : null}
+        {canTime ? <Button small onClick={() => setOpen(open === 'time' ? null : 'time')}>{open === 'time' ? 'Close time and court' : 'Time and court'}</Button> : null}
       </div>
       {!bothKnown && !m.confirmed ? <p className="mt-2 text-small text-fg-muted">The players are not known yet: they come from earlier results once those are confirmed.</p> : null}
       <ErrorText text={act.error} />
-      {open === 'confirm' ? (
+      {open === 'confirm' && canConfirm ? (
         <Confirm
           title={`Confirm the result of ${m.label}?`}
           body={<><strong>A confirmed result cannot be changed.</strong> The winner moves on in the draw and the result counts for rankings.{score ? ` Score: ${score}.` : ''}</>}
@@ -95,8 +103,8 @@ function MatchCard({ m, detail }: { m: CompetitionMatchDto; detail: CompetitionE
           onCancel={() => setOpen(null)}
         />
       ) : null}
-      {open === 'result' ? <ResultForm m={m} ruleset={detail.event.ruleset} sides={sides} onDone={() => setOpen(null)} /> : null}
-      {open === 'time' ? <TimeForm m={m} detail={detail} onDone={() => setOpen(null)} /> : null}
+      {open === 'result' && canRecord ? <ResultForm m={m} ruleset={detail.event.ruleset} sides={sides} onDone={() => setOpen(null)} /> : null}
+      {open === 'time' && canTime ? <TimeForm m={m} detail={detail} onDone={() => setOpen(null)} /> : null}
     </article>
   );
 }
@@ -119,7 +127,7 @@ function ResultForm({ m, ruleset, sides, onDone }: { m: CompetitionMatchDto; rul
     setTouched(true);
     if (!check.ok || !check.record) return act.fail('The result does not add up yet. See the notes above the button.');
     const rec = check.record;
-    const r = await act.run(() => client.competitionRecordResult(actor, { matchId: m.id, expectedRevision: m.revision, ...rec, reason: 'Result recorded by owner' }));
+    const r = await act.run(() => client.competitionRecordResult(actor, { matchId: m.id, expectedRevision: m.revision, ...rec, reason: `Result recorded ${byRole(actor.role)}` }));
     if (!r) return;
     notify('Result saved. Check it, then press "Confirm result".');
     bump();
@@ -209,7 +217,7 @@ function TimeForm({ m, detail, onDone }: { m: CompetitionMatchDto; detail: Compe
         sideB: m.sideB,
         scheduledAt: at,
         courtId: court === '' ? null : court,
-        reason: 'Match time and court set by owner',
+        reason: `Match time and court set ${byRole(actor.role)}`,
       }),
     );
     if (!r) return;

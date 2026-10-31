@@ -37,6 +37,8 @@ import { createSupabaseInternationalBackend } from './international/supabase-bac
 import { INTERNATIONAL_RPCS } from './international/schemas';
 import { createNoticesService } from './notices/service';
 import { createSupabaseNoticesBackend, NOTICES_DETAIL_RPCS } from './notices/supabase-backend';
+import { createRetentionService, createSupabaseRetentionBackend } from './retention/service';
+import { RETENTION_RPCS } from '../retention/schemas';
 import type { DispatchSummary } from '../notify/outbox/dispatcher';
 import type { PaymentRecord } from '../pricing-admin/mark-paid';
 import { applyLeadUpdate, checkStatusChange, prepareMarkPaid, prepareNewPlacement, prepareProductSave } from './ops';
@@ -96,12 +98,16 @@ class BackendError extends Error {
 /** The competition RPCs (0017, 0018) raise only sentences we wrote ('INVALID: the event is full ...'); those may reach the owner. */
 const COMPETITION_DETAIL_RPCS = new Set<string>([
   'admin_save_event', 'admin_add_entry', 'admin_withdraw_entry', 'admin_set_entry', 'admin_save_draw', 'admin_publish_draw', 'admin_save_match', 'admin_record_result', 'admin_confirm_result', 'admin_save_ranking_snapshot', 'admin_publish_ranking_snapshot', 'admin_save_venue', 'admin_save_court', 'admin_set_ranking_points',
+  // 0024: an organizer's player search and new player raise only our own sentences too
+  'admin_competition_search_players', 'admin_competition_create_player',
   // platform waves 4 and 5: their RPCs also raise only our own sentences (0019 accounts, 0020 registrations, 0021 live scores, 0022 international, 0023 notices)
   ...ACCOUNT_RPCS,
   'admin_set_registration_settings', 'admin_set_event_registration', 'admin_verify_registration_payment', 'admin_convert_registration', 'admin_reject_registration',
   ...LIVE_SCORING_RPCS,
   ...INTERNATIONAL_RPCS,
   ...NOTICES_DETAIL_RPCS,
+  // 0025 keep-for periods (D-028): its owner RPCs raise only our own sentences
+  ...RETENTION_RPCS,
 ]);
 const DETAIL_PREFIX = /^(INVALID|STALE|NOT_FOUND): (.{1,300})/;
 
@@ -332,6 +338,7 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
   const registration = createRegistrationService(createSupabaseRegistrationBackend({ select, rpc }));
   const international = createInternationalService(createSupabaseInternationalBackend({ select, rpc }));
   const notices = createNoticesService(createSupabaseNoticesBackend({ select, rpc, ...(cfg.notices ?? {}) }), { now });
+  const retention = createRetentionService(createSupabaseRetentionBackend({ rpc }));
 
   return {
     ...competition,
@@ -340,6 +347,7 @@ export function createSupabaseAdminStore(cfg: SupabaseStoreConfig): AdminStore {
     ...registration,
     ...international,
     ...notices,
+    ...retention,
     // ------------------------------------------------------------------ reads
     getDashboard: () =>
       guard(async () => {

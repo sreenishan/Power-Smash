@@ -234,7 +234,7 @@ describe('localRanking', () => {
   const asOf = '2026-10-30';
 
   it('uses the example table, labelled as needing approval, with the disclaimer', () => {
-    const s = localRanking([r('p1', 't1', 'district', 'W', '2026-10-01')], undefined, { asOf });
+    const s = localRanking([r('p1', 't1', 'district', 'W', '2026-10-01')], DEFAULT_POINTS_TABLE, { asOf });
     expect(s.tableApproved).toBe(false);
     expect(s.tableLabel).toContain("needs the owner's approval");
     expect(s.disclaimer).toBe(RANKING_DISCLAIMER);
@@ -376,5 +376,64 @@ describe('formula description', () => {
     expect(RANKING_FORMULA_DESCRIPTION).toContain('last 364 days');
     expect(RANKING_FORMULA_DESCRIPTION).toContain('best 4 results');
     expect(describeRankingFormula({ label: 'T', approved: true, levels: { a: { W: 1 } } }, { windowDays: 30, bestN: 1 })).toContain('best 1 result.');
+  });
+});
+
+describe('review follow-ups (wave A stats lows)', () => {
+  it('gameWinner follows the scoring engine for a winning lead of 1', () => {
+    const rules = { gamesToWin: 2, pointsToWin: 21, winBy: 1, pointCap: null };
+    expect(gameWinner(g(21, 20), rules)).toBe('A');
+    expect(gameWinner(g(22, 21), rules)).toBeNull();
+    expect(gameWinner(g(30, 29), { ...rules, pointCap: 30 })).toBeNull();
+  });
+
+  it('a corrected, confirmed copy of a match wins over an earlier unconfirmed copy with the same id', () => {
+    const ms = [
+      match(['dup1'], ['dup2'], { ...win('A', [g(21, 10), g(21, 12)]), confirmed: false }, { id: 'same' }),
+      match(['dup1'], ['dup2'], win('B', [g(10, 21), g(12, 21)]), { id: 'same' }),
+    ];
+    const s = playerStats(ms, 'dup1');
+    expect(s.overall.played).toBe(1);
+    expect(s.overall.lost).toBe(1);
+    expect(s.limitations.excluded.duplicate_id).toBe(1);
+    expect(s.limitations.excluded.unconfirmed).toBe(0);
+    // the same choice whatever the order
+    expect(playerStats([...ms].reverse(), 'dup1').overall.lost).toBe(1);
+    // with no usable copy, the first copy decides the reason
+    const none = [match(['dup1'], ['dup2'], null, { id: 'z' }), match(['dup1'], ['dup2'], { confirmed: false }, { id: 'z' })];
+    expect(playerStats(none, 'dup1').limitations.excluded).toMatchObject({ no_result: 1, duplicate_id: 1, unconfirmed: 0 });
+  });
+
+  it('localRanking keeps the same result and players for a repeated tournament whatever the input order', () => {
+    const table: PointsTable = { label: 'Test table', approved: true, levels: { x: { W: 100 } } };
+    const results: RankingResult[] = [
+      { entryId: 'pair', tournamentId: 't1', level: 'x', finish: 'QF', date: '2026-05-01', players: ['p9', 'p8'] },
+      { entryId: 'pair', tournamentId: 't1', level: 'x', finish: 'R16', date: '2026-05-01', players: ['p7', 'p6'] },
+    ];
+    const a = localRanking(results, table, { asOf: '2026-10-30' });
+    const b = localRanking([...results].reverse(), table, { asOf: '2026-10-30' });
+    expect(a.rows).toEqual(b.rows);
+    expect(a.rows[0]?.counted.map((c) => c.finish)).toEqual(['QF']);
+    expect(a.rows[0]?.players).toEqual(['p9', 'p8']);
+    expect(a.excluded.map((e) => e.result.finish)).toEqual(['R16']);
+    expect(b.excluded.map((e) => e.result.finish)).toEqual(['R16']);
+  });
+
+  it('a missing counted result counts as 0 points, the same as a result worth 0', () => {
+    const table: PointsTable = { label: 'Test table', approved: true, levels: { x: { W: 100 } } };
+    const s = localRanking(
+      [
+        { entryId: 'x1', tournamentId: 't1', level: 'x', finish: 'W', date: '2026-10-01' },
+        { entryId: 'y1', tournamentId: 't2', level: 'x', finish: 'W', date: '2026-10-01' },
+        { entryId: 'y1', tournamentId: 't3', level: 'x', finish: 'R16', date: '2026-09-01' },
+      ],
+      table,
+      { asOf: '2026-10-30' },
+    );
+    expect(s.rows.map((r) => [r.position, r.entryId, r.tied])).toEqual([
+      [1, 'x1', true],
+      [1, 'y1', true],
+    ]);
+    expect(describeRankingFormula(table)).toContain('a missing result counts as 0 points');
   });
 });

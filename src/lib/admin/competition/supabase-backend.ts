@@ -1,6 +1,6 @@
 // CompetitionBackend over Supabase PostgREST (the Vercel admin function only; secret key, service_role). Reads select explicit columns
 // from the private competition tables (never select *), paged at 1,000 rows; writes are only the owner RPCs of 0017 and 0018, with the
-// VERIFIED actor id as p_actor. Errors come from the store's `rpc`/`select` (a code, and for the database's own INVALID/STALE/NOT_FOUND
+// VERIFIED actor id as p_actor (plus the three organizer RPCs of 0024: player search, a new provisional player, the naming preview). Errors come from the store's `rpc`/`select` (a code, and for the database's own INVALID/STALE/NOT_FOUND
 // sentences the sentence, never a response body).
 import type { Category } from '../../parser/types';
 import type { AgeStatus } from '../../archive/types';
@@ -156,6 +156,26 @@ export function createSupabaseCompetitionBackend(deps: SupabaseCompetitionDeps):
         registrationEnabled: r.registration_enabled === true,
         pointsTable: t && r.ranking_points_approved_at ? { label: t.label, levels: t.levels, windowDays: t.windowDays, bestN: t.bestN, approvedAt: r.ranking_points_approved_at } : null,
       };
+    },
+
+    // organizer paths (0024): each RPC checks 'run' access to the tournament first; the search returns only id and display name
+    searchPlayersForTournament: async (a, tournamentId, query, limit, offset) => {
+      const out = await rpc<{ items?: unknown; hasMore?: unknown } | null>('admin_competition_search_players', { p_actor: a.userId, p_tournament: tournamentId, p_query: query, p_limit: limit, p_offset: offset });
+      const items = Array.isArray(out?.items) ? out.items : [];
+      return {
+        items: items
+          .filter((x): x is { id: string; displayName: string } => !!x && typeof (x as { id?: unknown }).id === 'string' && typeof (x as { displayName?: unknown }).displayName === 'string')
+          .map((x) => ({ id: x.id, displayName: x.displayName })),
+        hasMore: out?.hasMore === true,
+      };
+    },
+    createProvisionalPlayer: async (a, tournamentId, record, reason) => {
+      const out = await rpc<{ id: string; displayName: string }>('admin_competition_create_player', { p_actor: a.userId, p_tournament: tournamentId, p_record: record, p_reason: reason });
+      return { id: out.id, displayName: out.displayName, named: false };
+    },
+    eventNamedPlayerIds: async (a, eventId) => {
+      const out = await rpc<{ playerId?: unknown; named?: unknown }[] | null>('admin_competition_event_naming', { p_actor: a.userId, p_event: eventId });
+      return Array.isArray(out) ? out.filter((x) => x && x.named === true && typeof x.playerId === 'string').map((x) => x.playerId as string) : [];
     },
 
     saveEvent: (a, id, record, reason) => rpc('admin_save_event', { p_actor: a.userId, p_id: id, p_record: record, p_reason: reason }),

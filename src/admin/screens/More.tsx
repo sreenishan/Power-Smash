@@ -1,12 +1,20 @@
+import { navAreasFor } from '../../lib/admin/accounts/access';
 import { hashFor, ROUTE_NOTE, ROUTE_TITLE, type AdminRoute } from '../messages';
-import { cardCls } from '../ui';
+import { cardCls, useAdmin } from '../ui';
 
 const ITEMS: AdminRoute[] = ['tournaments', 'submissions', 'sponsors', 'prices', 'posters', 'live', 'competitions', 'scoring', 'registrations', 'international', 'notices', 'accounts', 'settings'];
 
+/** The More list for a role: every item for the owner; for anyone else only the areas their role may open (accounts/access.ts). */
+export function moreItemsFor(role: Parameters<typeof navAreasFor>[0]): AdminRoute[] {
+  const areas = navAreasFor(role);
+  return areas === null ? ITEMS : ITEMS.filter((r) => areas.includes(r));
+}
+
 export function More() {
+  const { actor } = useAdmin();
   return (
     <ul className="flex flex-col gap-3">
-      {ITEMS.map((r) => (
+      {moreItemsFor(actor.role).map((r) => (
         <li key={r}>
           <a href={hashFor(r)} className={`${cardCls} block no-underline hover:bg-ps-court-tint`}>
             <span className="block text-body font-bold text-heading">{ROUTE_TITLE[r]}</span>

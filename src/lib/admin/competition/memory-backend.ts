@@ -5,11 +5,12 @@ import { isJuniorAgeGroup } from '../../competition/db';
 import { validateGame } from '../../competition/scoring';
 import { DEFAULT_RULESET } from '../../competition/scoring';
 import { todayIst } from '../../dates';
+import { normalizeName } from '../../parser/normalize';
 import type { Actor } from '../types';
 import { isJuniorScope } from './ranking';
 import { checkResult } from './result';
 import { rankingProtectedMessage } from './messages';
-import { playersPerEntry } from './validate';
+import { NEW_PLAYER_REFUSED, playersPerEntry } from './validate';
 import {
   CompetitionError,
   type CompCourtRow,
@@ -50,6 +51,10 @@ export interface MemoryCompetitionDeps {
    */
   rankable: (ids: readonly string[]) => string[];
   audit: (actor: Actor, action: string, entity: string, entityId: string | null, reason: string) => void;
+  /** The memory copy of the suppression list for the organizer search (0024): a suppressed player id or matching name. Absent = none. */
+  suppressed?: (p: { id: string; nameNormalized: string }) => boolean;
+  /** Adds a provisional, hidden, unknown-age player (0024). Absent = this store cannot add players (refused). */
+  addPlayer?: (p: { displayName: string; nameNormalized: string; tournamentId: string }) => string;
   markDirty: () => void;
   now: () => Date;
   newId: () => string;
@@ -123,6 +128,10 @@ export function createMemoryCompetitionBackend(d: MemoryCompetitionDeps): Compet
     st().entries.some((e) => e.eventId === eventId && e.players.includes(playerId) && e.status !== 'withdrawn' && e.status !== 'rejected');
   const drawOf = (eventId: string): CompDrawRow | undefined => st().draws.find((x) => x.eventId === eventId);
   const inPublishedDraw = (entry: string): boolean => st().draws.some((x) => x.status !== 'draft' && x.slots.some((s) => s.entryId === entry));
+  // the memory copy of players.provisional_tournament_id for players added through this backend (0024)
+  const addedFor = new Map<string, string>();
+  const enteredIn = (tournamentId: string, playerId: string): boolean =>
+    st().entries.some((e) => e.players.includes(playerId) && st().events.some((ev) => ev.id === e.eventId && ev.tournamentId === tournamentId));
 
   return {
     // ------------------------------------------------------------------ reads
@@ -147,6 +156,41 @@ export function createMemoryCompetitionBackend(d: MemoryCompetitionDeps): Compet
     },
     // no verified actor = nobody is named (fail closed), as in the Supabase backend
     rankablePlayerIds: async (actor, ids) => (actor ? d.rankable([...new Set(ids)]) : []),
+    // organizer paths (0024): the same answers as the three scoped RPCs (the per-tournament check is the scoped store's, before this)
+    // The owner finds every player holding the query; an organizer finds a protected player only by the exact full name, or once
+    // that player is entered in (or was added for) this tournament (D-012, the same rule as the SQL). The SQL also audits and limits
+    // organizer searches; the memory preview does not.
+    searchPlayersForTournament: async (actor, tournamentId, query, limit, offset) => {
+      if (!d.tournaments().some((t) => t.id === tournamentId)) notFound('tournament not found');
+      const q = query.toLowerCase();
+      const isOwner = actor.role === 'owner';
+      const candidates = d
+        .players()
+        .map((p) => ({ p, norm: normalizeName(p.displayName) ?? '' }))
+        .filter(({ p, norm }) => norm.includes(q) && !(d.suppressed?.({ id: p.id, nameNormalized: norm }) ?? false));
+      const named = new Set(isOwner ? [] : d.rankable(candidates.map((x) => x.p.id)));
+      const found = candidates
+        .filter(({ p, norm }) => isOwner || norm === q || named.has(p.id) || addedFor.get(p.id) === tournamentId || enteredIn(tournamentId, p.id))
+        .sort((x, y) => (x.p.displayName < y.p.displayName ? -1 : x.p.displayName > y.p.displayName ? 1 : x.p.id < y.p.id ? -1 : 1));
+      const page = found.slice(offset, offset + limit);
+      return { items: page.map(({ p }) => ({ id: p.id, displayName: p.displayName })), hasMore: found.length > offset + limit };
+    },
+    async createProvisionalPlayer(actor, tournamentId, record, reason) {
+      reasonOk(reason);
+      if (!d.tournaments().some((t) => t.id === tournamentId)) notFound('tournament not found');
+      if (!d.addPlayer) invalid('adding a player is not available here');
+      // one neutral refusal for a removal request and an existing (possibly hidden) player, as in the SQL
+      if (d.suppressed?.({ id: '', nameNormalized: record.nameNormalized }) || d.players().some((p) => normalizeName(p.displayName) === record.nameNormalized)) invalid(NEW_PLAYER_REFUSED);
+      const id = d.addPlayer!({ displayName: record.name, nameNormalized: record.nameNormalized, tournamentId });
+      addedFor.set(id, tournamentId);
+      d.audit(actor, 'competition_create_player', 'players', id, reason);
+      return { id, displayName: record.name, named: false };
+    },
+    eventNamedPlayerIds: async (_actor, eventId) => {
+      event(eventId);
+      const ids = [...new Set(st().entries.filter((e) => e.eventId === eventId).flatMap((e) => e.players))];
+      return d.rankable(ids);
+    },
     getSnapshotEntries: async (id) => copy(st().snapshots.find((s) => s.id === id)?.entries ?? []),
     getSettings: async () => copy(st().settings),
 

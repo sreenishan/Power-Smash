@@ -1,11 +1,17 @@
 // An event's entries: add a player (or a pair) from the players list, confirm, seed, move to the waiting list, reject or withdraw.
 // The owner sees every name here, protected players included; the badge says who is shown as "Protected player" on the site.
+// An organizer (D-117/D-122, 0024) finds players with their own search (id and name only; a protected player only by the full name or
+// once entered in this tournament) and may add a NEW provisional player of unknown age when no found name is exactly the typed one; they
+// never edit an existing player. The "On the site" badge shows on the entry card once the player is entered.
 import { useEffect, useState } from 'react';
+import type { AgeStatus } from '../../../lib/archive/types';
 import type { CompetitionEntryDto, CompetitionEventDetail } from '../../../lib/admin/competition/types';
-import type { PlayerSummary } from '../../../lib/admin/types';
+import { normalizeName } from '../../../lib/parser/normalize';
+import { newPlayerNameProblem, ORGANIZER_PLAYER_LIMITS } from '../../../lib/admin/competition/validate';
+import { okResult } from '../../../lib/admin/types';
 import { AgeBadge, Badge, Button, Confirm, Empty, Field, cardCls, inputCls, useAdmin, useAsync } from '../../ui';
 import { COMP_LIMITS, ENTRY_STATUS_LABEL, ownerEntryName, parseInRange, playersNeeded, publicEntryName, reasonProblem } from './logic';
-import { ErrorText, H2, Input, Note, ReasonField, useAction } from './shared';
+import { ErrorText, H2, Input, Note, ReasonField, useAction, useCompetitionCaps, byRole } from './shared';
 
 const OPEN = new Set(['pending', 'confirmed', 'waitlisted']);
 const SEED_ERROR = `A seed is a whole number from ${COMP_LIMITS.seed.min} to ${COMP_LIMITS.seed.max}, or empty for no seed.`;
@@ -54,7 +60,7 @@ function EntryCard({ e, detail }: { e: CompetitionEntryDto; detail: CompetitionE
     bump();
   };
   const setStatus = async (status: 'pending' | 'confirmed' | 'waitlisted' | 'rejected', seedValue: number | null, text: string) => {
-    const r = await act.run(() => client.competitionSetEntry(actor, { entryId: e.id, status, seed: status === 'rejected' ? null : seedValue, reason: `Entry set to ${status} by owner` }));
+    const r = await act.run(() => client.competitionSetEntry(actor, { entryId: e.id, status, seed: status === 'rejected' ? null : seedValue, reason: `Entry set to ${status} ${byRole(actor.role)}` }));
     setAsking(null);
     if (r) after(r.draftDrawCleared, text);
   };
@@ -127,15 +133,136 @@ function EntryCard({ e, detail }: { e: CompetitionEntryDto; detail: CompetitionE
   );
 }
 
+/** A player the Add an entry form can choose: from the owner's Players search (with the age status) or the organizer's search (0024). */
+export interface EntryChoice {
+  id: string;
+  displayName: string;
+  /** The owner's search only. */
+  ageStatus?: AgeStatus;
+  /** Known only for a player the organizer just added (always false: a new player starts protected). The organizer search sends no
+   * naming flag (D-012); the entry card shows it once the player is entered. */
+  named?: boolean;
+}
+
+/** What the website will show for a chosen player: the owner sees the age status; for an organizer only a new player's is known. */
+export function ChoiceBadge({ p }: { p: EntryChoice }) {
+  if (p.ageStatus) return <AgeBadge status={p.ageStatus} />;
+  if (p.named === undefined) return null;
+  return <Badge tone={p.named ? 'good' : 'warn'}>{p.named ? 'On the site: named' : 'On the site: Protected player'}</Badge>;
+}
+
+/** The found players with a Choose button each (split out so it renders without effects). */
+export function FoundPlayers({ items, taken, onChoose }: { items: readonly EntryChoice[]; taken: (id: string) => boolean; onChoose: (p: EntryChoice) => void }) {
+  return (
+    <ul aria-label="Players found" className="flex flex-col gap-2">
+      {items.map((p) => {
+        const isTaken = taken(p.id);
+        return (
+          <li key={p.id} className="flex flex-wrap items-center gap-2">
+            <span className="break-words">{p.displayName}</span>
+            <ChoiceBadge p={p} />
+            <Button small disabled={isTaken} onClick={() => onChoose(p)}>{isTaken ? 'Already entered' : `Choose ${p.displayName}`}</Button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** How many players one search page shows. */
+export const SEARCH_PAGE = 8;
+
+/** One search answer, tied to the query and page it answered (a slower old answer is never read as the new one). */
+export interface SearchAnswer {
+  query: string;
+  offset: number;
+  items: EntryChoice[];
+  hasMore: boolean;
+}
+
+/**
+ * Offer "add as a new player" when no found player has exactly the typed name (matching copies compared), so "Ravi" can be added while
+ * "Ravi Shankar" exists. The server still refuses an exact duplicate.
+ */
+export function offerNewPlayer(typed: string, items: readonly EntryChoice[]): boolean {
+  const t = normalizeName(typed);
+  if (t === null || t.length < ORGANIZER_PLAYER_LIMITS.queryMin) return false;
+  return !items.some((p) => normalizeName(p.displayName) === t);
+}
+
+/** The text when more players match than one page shows. */
+export const MORE_PLAYERS_NOTE = 'More players match. Type more of the name to narrow the list, or show the next ones.';
+
+/**
+ * What the search found for the typed text (split out so it renders without effects in tests). Shows nothing about "no match" while a
+ * search is still running or when the answer is for an older query.
+ */
+export function SearchOutcome(props: {
+  typed: string;
+  answer: SearchAnswer | null;
+  loading: boolean;
+  canCreate: boolean;
+  tournamentId: string;
+  taken: (id: string) => boolean;
+  onChoose: (p: EntryChoice) => void;
+  onAdded: (p: EntryChoice) => void;
+  onPage: (offset: number) => void;
+}) {
+  const { answer, typed } = props;
+  const current = answer !== null && !props.loading && answer.query === typed;
+  if (!current) return props.loading && typed !== '' ? <p className="text-small text-fg-muted" role="status">Searching...</p> : null;
+  const items = answer.items;
+  return (
+    <>
+      <FoundPlayers items={items} taken={props.taken} onChoose={props.onChoose} />
+      {answer.hasMore || answer.offset > 0 ? (
+        <div className="flex flex-col gap-2">
+          {answer.hasMore ? <p className="text-small text-fg-muted">{MORE_PLAYERS_NOTE}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            {answer.offset > 0 ? <Button small onClick={() => props.onPage(Math.max(0, answer.offset - SEARCH_PAGE))}>Previous players</Button> : null}
+            {answer.hasMore ? <Button small onClick={() => props.onPage(answer.offset + SEARCH_PAGE)}>More players</Button> : null}
+          </div>
+        </div>
+      ) : null}
+      {props.canCreate ? (
+        offerNewPlayer(typed, items) ? <NewPlayer tournamentId={props.tournamentId} typed={typed} onAdded={props.onAdded} /> : null
+      ) : items.length === 0 && answer.offset === 0 ? (
+        <p className="text-fg-muted">No player has that name. Players come from your videos and the Players screen.</p>
+      ) : null}
+    </>
+  );
+}
+
+const NO_SEARCH = Promise.resolve(okResult(null));
+
 function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
   const { client, actor, notify, bump } = useAdmin();
+  const caps = useCompetitionCaps();
   const need = playersNeeded(detail.event.category);
   const [query, setQuery] = useState('');
-  const [picked, setPicked] = useState<PlayerSummary[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [picked, setPicked] = useState<EntryChoice[]>([]);
   const [seed, setSeed] = useState('');
   const [status, setStatus] = useState<'confirmed' | 'pending' | 'waitlisted'>('confirmed');
   const act = useAction();
-  const search = useAsync(() => client.searchPlayers({ query: query.trim(), limit: 8, offset: 0 }), [query]);
+  const q = query.trim();
+  // the owner keeps the full Players search; an organizer gets the scoped one of 0024 (id, name and named-or-protected only), and it
+  // asks only once 3 letters are typed (the server refuses fewer)
+  const scoped = caps.playerSearch === 'tournament';
+  const tooShort = scoped && q.length < ORGANIZER_PLAYER_LIMITS.queryMin;
+  // a new text starts again at the first page
+  useEffect(() => setOffset(0), [q]);
+  const search = useAsync<SearchAnswer | null>(async () => {
+    if (caps.playerSearch === 'owner') {
+      const r = await client.searchPlayers({ query: q, limit: SEARCH_PAGE, offset });
+      return r.ok ? okResult({ query: q, offset, items: r.data.items, hasMore: r.data.total > offset + r.data.items.length }) : r;
+    }
+    if (scoped && !tooShort) {
+      const r = await client.competitionSearchPlayers(actor, { tournamentId: detail.tournament.id, q, limit: SEARCH_PAGE, offset });
+      return r.ok ? okResult({ query: q, offset, items: r.data.items, hasMore: r.data.hasMore }) : r;
+    }
+    return NO_SEARCH;
+  }, [q, offset, caps.playerSearch]);
   const entered = new Set(detail.entries.filter((e) => OPEN.has(e.status)).flatMap((e) => e.players.map((p) => p.id)));
   const full = picked.length >= need;
 
@@ -143,7 +270,7 @@ function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
     if (picked.length !== need) return act.fail(need === 1 ? 'Choose one player.' : 'Choose two players for the pair.', { players: need === 1 ? 'Choose one player.' : 'Choose two players.' });
     const n = parseInRange(seed, COMP_LIMITS.seed);
     if (n !== null && Number.isNaN(n)) return act.fail('Check the seed.', { seed: SEED_ERROR });
-    const r = await act.run(() => client.competitionAddEntry(actor, { eventId: detail.event.id, players: picked.map((p) => p.id), seed: n, status, reason: 'Entry added by owner' }));
+    const r = await act.run(() => client.competitionAddEntry(actor, { eventId: detail.event.id, players: picked.map((p) => p.id), seed: n, status, reason: `Entry added ${byRole(actor.role)}` }));
     if (!r) return;
     notify('Entry added.');
     setPicked([]);
@@ -155,13 +282,18 @@ function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
   return (
     <form aria-label="Add an entry" className={`${cardCls} flex flex-col gap-3`} onSubmit={(ev) => { ev.preventDefault(); void add(); }}>
       <H2>Add an entry</H2>
-      <p className="text-small text-fg-muted">{need === 1 ? 'Singles: choose one player.' : 'Doubles: choose two players.'} The club used to keep players apart in the draw is the academy on the player&apos;s profile (Players screen).</p>
+      <p className="text-small text-fg-muted">
+        {need === 1 ? 'Singles: choose one player.' : 'Doubles: choose two players.'}{' '}
+        {caps.playerSearch === 'owner'
+          ? "The club used to keep players apart in the draw is the academy on the player's profile (Players screen)."
+          : "The club used to keep players apart in the draw is the academy the owner keeps on each player's profile."}
+      </p>
       {picked.length > 0 ? (
         <ul aria-label="Chosen players" className="flex flex-col gap-2">
           {picked.map((p) => (
             <li key={p.id} className="flex flex-wrap items-center gap-2">
               <span className="font-bold">{p.displayName}</span>
-              <AgeBadge status={p.ageStatus} />
+              <ChoiceBadge p={p} />
               <Button small onClick={() => setPicked((x) => x.filter((y) => y.id !== p.id))}>{`Remove ${p.displayName}`}</Button>
             </li>
           ))}
@@ -169,22 +301,21 @@ function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
       ) : null}
       {!full ? (
         <>
-          <Field label="Find a player" htmlFor="entry-find" hint="Type part of the name.">
+          <Field label="Find a player" htmlFor="entry-find" hint={scoped ? `Type at least ${ORGANIZER_PLAYER_LIMITS.queryMin} letters of the name.` : 'Type part of the name.'}>
             <Input id="entry-find" value={query} onChange={setQuery} maxLength={80} error={act.fields['players']} />
           </Field>
-          <ul aria-label="Players found" className="flex flex-col gap-2">
-            {(search.data?.items ?? []).map((p) => {
-              const taken = entered.has(p.id) || picked.some((x) => x.id === p.id);
-              return (
-                <li key={p.id} className="flex flex-wrap items-center gap-2">
-                  <span className="break-words">{p.displayName}</span>
-                  <AgeBadge status={p.ageStatus} />
-                  <Button small disabled={taken} onClick={() => setPicked((x) => [...x, p])}>{taken ? 'Already entered' : `Choose ${p.displayName}`}</Button>
-                </li>
-              );
-            })}
-          </ul>
-          {search.data && search.data.items.length === 0 ? <p className="text-fg-muted">No player has that name. Players come from your videos and the Players screen.</p> : null}
+          {scoped && !tooShort ? <p className="text-small text-fg-muted">A player not yet in this tournament is found by part of the name only when the website already shows them; otherwise type the full name.</p> : null}
+          <SearchOutcome
+            typed={q}
+            answer={search.data}
+            loading={search.loading}
+            canCreate={caps.createPlayer}
+            tournamentId={detail.tournament.id}
+            taken={(id) => entered.has(id) || picked.some((x) => x.id === id)}
+            onChoose={(p) => setPicked((x) => [...x, p])}
+            onAdded={(p) => { setPicked((x) => [...x, p]); setQuery(''); }}
+            onPage={setOffset}
+          />
         </>
       ) : null}
       <ErrorText id="entry-find-error" text={act.fields['players']} />
@@ -204,5 +335,54 @@ function AddEntry({ detail }: { detail: CompetitionEventDetail }) {
       <ErrorText text={act.error} />
       <div><Button type="submit" variant="primary" busy={act.busy}>Add the entry</Button></div>
     </form>
+  );
+}
+
+/** The new-player sentence, shared by the form and the tests. */
+export const NEW_PLAYER_NOTE = 'Not in the list? You can add them as a new player: they start with an unknown age and are shown on the website as "Protected player" until the owner confirms they are an adult. You cannot change an existing player.';
+
+/**
+ * An organizer adds a NEW player when the search finds nobody (0024): provisional, hidden, unknown age. Never an edit of an existing
+ * player, never an age. Exported so it renders without effects in tests.
+ */
+export function NewPlayer({ tournamentId, typed, onAdded }: { tournamentId: string; typed: string; onAdded: (p: EntryChoice) => void }) {
+  const { client, actor, notify } = useAdmin();
+  const act = useAction();
+  const [name, setName] = useState(typed);
+  useEffect(() => setName(typed), [typed]);
+  const [asking, setAsking] = useState(false);
+  const ask = () => {
+    const problem = newPlayerNameProblem(name);
+    if (problem) return act.fail(problem, { name: problem });
+    act.clear();
+    setAsking(true);
+  };
+  const create = async () => {
+    const r = await act.run(() => client.competitionCreatePlayer(actor, { tournamentId, name: name.trim(), reason: `New player added for an entry ${byRole(actor.role)}` }));
+    setAsking(false);
+    if (!r) return;
+    notify(`${r.displayName} added as a new player.`);
+    onAdded({ id: r.id, displayName: r.displayName, named: false });
+  };
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-line p-3">
+      <p className="text-small text-fg-muted">{NEW_PLAYER_NOTE}</p>
+      <Field label="New player's full name" htmlFor="new-player-name">
+        <Input id="new-player-name" value={name} maxLength={ORGANIZER_PLAYER_LIMITS.nameMax} onChange={setName} error={act.fields['name']} />
+      </Field>
+      <ErrorText id="new-player-name-error" text={act.fields['name']} />
+      <ErrorText text={act.error && !act.fields['name'] ? act.error : null} />
+      <div><Button small onClick={ask} busy={act.busy}>Add as a new player</Button></div>
+      {asking ? (
+        <Confirm
+          title={`Add ${name.trim()} as a new player?`}
+          body="Check the spelling first: a new player cannot be renamed or removed by you. They start with an unknown age and stay hidden from the website until the owner checks them."
+          confirmLabel="Add the player"
+          busy={act.busy}
+          onConfirm={() => void create()}
+          onCancel={() => setAsking(false)}
+        />
+      ) : null}
+    </div>
   );
 }

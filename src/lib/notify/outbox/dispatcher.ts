@@ -10,7 +10,8 @@
 // key, which the email vendor uses to drop a duplicate.
 // Delivery is AT LEAST ONCE: if the adapter delivered but the final compare-and-set fails, or the process crashes after
 // delivery, the record stays `sending`; after its lease runs out it is claimed again and handed to the adapter again with the
-// SAME `message.key`. In-app dedupes on the key (the inbox), email relies on the vendor idempotency key (Resend: a 24-hour
+// SAME `message.key` (Resend keeps a key only 24 hours, VF-R2: a stuck record claimed again more than a day later can be sent
+// twice). In-app dedupes on the key (the inbox), email relies on the vendor idempotency key (Resend: a 24-hour
 // window, see adapters.ts), and every push or WhatsApp MessageTransport MUST dedupe on `message.key` itself (the contract in
 // adapters.ts), or those channels could send twice.
 // Consent (fail closed): `recheck` is REQUIRED. A caller that does not pass a function gets every due record skipped with

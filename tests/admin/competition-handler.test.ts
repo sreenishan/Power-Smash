@@ -9,7 +9,7 @@ import { MemoryAdminStore, SEED } from '../../src/lib/admin/memory-store';
 import { EDITOR_ID, makeHandler, makeKeys, NOW, req, signToken } from './_helpers';
 
 const json = async (r: Response) => (await r.json()) as { ok: boolean; code?: string; data?: any; errors?: Record<string, string> };
-// the 22 actions of the competition store; the six live scoring actions (D-113, competition.live*) have their own tests (tests/live-scores)
+// the 24 actions of the competition store (22 of wave 3, plus the organizer player search and new player of 0024); the six live scoring actions (D-113, competition.live*) have their own tests (tests/live-scores)
 const LIVE_ACTIONS = ['competition.liveMatches', 'competition.liveMatch', 'competition.liveSettings', 'competition.liveScore', 'competition.liveStatus', 'competition.saveLiveSettings'];
 const COMPETITION_ACTIONS = (Object.keys(ADMIN_ACTIONS) as AdminActionName[]).filter((a) => a.startsWith('competition.') && !LIVE_ACTIONS.includes(a));
 
@@ -22,14 +22,14 @@ async function setup() {
 }
 
 describe('competition actions: policy', () => {
-  it('there are 22, each owner only at aal2; writes are audited; reads are reads', () => {
-    expect(COMPETITION_ACTIONS).toHaveLength(22);
+  it('there are 24, each owner only at aal2; writes are audited; reads are reads', () => {
+    expect(COMPETITION_ACTIONS).toHaveLength(24);
     for (const a of COMPETITION_ACTIONS) {
       expect(ADMIN_ACTIONS[a]).toMatchObject({ roles: ['owner'], requiresAal2: true });
       expect(isActionAllowed('editor', a, { editorsEnabled: true })).toBe(false);
     }
     const reads = COMPETITION_ACTIONS.filter((a) => ADMIN_ACTIONS[a].kind === 'read').sort();
-    expect(reads).toEqual(['competition.courts', 'competition.event', 'competition.ranking', 'competition.rankings', 'competition.settings', 'competition.tournaments']);
+    expect(reads).toEqual(['competition.courts', 'competition.event', 'competition.ranking', 'competition.rankings', 'competition.searchPlayers', 'competition.settings', 'competition.tournaments']);
   });
   it('every action maps to one store method and the browser client posts to the same address', async () => {
     expect(COMPETITION_STORE_METHODS).toHaveLength(COMPETITION_ACTIONS.length);

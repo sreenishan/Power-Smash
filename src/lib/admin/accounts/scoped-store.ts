@@ -58,6 +58,8 @@ export const METHOD_ACTION = {
   competitionSaveVenue: 'competition.saveVenue',
   competitionSaveCourt: 'competition.saveCourt',
   competitionApprovePointsTable: 'competition.approvePointsTable',
+  competitionSearchPlayers: 'competition.searchPlayers',
+  competitionCreatePlayer: 'competition.createPlayer',
 } as const satisfies Record<keyof CompetitionAdminStore, string>;
 
 export interface ScopeTarget {
@@ -121,6 +123,10 @@ export function targetsOf(action: string, input: Record<string, unknown>): Scope
     case 'competition.recordResult':
     case 'competition.confirmResult':
       add('match', input['matchId']);
+      break;
+    case 'competition.searchPlayers':
+    case 'competition.createPlayer':
+      add('tournament', input['tournamentId']);
       break;
     case 'competition.saveCourt':
       add('tournament', input['tournamentId']);
@@ -189,9 +195,9 @@ export function maskForScorer(detail: CompetitionEventDetail): CompetitionEventD
 
 /**
  * Wraps the competition store for one verified caller. The owner (and anyone not a scoped role) gets `inner` back unchanged; an
- * organizer or scorer gets the checked version. The inner store is called WITHOUT the caller as the "naming preview" actor for reads,
- * because that preview asks an owner-only RPC (admin_competition_rankable_players): an organizer's "On the site" badges therefore show
- * everyone as "Protected player" (fail closed) until the integrator gives that preview a scoped path.
+ * organizer or scorer gets the checked version. An organizer's event read passes the organizer as the "naming preview" actor: the
+ * service then asks the scoped RPC admin_competition_event_naming (0024, 'run' access) instead of the owner-only one, so the "On the
+ * site" badges match the owner's. A scorer's reads pass no actor (nobody named; the detail is masked anyway).
  */
 export function createScopedCompetitionStore(inner: CompetitionAdminStore, actor: PlatformActor, deps: ScopeDeps): CompetitionAdminStore {
   if (!isScopedRole(actor.role)) return inner;
@@ -215,7 +221,9 @@ export function createScopedCompetitionStore(inner: CompetitionAdminStore, actor
       }),
     competitionEvent: (opts) =>
       gate('competitionEvent', o(opts), async () => {
-        const r = await inner.competitionEvent(opts);
+        // an organizer passes as the actor so the "On the site" preview asks the scoped naming RPC (0024) and tells the truth; a
+        // scorer passes none (nobody named) and gets the masked detail
+        const r = await inner.competitionEvent(opts, role === 'organizer' ? asActor : undefined);
         if (!r.ok) return r;
         return okResult(role === 'scorer' ? maskForScorer(r.data) : r.data);
       }),
@@ -239,6 +247,8 @@ export function createScopedCompetitionStore(inner: CompetitionAdminStore, actor
     competitionSaveVenue: (_a, input) => gate('competitionSaveVenue', o(input), () => inner.competitionSaveVenue(asActor, input)),
     competitionSaveCourt: (_a, input) => gate('competitionSaveCourt', o(input), () => inner.competitionSaveCourt(asActor, input)),
     competitionApprovePointsTable: (_a, input) => gate('competitionApprovePointsTable', o(input), () => inner.competitionApprovePointsTable(asActor, input)),
+    competitionSearchPlayers: (_a, input) => gate('competitionSearchPlayers', o(input), () => inner.competitionSearchPlayers(asActor, input)),
+    competitionCreatePlayer: (_a, input) => gate('competitionCreatePlayer', o(input), () => inner.competitionCreatePlayer(asActor, input)),
   };
 }
 

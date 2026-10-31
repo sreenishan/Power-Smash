@@ -7,12 +7,21 @@ import { formatDate, isIsoDate } from '../../../lib/dates';
 import { formatTimeIst, istDateOf } from '../../../components/competition/helpers';
 import { Badge, Button, Confirm, Empty, Field, LoadState, cardCls, inputCls, useAdmin, useAsync } from '../../ui';
 import { COMP_LIMITS, compHash, eventTitle, includedIds, parseInRange, toggleLeftOut, windowsProblems, type WindowDraft } from './logic';
-import { BackLink, ErrorText, H2, Input, Note, PublicSwitchNote, useAction } from './shared';
+import { BackLink, ErrorText, H2, Input, Note, OwnerJob, PublicSwitchNote, useAction, useCompetitionCaps, byRole } from './shared';
 
 export function TournamentSchedule({ tournamentId }: { tournamentId: string }) {
   const { client } = useAdmin();
+  const caps = useCompetitionCaps();
   const listQ = useAsync(() => client.competitionTournaments(), []);
   const t = (listQ.data ?? []).find((x) => x.id === tournamentId) ?? null;
+  if (!caps.courts && !caps.schedule) {
+    return (
+      <div className="flex flex-col gap-4">
+        <BackLink href={compHash({ view: 'home' })}>Back to competitions</BackLink>
+        <OwnerJob>Courts and the order of play are set by the tournament organizer or the owner. Your matches and their times are under each event.</OwnerJob>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-4">
       <BackLink href={compHash({ view: 'home' })}>Back to competitions</BackLink>
@@ -22,7 +31,7 @@ export function TournamentSchedule({ tournamentId }: { tournamentId: string }) {
             <h2 className="text-h3 font-bold text-heading">{t.name}: courts and schedule</h2>
             <PublicSwitchNote />
             <Courts tournamentId={t.id} />
-            <Planner t={t} />
+            {caps.schedule ? <Planner t={t} /> : null}
           </>
         ) : (
           <p role="alert" className="rounded-lg border-2 border-ps-live bg-ps-live-tint p-4 text-ps-ink">That tournament was not found. Go back and open it again.</p>
@@ -34,8 +43,9 @@ export function TournamentSchedule({ tournamentId }: { tournamentId: string }) {
 
 // ----------------------------------------------------------------------------- courts and venues
 
-function Courts({ tournamentId }: { tournamentId: string }) {
+export function Courts({ tournamentId }: { tournamentId: string }) {
   const { client, actor, notify, bump } = useAdmin();
+  const caps = useCompetitionCaps();
   const q = useAsync(() => client.competitionCourts({ tournamentId }), [tournamentId]);
   const [label, setLabel] = useState('');
   const [venueId, setVenueId] = useState('');
@@ -49,7 +59,7 @@ function Courts({ tournamentId }: { tournamentId: string }) {
 
   const addCourt = async () => {
     const sort = courts.reduce((m, c) => Math.max(m, c.sort), 0) + 1;
-    const r = await courtAct.run(() => client.competitionSaveCourt(actor, { id: null, tournamentId, venueId: venueId === '' ? null : venueId, label, sort, reason: 'Court added by owner' }));
+    const r = await courtAct.run(() => client.competitionSaveCourt(actor, { id: null, tournamentId, venueId: venueId === '' ? null : venueId, label, sort, reason: `Court added ${byRole(actor.role)}` }));
     if (!r) return;
     notify('Court added.');
     setLabel('');
@@ -78,7 +88,7 @@ function Courts({ tournamentId }: { tournamentId: string }) {
           </ul>
         )}
       </LoadState>
-      <form aria-label="Add a court" className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void addCourt(); }}>
+      {caps.courts ? <form aria-label="Add a court" className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void addCourt(); }}>
         <Field label="Court name" htmlFor="court-label" hint='For example "Court 3" or "Centre court".'>
           <Input id="court-label" value={label} maxLength={40} onChange={setLabel} error={courtAct.fields['label']} />
         </Field>
@@ -91,8 +101,8 @@ function Courts({ tournamentId }: { tournamentId: string }) {
         </Field>
         <ErrorText text={courtAct.error && !courtAct.fields['label'] ? courtAct.error : null} />
         <div><Button type="submit" variant="primary" busy={courtAct.busy}>Add the court</Button></div>
-      </form>
-      <details className="rounded-lg border border-line p-3">
+      </form> : null}
+      {caps.venues ? <details className="rounded-lg border border-line p-3">
         <summary className="min-h-tap cursor-pointer py-2 font-semibold">Add a venue</summary>
         <form aria-label="Add a venue" className="mt-2 flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void addVenue(); }}>
           <Field label="Venue name" htmlFor="venue-name">
@@ -106,7 +116,7 @@ function Courts({ tournamentId }: { tournamentId: string }) {
           <ErrorText text={venueAct.error && !venueAct.fields['name'] && !venueAct.fields['city'] ? venueAct.error : null} />
           <div><Button type="submit" busy={venueAct.busy}>Add the venue</Button></div>
         </form>
-      </details>
+      </details> : <OwnerJob>Venues are shared by every tournament, so only the owner adds them. If your venue is missing from the list, ask the owner to add it.</OwnerJob>}
     </section>
   );
 }
@@ -152,13 +162,13 @@ function Planner({ t }: { t: CompetitionTournamentDto }) {
   const preview = async () => {
     const i = input();
     if (!i) return;
-    const r = await act.run(() => client.competitionSchedule(actor, { ...i, save: false, reason: 'Schedule previewed by owner' }));
+    const r = await act.run(() => client.competitionSchedule(actor, { ...i, save: false, reason: `Schedule previewed ${byRole(actor.role)}` }));
     setPlan(r);
   };
   const save = async () => {
     const i = input();
     if (!i || !plan) return;
-    const r = await act.run(() => client.competitionSchedule(actor, { ...i, save: true, expected: plan.revisions, reason: 'Schedule saved by owner' }));
+    const r = await act.run(() => client.competitionSchedule(actor, { ...i, save: true, expected: plan.revisions, reason: `Schedule saved ${byRole(actor.role)}` }));
     setAsking(false);
     if (!r) {
       setPlan(null);

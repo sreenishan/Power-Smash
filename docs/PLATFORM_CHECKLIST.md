@@ -29,7 +29,14 @@ D-108 organizer and scorer accounts by invitation; D-109 juniors and unknown-age
 | 3. Wiring | Admin screens and server actions for events, entries, draws, scheduling, scoring and results; public tournament pages showing draws, schedules and results | built and reviewed (migration 0018; D-115 routes, D-116 naming rule); pull request after wave 2 |
 | 4. Accounts | Organizer and scorer access limited to their own tournaments, by invitation (D-108) | built, integrated and review-fixed, switched off (migration 0019, admin Accounts; D-117, D-122) |
 | 5. Registration | Free registration on the site, manual payment verification (D-111); near-live scores endpoint (D-113); international link-out listings (D-112); email updates and notices (D-114) | built, integrated and review-fixed (D-122 to D-125), switched off (migrations 0020 to 0023; /register/, /api/live-scores/, /international/, the notice banner; D-118 to D-121) |
+| Follow-ups | Organizer player search and new players (migration 0024, D-126), screens per role and `?preview-as=` in the preview; keep-for periods and the clean-up of registrations and email sign-ups (migration 0025, D-127); vendor facts re-read (`docs/m5/vendor-facts-2026-10-31.md`); leftover review findings of waves A to 5 (D-128) | built and integrated, switched off |
 | 6. Integrations | International data (licensed source), payment gateway, email and WhatsApp delivery | after credentials |
+
+## Owner and lawyer steps still open from the follow-ups
+
+- [ ] Keep-for periods for registrations and email sign-ups decided by the lawyer and entered by the owner in the admin (Settings, "How long to keep registrations and email sign-ups"). Both are empty until then, so nothing is removed. The lawyer said whether a code (hash) of a deleted unsubscribed address may be kept; the box "Remember removed unsubscribed addresses as a code" stays unticked until they say yes. One dry run of the Retention workflow was read. `RETENTION_ENABLED` is on before the first registration or sign-up reaches its period.
+- [ ] The owner confirmed the organizer search rule (D-126): a few letters find only players the website already names or players already in that tournament; anyone else (unknown age, juniors, the video archive) only by the full name typed exactly; 25 a page, 120 searches in 10 minutes, each search recorded without what was typed.
+- [ ] The organizer and scorer browser test (`tests/e2e/admin-organizer.spec.ts`) has run after a build.
 
 ## Test results
 

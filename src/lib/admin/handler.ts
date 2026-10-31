@@ -14,6 +14,7 @@ import { INTERNATIONAL_ACTION_SCHEMAS } from './international/schemas';
 import { LIVE_SCORING_SCHEMAS } from './live-scoring/schemas';
 import { NOTICES_ACTION_SCHEMAS } from './notices/schemas';
 import { REGISTRATION_ACTION_SCHEMAS } from './registration/schemas';
+import { RETENTION_ACTION_SCHEMAS } from '../retention/schemas';
 import type { DispatchFn, DispatchKind } from './dispatch';
 import { ADMIN_ACTIONS, ENROL_CHECK_ACTION, isAdminAction, SESSION_ROLE_ACTION, type AdminActionName } from './policy';
 import { PARSED_FIELDS, PROTECTED_MODE_KEYS, type Actor, type AdminErrorCode, type AdminStore, type StoreResult } from './types';
@@ -125,6 +126,9 @@ const COMPETITION_SCHEMAS = {
   'competition.publishRanking': z.object({ snapshotId: uuid, reason }).strict(),
   'competition.saveVenue': z.object({ id: nullableUuid, name: z.string().max(200), city: z.string().max(100).nullable(), reason }).strict(),
   'competition.saveCourt': z.object({ id: nullableUuid, tournamentId: uuid, venueId: nullableUuid, label: z.string().max(60), sort: smallInt(0, 999), reason }).strict(),
+  // 0024: an organizer's player search (3 to 80 characters, 25 a page) and a new provisional player (a name only; the age is never sent)
+  'competition.searchPlayers': z.object({ tournamentId: uuid, q: z.string().trim().min(3).max(80), limit: z.number().int().min(1).max(25).default(10), offset: z.number().int().min(0).max(500).default(0) }).strict(),
+  'competition.createPlayer': z.object({ tournamentId: uuid, name: z.string().trim().min(2).max(80), reason }).strict(),
   'competition.approvePointsTable': z
     .object({
       label: z.string().max(200),
@@ -144,6 +148,8 @@ const SCHEMAS: Record<AdminActionName, z.ZodType> = {
   ...REGISTRATION_ACTION_SCHEMAS,
   ...INTERNATIONAL_ACTION_SCHEMAS,
   ...NOTICES_ACTION_SCHEMAS,
+  // keep-for periods of registrations and email sign-ups (0025, D-028): owner only
+  ...RETENTION_ACTION_SCHEMAS,
   'dashboard': empty,
   'review.list': page,
   'review.resolve': z
@@ -505,6 +511,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'competition.saveVenue': return fromStore(await s.competitionSaveVenue(actor, input), cors);
     case 'competition.saveCourt': return fromStore(await s.competitionSaveCourt(actor, input), cors);
     case 'competition.approvePointsTable': return fromStore(await s.competitionApprovePointsTable(actor, input), cors);
+    case 'competition.searchPlayers': return fromStore(await s.competitionSearchPlayers(actor, input), cors);
+    case 'competition.createPlayer': return fromStore(await s.competitionCreatePlayer(actor, input), cors);
     case 'competition.liveMatches': return fromStore(await s.liveScoringMatches(actor), cors);
     case 'competition.liveMatch': return fromStore(await s.liveScoringMatch(input, actor), cors);
     case 'competition.liveSettings': return fromStore(await s.liveScoringSettings(), cors);
@@ -537,6 +545,8 @@ async function run(action: AdminActionName, actor: Actor, input: any, deps: Admi
     case 'notify.saveSettings': return fromStore(await s.notifySaveSettings(actor, input), cors);
     case 'notify.queueAnnouncement': return fromStore(await s.notifyQueueAnnouncement(actor, input), cors);
     case 'notify.dispatch': return fromStore(await s.notifyDispatch(actor), cors);
+    case 'retention.summary': return fromStore(await s.retentionSummary(actor), cors);
+    case 'retention.save': return fromStore(await s.retentionSave(actor, input), cors);
     case 'site.syncNow': return dispatchAction('sync', actor, deps, cors);
     case 'site.publishNow': return dispatchAction('publish', actor, deps, cors);
     case 'emergency.hide': {

@@ -2,6 +2,8 @@
 // a reason box and the back link. Built on the admin ui.tsx primitives (44 px targets, tokens only).
 import { useCallback, useState, type ReactNode } from 'react';
 import { features } from '../../../content/legal/status';
+import { competitionUiFor, type CompetitionCapabilities } from '../../../lib/admin/accounts/access';
+import type { Actor } from '../../../lib/admin/types';
 import type { StoreResult } from '../../../lib/admin/types';
 import { Field, cx, inputCls, useAdmin } from '../../ui';
 import { failureText, fieldErrors, reasonProblem } from './logic';
@@ -133,4 +135,26 @@ export function Input(props: { id: string; value: string; onChange: (v: string) 
       onChange={(e) => props.onChange(e.target.value)}
     />
   );
+}
+
+// ----------------------------------------------------------------------------- what this role may do (D-108, D-117, D-122)
+
+/**
+ * The buttons and sub-pages this signed-in role may use, from the same map the server enforces (accounts/access.ts). Hiding a control is
+ * never the protection: the server and the database refuse anyway. It only keeps an organizer or scorer from pressing something that
+ * cannot work.
+ */
+export function useCompetitionCaps(): CompetitionCapabilities {
+  const { actor } = useAdmin();
+  return competitionUiFor(actor.role);
+}
+
+/** Who did it, for the reason kept in the record of changes ("Entry added by organizer"). The owner's wording is unchanged. */
+export function byRole(role: Actor['role']): string {
+  return role === 'organizer' ? 'by organizer' : role === 'scorer' ? 'by scorer' : 'by owner';
+}
+
+/** A plain sentence where a job belongs to the owner, instead of a button that would be refused. */
+export function OwnerJob({ children }: { children: ReactNode }) {
+  return <p className="rounded-lg border-2 border-line-strong bg-surface p-3 text-small text-fg-muted">{children}</p>;
 }

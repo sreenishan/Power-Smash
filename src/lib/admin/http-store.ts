@@ -146,6 +146,8 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     competitionSaveVenue: noActor('competition.saveVenue'),
     competitionSaveCourt: noActor('competition.saveCourt'),
     competitionApprovePointsTable: noActor('competition.approvePointsTable'),
+    competitionSearchPlayers: noActor('competition.searchPlayers'),
+    competitionCreatePlayer: noActor('competition.createPlayer'),
     // live scoring (D-113): a network failure comes back as BACKEND_ERROR with no errors.form, which the console treats as "send again"
     liveScoringMatches: () => post('competition.liveMatches'),
     liveScoringMatch: (o) => post('competition.liveMatch', o),
@@ -183,6 +185,9 @@ export function createHttpAdminStore(opts: HttpStoreOptions): AdminClient {
     notifySaveSettings: noActor('notify.saveSettings'),
     notifyQueueAnnouncement: noActor('notify.queueAnnouncement'),
     notifyDispatch: () => post('notify.dispatch'),
+    // keep-for periods (D-028, 0025)
+    retentionSummary: () => post('retention.summary'),
+    retentionSave: noActor('retention.save'),
     syncNow: () => post('site.syncNow'),
     publishNow: () => post('site.publishNow'),
   };

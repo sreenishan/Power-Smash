@@ -20,6 +20,7 @@ import type { LiveScoringAdminStore } from './live-scoring/types';
 import type { RegistrationAdminStore } from './registration/types';
 import type { InternationalAdminStore } from './international/types';
 import type { NoticesAdminStore } from './notices/types';
+import type { RetentionAdminStore } from './retention/types';
 
 export type { AgeStatus, ProtectedMatchMode };
 
@@ -337,7 +338,8 @@ export interface AdminStore
     LiveScoringAdminStore,
     RegistrationAdminStore,
     InternationalAdminStore,
-    NoticesAdminStore {
+    NoticesAdminStore,
+    RetentionAdminStore {
   getDashboard(): Promise<StoreResult<DashboardData>>;
   listReviewQueue(opts: { limit: number; offset: number }): Promise<StoreResult<ReviewVideo[]>>;
   resolveReview(actor: Actor, input: ReviewResolveInput): Promise<StoreResult<{ videoId: string }>>;

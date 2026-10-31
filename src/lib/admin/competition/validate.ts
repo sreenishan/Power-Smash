@@ -66,3 +66,29 @@ export function describePointsTable(t: PointsTableRecord | null): string {
   const levels = Object.entries(t.levels).map(([level, row]) => `${level}: ${FINISHES.filter((f) => row[f] !== undefined).map((f) => `${f} ${row[f]}`).join(', ')}`);
   return `"${t.label.trim()}": ${levels.join('; ')}. The best ${t.bestN} results of the last ${t.windowDays} days count. Power Smash local ranking, not an official BWF ranking.`;
 }
+
+// ----------------------------------------------------------------------------- an organizer's player search and new player (0024)
+
+/** The same bounds as admin_competition_search_players and admin_competition_create_player (0024). */
+export const ORGANIZER_PLAYER_LIMITS = { queryMin: 3, queryMax: 80, pageMax: 25, offsetMax: 500, nameMin: 2, nameMax: 80 } as const;
+
+/**
+ * The one refusal an organizer gets when a new player's name already exists, belongs to a hidden player or is on the removal list
+ * (0024): the same words for all three, so nobody can learn that a person asked to be removed.
+ */
+export const NEW_PLAYER_REFUSED = 'this name cannot be added here; choose the player from the list, or ask the owner';
+
+export const SEARCH_TOO_SHORT = `Type at least ${ORGANIZER_PLAYER_LIMITS.queryMin} letters of the name.`;
+
+/**
+ * The plain-English problem with a new player's name, or null. Same rule as the SQL: 2 to 80 characters after trimming, no control
+ * characters or angle brackets, and no contact details (an @ or a run of 7 or more digits: a phone number does not belong in a name).
+ */
+export function newPlayerNameProblem(raw: string): string | null {
+  const name = raw.trim();
+  if (name.length < ORGANIZER_PLAYER_LIMITS.nameMin || name.length > ORGANIZER_PLAYER_LIMITS.nameMax) return `Type the player's full name (${ORGANIZER_PLAYER_LIMITS.nameMin} to ${ORGANIZER_PLAYER_LIMITS.nameMax} letters).`;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f<>]/.test(name)) return "Type the player's name only, without special symbols.";
+  if (name.includes('@') || name.replace(/[^0-9]/g, '').length >= 7) return "Type the player's name only, no phone number or email.";
+  return null;
+}

@@ -255,6 +255,15 @@ export interface CompetitionBackend {
    */
   rankablePlayerIds(actor: Actor | null, ids: string[]): Promise<string[]>;
   getSettings(): Promise<CompSettings>;
+  /**
+   * Organizer path (0024): players whose matching name holds `query` (already normalised), for adding entries to events of `tournamentId`.
+   * Only id, display name and the naming flag (admin_competition_search_players; 'run' access in the database).
+   */
+  searchPlayersForTournament(actor: Actor, tournamentId: string, query: string, limit: number, offset: number): Promise<OrganizerPlayerPage>;
+  /** Organizer path (0024): a NEW provisional, hidden, unknown-age player scoped to the tournament (admin_competition_create_player). */
+  createProvisionalPlayer(actor: Actor, tournamentId: string, record: { name: string; nameNormalized: string }, reason: string): Promise<OrganizerPlayerDto>;
+  /** Organizer path (0024): of the players entered in one event, the ones competition pages may name (admin_competition_event_naming). */
+  eventNamedPlayerIds(actor: Actor, eventId: string): Promise<string[]>;
 
   saveEvent(actor: Actor, id: string | null, record: SaveEventRecord, reason: string): Promise<{ id: string; created: boolean; fields: string[] }>;
   addEntry(actor: Actor, eventId: string, record: AddEntryRecord, reason: string): Promise<{ id: string; status: string }>;
@@ -273,6 +282,26 @@ export interface CompetitionBackend {
 }
 
 // ----------------------------------------------------------------------------- what the screens get
+
+/** A player as an organizer's search sees it (0024): no age status, no profile, no contact field. */
+export interface OrganizerPlayerDto {
+  id: string;
+  displayName: string;
+  /** Competition pages may name this player (app.competition_named_players). false = shown as "Protected player". */
+  named: boolean;
+}
+
+/** One player found by the organizer search (0024): id and name only. No naming flag: that would tell an organizer who is an adult
+ * (D-012); the "On the site" badge comes from the event preview once the player is entered. */
+export interface OrganizerPlayerHit {
+  id: string;
+  displayName: string;
+}
+
+export interface OrganizerPlayerPage {
+  items: OrganizerPlayerHit[];
+  hasMore: boolean;
+}
 
 export interface CompetitionPlayerDto {
   id: string;
@@ -467,6 +496,18 @@ export interface SaveCourtInput extends SaveCourtRecord {
 export interface ApprovePointsTableInput extends PointsTableRecord {
   reason: string;
 }
+export interface SearchPlayersInput {
+  tournamentId: string;
+  /** Part of the name, 3 to 80 characters. */
+  q: string;
+  limit: number;
+  offset: number;
+}
+export interface CreatePlayerInput {
+  tournamentId: string;
+  name: string;
+  reason: string;
+}
 
 // ----------------------------------------------------------------------------- action outputs
 
@@ -552,6 +593,10 @@ export interface CompetitionAdminStore {
   competitionSaveVenue(actor: Actor, input: SaveVenueInput): Promise<StoreResult<{ id: string; created: boolean }>>;
   competitionSaveCourt(actor: Actor, input: SaveCourtInput): Promise<StoreResult<{ id: string; created: boolean }>>;
   competitionApprovePointsTable(actor: Actor, input: ApprovePointsTableInput): Promise<StoreResult<{ approvedAt: string }>>;
+  /** Find a player to enter (organizers; the owner may use it too). Scoped to one tournament the caller runs. */
+  competitionSearchPlayers(actor: Actor, input: SearchPlayersInput): Promise<StoreResult<OrganizerPlayerPage>>;
+  /** Add a NEW provisional, hidden, unknown-age player when nobody matches. Never edits an existing player. */
+  competitionCreatePlayer(actor: Actor, input: CreatePlayerInput): Promise<StoreResult<OrganizerPlayerDto>>;
 }
 
 /** Every competition method name, for the stores that delegate to the service. */
@@ -578,4 +623,6 @@ export const COMPETITION_STORE_METHODS = [
   'competitionSaveVenue',
   'competitionSaveCourt',
   'competitionApprovePointsTable',
+  'competitionSearchPlayers',
+  'competitionCreatePlayer',
 ] as const satisfies readonly (keyof CompetitionAdminStore)[];

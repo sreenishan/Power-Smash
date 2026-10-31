@@ -46,7 +46,7 @@ describe.skipIf(!up)('local PostgreSQL: 0007 placements', () => {
 
   afterAll(() => {
     if (up) dropDb(DB);
-  });
+  }, 60_000);
 
   it('service_role can create a sponsor and a placement', () => {
     const r = svc(sponsorInsert, placementInsert(), 'select count(*) from public.placements');
