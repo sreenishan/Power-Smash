@@ -10,6 +10,8 @@ Milestone M0 (setup, the Windows 10 smoke-test gate G0, parser fixtures) is part
 
 ### Changed
 
+- **Previews show made-up contact details (2026-10-31, your decision).** Every build except the real release build now shows the phone +91 00000 00000, the email hello@example.com and the WhatsApp number 910000000000, none of which reaches anyone. Your real business phone and email are kept in one place (`OWNER_CONTACT` in `src/content/site.ts`) and appear only in the release build. Checked by building both ways: the release build has only your details, the developer build only the made-up ones.
+
 *Hosting moved from Cloudflare Workers to Vercel, 2026-10-22 (owner decision, D-097); nothing was ever deployed on Cloudflare, so nothing is migrated*
 
 - **The website will be hosted on Vercel.** The plan, decision records and owner steps are rewritten (OT-02 is now the Vercel account and project, not a Cloudflare deploy key). The live site needs Vercel's Pro plan, USD 20 a month per seat, because the free Hobby plan is for non-commercial use only and this site advertises paid services and sponsor slots; you buy it yourself shortly before launch and I never enter a card. The free Hobby plan is enough for the private preview.

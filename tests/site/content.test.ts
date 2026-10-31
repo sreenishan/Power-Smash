@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { answeredFaq, faqItems } from '../../src/content/faq';
 import { partners, showablePartners, type Partner } from '../../src/content/partners';
 import { showableTestimonials, testimonials, type Testimonial } from '../../src/content/testimonials';
@@ -10,7 +10,8 @@ import {
   tournaments,
   type TournamentRecord,
 } from '../../src/content/tournaments';
-import { site } from '../../src/content/site';
+import { OWNER_CONTACT, site } from '../../src/content/site';
+import { isReleaseBuild, PREVIEW_CONTACT } from '../../src/config/env';
 import { daysBetween, formatMonthYear, isIsoDate } from '../../src/lib/dates';
 
 const base: TournamentRecord = {
@@ -43,8 +44,29 @@ describe('owner-supplied content starts empty (never fabricated)', () => {
     // These three are public by design (spec 13.2 publishes them). A different value here means someone changed them without
     // the owner: update this test only together with a new owner input.
     expect(site.legalName).toBe('Power Smash');
-    expect(site.phone).toBe('+91 73733 51087');
-    expect(site.publicEmail).toBe('powersmash1102@gmail.com');
+    expect(OWNER_CONTACT.phone).toBe('+91 73733 51087');
+    expect(OWNER_CONTACT.publicEmail).toBe('powersmash1102@gmail.com');
+  });
+
+  it('shows made-up contact details in every build except the strict release build (owner decision 2026-10-31)', async () => {
+    // this test run is not a release build (PS_STRICT is not "1"): the page values are the made-up ones, which reach nobody
+    expect(isReleaseBuild()).toBe(false);
+    expect(site.phone).toBe(PREVIEW_CONTACT.phone);
+    expect(site.publicEmail).toBe(PREVIEW_CONTACT.publicEmail);
+    expect(PREVIEW_CONTACT).toEqual({ phone: '+91 00000 00000', publicEmail: 'hello@example.com', whatsappNumber: '910000000000' });
+    // the release build gets the owner's real values
+    const before = process.env.PS_STRICT;
+    process.env.PS_STRICT = '1';
+    try {
+      vi.resetModules();
+      const release = await import('../../src/content/site');
+      expect(release.site.phone).toBe(OWNER_CONTACT.phone);
+      expect(release.site.publicEmail).toBe(OWNER_CONTACT.publicEmail);
+    } finally {
+      if (before === undefined) delete process.env.PS_STRICT;
+      else process.env.PS_STRICT = before;
+      vi.resetModules();
+    }
   });
 
   it('keeps every owner-supplied site value the owner has NOT given yet null or empty (never fabricated)', () => {
@@ -87,9 +109,10 @@ describe('owner-supplied content starts empty (never fabricated)', () => {
   });
 
   it('carries no email address other than the business address (never the owner\'s personal Gmail)', () => {
-    const text = JSON.stringify(site);
+    // the page values (made up outside the release build) and the owner's record together hold only these two addresses
+    const text = JSON.stringify({ site, OWNER_CONTACT });
     const emails = [...new Set(text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? [])];
-    expect(emails).toEqual(['powersmash1102@gmail.com']);
+    expect(emails.sort()).toEqual(['hello@example.com', 'powersmash1102@gmail.com']);
   });
 });
 

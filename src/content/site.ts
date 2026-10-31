@@ -3,7 +3,17 @@
 // <OwnerSection when={...}>; a value that cannot be hidden (the page is not honest without it) is shown with <Todo what="...">
 // in dev builds and FAILS the strict release gate (scripts/check-placeholders.ts) until it is supplied.
 // The Site-shell worker owns this file and may extend it (keep the nullable-by-default rule).
-import { env } from '../config/env';
+import { env, isReleaseBuild, PREVIEW_CONTACT } from '../config/env';
+
+/**
+ * The owner's real contact details (OT-19, owner input 2026-10-25), public by design (spec 13.2). Used ONLY by the strict release
+ * build; every other build shows PREVIEW_CONTACT instead (owner decision 2026-10-31: previews use made-up contact details).
+ */
+export const OWNER_CONTACT = {
+  phone: '+91 73733 51087' as string | null,
+  publicEmail: 'powersmash1102@gmail.com' as string | null,
+};
+const contact = isReleaseBuild() ? OWNER_CONTACT : { ...OWNER_CONTACT, ...PREVIEW_CONTACT };
 
 /** One owner-worded audience figure: a label (a city, an age group, a gender) and its share exactly as YouTube Studio shows it. The share is text so no number is ever computed or invented here. */
 export interface AudienceShare {
@@ -21,13 +31,13 @@ export const site = {
   legalName: 'Power Smash' as string | null,
   /** Still missing: the owner gave only "Tamil Nadu", which is not a postal address. Stays hidden until a full address is supplied. */
   postalAddress: null as string | null,
-  /** Owner input 2026-10-25 (OT-19): the business number, public by design (spec 13.2). */
-  phone: '+91 73733 51087' as string | null,
+  /** Owner input 2026-10-25 (OT-19): the business number, public by design (spec 13.2). Made up outside the release build (OWNER_CONTACT). */
+  phone: contact.phone as string | null,
   /**
    * Owner input 2026-10-25 (OT-19): the business Gmail of the channel (the address the spec publishes, 13.2), as the interim
    * public address. D-022 replaces it with the domain address (hello@...) once the domain is verified. Never the personal Gmail.
    */
-  publicEmail: 'powersmash1102@gmail.com' as string | null,
+  publicEmail: contact.publicEmail as string | null,
   grievanceOfficerName: null as string | null,
   grievanceOfficerPhone: null as string | null, // OT-19; legal pages fall back to `phone` when null
   grievanceEmail: null as string | null,
